@@ -187,20 +187,24 @@
       data-screen-id="SCR-LIBRARY-001"
       data-requirement="REQ-LIB-001"
       data-testid="library-screen">
-      <div class="screen-scroll">
-        <header class="compact-header">
-          <button class="icon-btn" onclick="showScreen('SCR-HOME-001')">‹</button>
-          <div><span class="eyebrow">Discover</span><h1>Library</h1></div>
-          <div></div>
+      <div class="screen-scroll library-scroll">
+        <header class="library-header"
+          data-component-id="CMP-LIBRARY-HEADER"
+          data-requirement="REQ-LIB-001">
+          <h1>Library</h1>
+          <button class="icon-btn" data-testid="library-search" aria-label="Search">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          </button>
         </header>
 
-        <div class="filter-chips"
+        <div class="filter-chips library-filters"
           data-component-id="CMP-LIBRARY-FILTERS"
           data-requirement="REQ-LIB-002"
           data-testid="library-filters">
           <button class="selected" data-testid="library-filter-all" onclick="filterLibrary('all', this)">All</button>
-          <button data-testid="library-filter-manga" onclick="filterLibrary('manga', this)">Manga</button>
           <button data-testid="library-filter-animal" onclick="filterLibrary('animal', this)">Animal</button>
+          <button data-testid="library-filter-food" onclick="filterLibrary('food', this)">Food</button>
+          <button data-testid="library-filter-manga" onclick="filterLibrary('manga', this)">Manga</button>
           <button data-testid="library-filter-nature" onclick="filterLibrary('nature', this)">Nature</button>
         </div>
 
@@ -209,32 +213,41 @@
           data-requirement="REQ-LIB-001"
           data-testid="library-grid"
           data-active-filter="all">
-          <button class="drawing-card" data-category="manga" data-testid="drawing-card-draw_manga_001" onclick="openArtwork('draw_manga_001')">
-            <div class="thumb thumb-lilac">☾</div><b>Moon Samurai</b><span>Manga</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="animal" data-testid="drawing-card-draw_animals_001" onclick="openArtwork('draw_animals_001')">
+            <div class="thumb thumb-pink"><img src="assets/elephant-lineart.svg"></div><b>Little Elephant</b>
           </button>
-          <button class="drawing-card" data-category="manga" data-testid="drawing-card-draw_manga_002" onclick="openArtwork('draw_manga_002')">
-            <div class="thumb thumb-blue">☆</div><b>Star Racer</b><span>Manga</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="animal" data-testid="drawing-card-draw_animals_002" onclick="openArtwork('draw_animals_002')">
+            <div class="thumb thumb-blue">☁</div><b>Penguin Family</b>
           </button>
-          <button class="drawing-card" data-category="manga" data-testid="drawing-card-draw_manga_003" onclick="openArtwork('draw_manga_003')">
-            <div class="thumb thumb-pink">✎</div><b>Ink Fox</b><span>Manga</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="animal" data-testid="drawing-card-draw_animals_003" onclick="openArtwork('draw_animals_003')">
+            <div class="thumb thumb-green">♧</div><b>Baby Deer</b>
           </button>
-          <button class="drawing-card" data-category="animal" data-testid="drawing-card-draw_animals_001" onclick="openArtwork('draw_animals_001')">
-            <div class="thumb thumb-pink"><img src="assets/elephant-lineart.svg"></div><b>Little Elephant</b><span>Animal</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="food" data-testid="drawing-card-draw_food_001" onclick="openArtwork('draw_food_001')">
+            <div class="thumb thumb-blue">◍</div><b>Donut Stack</b>
           </button>
-          <button class="drawing-card" data-category="animal" data-testid="drawing-card-draw_animals_002" onclick="openArtwork('draw_animals_002')">
-            <div class="thumb thumb-blue">☁</div><b>Penguin Family</b><span>Animal</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="food" data-testid="drawing-card-draw_food_002" onclick="openArtwork('draw_food_002')">
+            <div class="thumb thumb-pink">✤</div><b>Cupcake Swirl</b>
           </button>
-          <button class="drawing-card" data-category="animal" data-testid="drawing-card-draw_animals_003" onclick="openArtwork('draw_animals_003')">
-            <div class="thumb thumb-green">♧</div><b>Baby Deer</b><span>Animal</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="food" data-testid="drawing-card-draw_food_003" onclick="openArtwork('draw_food_003')">
+            <div class="thumb thumb-green">✧</div><b>Berry Bowl</b>
           </button>
-          <button class="drawing-card" data-category="nature" data-testid="drawing-card-draw_nature_001" onclick="openArtwork('draw_nature_001')">
-            <div class="thumb thumb-lilac">✿</div><b>Moon Flowers</b><span>Nature</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="manga" data-testid="drawing-card-draw_manga_001" onclick="openArtwork('draw_manga_001')">
+            <div class="thumb thumb-lilac">☾</div><b>Moon Samurai</b>
           </button>
-          <button class="drawing-card" data-category="nature" data-testid="drawing-card-draw_nature_002" onclick="openArtwork('draw_nature_002')">
-            <div class="thumb thumb-pink">✾</div><b>Flower Fairy</b><span>Nature</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="manga" data-testid="drawing-card-draw_manga_002" onclick="openArtwork('draw_manga_002')">
+            <div class="thumb thumb-blue">☆</div><b>Star Racer</b>
           </button>
-          <button class="drawing-card" data-category="nature" data-testid="drawing-card-draw_nature_003" onclick="openArtwork('draw_nature_003')">
-            <div class="thumb thumb-green">♣</div><b>Misty Forest</b><span>Nature</span>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="manga" data-testid="drawing-card-draw_manga_003" onclick="openArtwork('draw_manga_003')">
+            <div class="thumb thumb-pink">✎</div><b>Ink Fox</b>
+          </button>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="nature" data-testid="drawing-card-draw_nature_001" onclick="openArtwork('draw_nature_001')">
+            <div class="thumb thumb-lilac">✿</div><b>Moon Flowers</b>
+          </button>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="nature" data-testid="drawing-card-draw_nature_002" onclick="openArtwork('draw_nature_002')">
+            <div class="thumb thumb-pink">✾</div><b>Flower Fairy</b>
+          </button>
+          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="nature" data-testid="drawing-card-draw_nature_003" onclick="openArtwork('draw_nature_003')">
+            <div class="thumb thumb-green">♣</div><b>Misty Forest</b>
           </button>
         </div>
 

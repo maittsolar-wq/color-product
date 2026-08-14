@@ -36,6 +36,15 @@ for (const category of ['manga', 'animal', 'nature']) {
   });
 }
 
+test('TC-LIB-001 — Library entered from root bottom nav shows All active', async ({ page }) => {
+  await openHome(page);
+
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await expect(page.locator('[data-screen-id="SCR-LIBRARY-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="library-filter-all"]')).toHaveClass(/selected/);
+  await expect(page.locator('[data-testid="library-grid"]')).toHaveAttribute('data-active-filter', 'all');
+});
+
 test('TC-HOME-009 — Bottom nav routes to Library (All) and Profile', async ({ page }) => {
   await openHome(page);
 
@@ -50,13 +59,71 @@ test('TC-HOME-009 — Bottom nav routes to Library (All) and Profile', async ({ 
   await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).toHaveClass(/active/);
 });
 
-test('TC-LIB-002 — Library filter narrows the grid', async ({ page }) => {
+test('TC-LIB-004 — Library bottom nav routes to Home', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="nav-home"]').click();
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
+});
+
+test('TC-LIB-005 — Library bottom nav routes to Profile', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).toHaveClass(/active/);
+});
+
+const LIBRARY_CARDS_BY_CATEGORY = {
+  all: null,
+  animal: 'draw_animals_001',
+  food: 'draw_food_001',
+  manga: 'draw_manga_001',
+  nature: 'draw_nature_001',
+};
+
+for (const category of ['animal', 'food', 'manga', 'nature']) {
+  test(`TC-LIB-002 — Library filter (${category}) shows only matching artwork`, async ({ page }) => {
+    await openHome(page);
+    await active(page).locator('[data-testid="nav-library"]').click();
+
+    await page.locator(`[data-testid="library-filter-${category}"]`).click();
+    await expect(page.locator(`[data-testid="library-filter-${category}"]`)).toHaveClass(/selected/);
+    await expect(page.locator('[data-testid="library-grid"]')).toHaveAttribute('data-active-filter', category);
+
+    for (const [otherCategory, cardId] of Object.entries(LIBRARY_CARDS_BY_CATEGORY)) {
+      if (!cardId) continue;
+      const card = active(page).locator(`[data-testid="drawing-card-${cardId}"]`);
+      if (otherCategory === category) {
+        await expect(card).toBeVisible();
+      } else {
+        await expect(card).toBeHidden();
+      }
+    }
+  });
+}
+
+test('TC-LIB-002b — Library "All" filter shows every category again', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="nav-library"]').click();
 
-  await page.locator('[data-testid="library-filter-nature"]').click();
-  await expect(active(page).locator('[data-testid="drawing-card-draw_nature_001"]')).toBeVisible();
-  await expect(active(page).locator('[data-testid="drawing-card-draw_manga_001"]')).toBeHidden();
+  await page.locator('[data-testid="library-filter-food"]').click();
+  await page.locator('[data-testid="library-filter-all"]').click();
+
+  for (const cardId of Object.values(LIBRARY_CARDS_BY_CATEGORY)) {
+    if (!cardId) continue;
+    await expect(active(page).locator(`[data-testid="drawing-card-${cardId}"]`)).toBeVisible();
+  }
+});
+
+test('TC-LIB-003 — Library artwork opens Coloring directly (no Preview/Category hop)', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+
+  await active(page).locator('[data-testid="drawing-card-draw_food_002"]').click();
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-CATEGORY-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="coloring-canvas"]')).toBeVisible();
 });
 
 test('TC-PROFILE-002 — Profile segmented view filters correctly', async ({ page }) => {
