@@ -1,0 +1,13 @@
+appId: com.example.coloringapp
+---
+- launchApp
+- tapOn:
+    id: drawing-card-draw_animals_001
+- tapOn:
+    id: start-coloring
+
+- tapOn:
+    id: editor-done
+
+# Native implementation should expose completion screen ID:
+# completion-screen

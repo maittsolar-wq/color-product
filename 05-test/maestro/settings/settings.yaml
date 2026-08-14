@@ -1,0 +1,14 @@
+appId: com.example.coloringapp
+---
+- launchApp
+
+- tapOn:
+    id: settings
+
+- assertVisible:
+    id: settings-screen
+
+# Add stable IDs if direct automation is required for:
+# privacy-policy
+# terms-of-use
+# restore-purchase

@@ -1,0 +1,19 @@
+appId: com.example.coloringapp
+---
+- launchApp
+- tapOn:
+    id: drawing-card-draw_animals_001
+- tapOn:
+    id: start-coloring
+
+- assertVisible:
+    id: undo
+- assertVisible:
+    id: redo
+
+# Requires deterministic editing hook/coordinate:
+# 1. perform edit
+# 2. tap undo
+# 3. assert region-state
+# 4. tap redo
+# 5. assert region-state

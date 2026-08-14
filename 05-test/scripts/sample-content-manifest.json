@@ -1,0 +1,26 @@
+{
+  "categories": [
+    {
+      "id": "cat_animals",
+      "name": "Animals",
+      "thumbnail": "categories/animals.webp",
+      "displayOrder": 1,
+      "isActive": true,
+      "isPremium": false
+    }
+  ],
+  "drawings": [
+    {
+      "id": "draw_animals_001",
+      "title": "Little Elephant",
+      "categoryId": "cat_animals",
+      "thumbnail": "drawings/animals/001_thumb.webp",
+      "coloringAsset": "drawings/animals/001.svg",
+      "displayOrder": 1,
+      "isActive": true,
+      "isPremium": false,
+      "rewardUnlockEligible": false,
+      "contentVersion": 1
+    }
+  ]
+}

@@ -1,0 +1,14 @@
+appId: com.example.coloringapp
+---
+- launchApp
+- tapOn:
+    id: drawing-card-draw_animals_001
+- tapOn:
+    id: start-coloring
+
+- tapOn:
+    id: editor-fit
+
+# Recommended test hook:
+# - assertVisible:
+#     id: editor-zoom-state-fit

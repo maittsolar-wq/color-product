@@ -1,0 +1,19 @@
+appId: com.example.coloringapp
+---
+- launchApp
+- tapOn:
+    id: drawing-card-draw_animals_001
+- tapOn:
+    id: start-coloring
+
+- tapOn:
+    id: tool-fill
+- tapOn:
+    id: palette-color-pink
+
+# Perform deterministic edit when native test hook/coordinate exists.
+# Then navigate back, reopen drawing, and assert restored region state.
+#
+# Recommended hooks:
+# editor-save-state
+# region-state-region_001-pink

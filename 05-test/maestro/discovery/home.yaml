@@ -1,0 +1,15 @@
+appId: com.example.coloringapp
+---
+- launchApp
+
+- assertVisible:
+    id: home-screen
+
+- assertVisible:
+    id: drawing-card-draw_animals_001
+
+- tapOn:
+    id: drawing-card-draw_animals_001
+
+- assertVisible:
+    id: drawing-preview

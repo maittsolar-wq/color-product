@@ -1,0 +1,12 @@
+appId: com.example.coloringapp
+---
+- launchApp
+
+# This assumes a stable category entry point.
+# Add `category-animals` test ID in native app if category navigation needs direct automation.
+
+- tapOn:
+    id: drawing-card-draw_animals_001
+
+- assertVisible:
+    id: drawing-preview

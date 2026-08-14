@@ -1,0 +1,15 @@
+appId: com.example.coloringapp
+---
+- launchApp
+- tapOn:
+    id: drawing-card-draw_animals_001
+- tapOn:
+    id: start-coloring
+
+# Native app should expose:
+# reset
+# reset-confirmation
+# reset-cancel
+# reset-confirm
+#
+# Enable when those IDs are implemented.

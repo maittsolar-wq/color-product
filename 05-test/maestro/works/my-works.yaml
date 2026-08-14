@@ -1,0 +1,15 @@
+appId: com.example.coloringapp
+---
+- launchApp
+
+- tapOn:
+    id: my-works
+
+- assertVisible:
+    id: my-works-screen
+
+- assertVisible:
+    id: in-progress-section
+
+- assertVisible:
+    id: completed-section

@@ -1,0 +1,22 @@
+appId: com.example.coloringapp
+---
+# TEMPLATE
+# Requires provider sandbox/test account strategy.
+
+- launchApp
+- tapOn:
+    id: premium-home
+- assertVisible:
+    id: paywall
+
+# Purchase
+# - tapOn:
+#     id: purchase
+# - assertVisible:
+#     id: premium-active
+
+# Restore
+# - tapOn:
+#     id: restore-purchase
+# - assertVisible:
+#     id: premium-active

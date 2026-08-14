@@ -1,0 +1,17 @@
+appId: com.example.coloringapp
+---
+- launchApp
+- tapOn:
+    id: drawing-card-draw_animals_001
+- tapOn:
+    id: start-coloring
+
+- tapOn:
+    id: palette-color-green
+
+- tapOn:
+    id: palette-color-pink
+
+# Recommended debug hook for stronger assertion:
+# - assertVisible:
+#     id: editor-active-color-pink

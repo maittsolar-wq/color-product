@@ -1,0 +1,12 @@
+{
+  "name": "coloring-step9-hifi-tests",
+  "version": "0.2.0",
+  "private": true,
+  "scripts": {
+    "test": "playwright test",
+    "test:headed": "playwright test --headed"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

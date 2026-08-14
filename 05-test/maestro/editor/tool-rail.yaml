@@ -1,0 +1,25 @@
+appId: com.example.coloringapp
+---
+- launchApp
+
+- tapOn:
+    id: drawing-card-draw_animals_001
+- tapOn:
+    id: start-coloring
+- assertVisible:
+    id: coloring-canvas
+
+- tapOn:
+    id: tool-brush
+- assertVisible:
+    id: tool-brush
+
+- tapOn:
+    id: tool-fill
+- assertVisible:
+    id: tool-fill
+
+- tapOn:
+    id: tool-erase
+- assertVisible:
+    id: tool-erase
