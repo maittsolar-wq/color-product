@@ -202,6 +202,8 @@ Sau entry flow hợp lệ, user phải được đưa tới Home.
 
 # 5. MOD-002 — Home & Discovery Requirements
 
+**Status: Updated — 2026-08-14 re-baseline.** Home content model changed from Featured/Daily/Continue/Category-grid blocks to repeatable category sections. Legacy requirements below are preserved, not deleted, and marked accordingly.
+
 ## REQ-HOME-001 — Display Home Content
 
 **Feature:** FE-HOME-001  
@@ -209,13 +211,18 @@ Sau entry flow hợp lệ, user phải được đưa tới Home.
 
 Home phải hiển thị các khối discovery chính đã được bật trong MVP.
 
-### Minimum Content Blocks
+### Minimum Content Blocks (approved 2026-08-14)
 
-- Categories
+- Repeatable category sections (e.g. Manga, Animal, Nature), each with title + See all + horizontally scrollable artwork cards
+- PRO entry
+- Bottom navigation (Home / Library / Profile)
+
+### Legacy Content Blocks (preserved, superseded — not part of approved structure)
+
+- Categories (icon grid)
 - Featured/New
-- Continue Coloring nếu có progress
-- My Works shortcut
-- Daily nếu feature được bật
+- Continue Coloring
+- Daily
 
 ### Acceptance Criteria
 
@@ -223,7 +230,7 @@ Home phải hiển thị các khối discovery chính đã được bật trong 
 
 Given Home load thành công  
 When user mở Home  
-Then ít nhất Categories và một artwork/content block phải hiển thị.
+Then ít nhất một category section phải hiển thị.
 
 ---
 
@@ -231,19 +238,21 @@ Then ít nhất Categories và một artwork/content block phải hiển thị.
 
 **Feature:** FE-HOME-002  
 **Screen:** SCR-HOME-001  
-**Flow:** FLOW-DISCOVER-001  
+**Flow:** FLOW-LIBRARY-001 *(updated — was FLOW-DISCOVER-001, legacy)*
 
-Home phải hiển thị danh sách category khả dụng.
+Home phải hiển thị category sections khả dụng (title + See all + horizontal artwork list), thay cho icon-based category grid trước đây.
 
 ### Acceptance Criteria
 
 Given category data tồn tại  
 When Home load  
-Then category phải hiển thị với tên và thumbnail/icon phù hợp.
+Then category section phải hiển thị với tên và artwork cards phù hợp.
 
 ---
 
 ## REQ-HOME-003 — Open Category
+
+**Status: LEGACY — superseded by `REQ-HOME-008` (2026-08-14). Preserved, not routed from approved Home flow.**
 
 **Feature:** FE-HOME-005  
 **Screen:** SCR-HOME-001 → SCR-CATEGORY-001  
@@ -271,6 +280,8 @@ Artwork được hiển thị trên Home phải có thumbnail rõ ràng và đú
 
 ## REQ-HOME-005 — Open Drawing from Home
 
+**Status: LEGACY — superseded by `REQ-HOME-009` (2026-08-14). Preserved, not routed from approved Home flow.**
+
 **Feature:** FE-HOME-006  
 **Screen:** SCR-HOME-001 → SCR-PREVIEW-001  
 
@@ -279,6 +290,8 @@ Nếu artwork xuất hiện trực tiếp trên Home, user phải có thể tap 
 ---
 
 ## REQ-HOME-006 — Continue Coloring
+
+**Status: LEGACY — superseded by `REQ-HOME-009` (2026-08-14), which applies the resume-or-create rule to every artwork card, not just a dedicated Continue Coloring block. Preserved, not part of approved Home structure.**
 
 **Feature:** FE-HOME-007  
 **Screen:** SCR-HOME-001  
@@ -303,15 +316,83 @@ Home phải xử lý graceful khi một số block content không load được.
 
 ### Acceptance Criteria
 
-Given Featured content lỗi  
-But Category data vẫn khả dụng  
+Given một category section lỗi  
+But các category sections khác vẫn khả dụng  
 When Home load  
-Then Category vẫn phải sử dụng được  
+Then các sections còn lại vẫn phải sử dụng được  
 And app không được chuyển toàn Home sang trạng thái unusable.
 
 ---
 
+## REQ-HOME-008 — See All → Library With Category Filter *(new — 2026-08-14)*
+
+**Feature:** FE-LIB-004  
+**Screen:** SCR-HOME-001 → SCR-LIBRARY-001  
+**Flow:** FLOW-LIBRARY-001  
+
+User phải có thể tap "See all" trên một category section để mở Library với filter của category đó đang active.
+
+### Acceptance Criteria
+
+Given user đang ở Home, category section "Manga"  
+When user tap "See all"  
+Then SCR-LIBRARY-001 phải mở  
+And filter "Manga" phải active.
+
+---
+
+## REQ-HOME-009 — Open Artwork From Home Direct (Resume-or-Create) *(new — 2026-08-14)*
+
+**Feature:** FE-HOME-010  
+**Screen:** SCR-HOME-001 → SCR-EDITOR-001  
+**Flow:** FLOW-COLOR-001, FLOW-RESUME-001  
+
+User phải có thể tap bất kỳ artwork card nào trên Home để mở Coloring Editor trực tiếp, không qua Preview.
+
+### Acceptance Criteria
+
+**AC-HOME-009-01**
+
+Given artwork đã có progress (In Progress)  
+When user tap artwork card  
+Then progress hiện có phải được restore  
+And SCR-EDITOR-001 phải mở với đúng artwork.
+
+**AC-HOME-009-02**
+
+Given artwork chưa có progress  
+When user tap artwork card  
+Then một progress record mới phải được tạo  
+And SCR-EDITOR-001 phải mở với đúng artwork.
+
+---
+
+## REQ-HOME-010 — Bottom Navigation: Home / Library / Profile *(new — 2026-08-14)*
+
+**Feature:** FE-HOME-011  
+**Screen:** SCR-HOME-001, SCR-LIBRARY-001, SCR-PROFILE-001  
+
+App phải cung cấp bottom navigation gồm 3 tab: Home, Library, Profile.
+
+### Acceptance Criteria
+
+Given user tap tab Library  
+When điều hướng hoàn tất  
+Then SCR-LIBRARY-001 phải mở với filter "All" active.
+
+Given user tap tab Profile  
+When điều hướng hoàn tất  
+Then SCR-PROFILE-001 phải mở.
+
+### Business Rule
+
+Settings không còn là bottom-nav tab; Settings được truy cập qua Profile → Settings icon (`REQ-PROFILE-006`).
+
+---
+
 # 6. MOD-003 — Category & Drawing List Requirements
+
+**Status: LEGACY — 2026-08-14 re-baseline.** `SCR-CATEGORY-001` is no longer a Home navigation destination in the approved MVP core flow. All requirements below are preserved for traceability, not deleted or renamed. Browse/filter concepts may inform `SCR-LIBRARY-001` (MOD-009), which uses new, distinct IDs.
 
 ## REQ-CAT-001 — Display Category Screen
 
@@ -374,6 +455,8 @@ Nếu artwork list không load được, app phải hiển thị error state và
 ---
 
 # 7. MOD-004 — Drawing Preview Requirements
+
+**Status: LEGACY — 2026-08-14 re-baseline.** `SCR-PREVIEW-001` is no longer routed from the approved MVP core discovery flow. All requirements below are preserved for traceability, not deleted or renamed. Locked/unlocked resolution and resume/start CTA logic previously owned exclusively here are reassigned to the artwork-tap resolver on Home/Library/Profile — see `REQ-HOME-009`, `REQ-LIB-003`, `REQ-PROFILE-005`.
 
 ## REQ-PREVIEW-001 — Display Artwork Preview
 
@@ -628,7 +711,26 @@ Nếu brush nằm trong MVP, user nên có thể thay đổi brush size.
 
 ---
 
+## REQ-EDITOR-017 — Completion Recommended Artwork *(new — 2026-08-14)*
+
+**Feature:** FE-EDITOR-022 *(corrected 2026-08-14 — was mistakenly FE-EDITOR-017, which is the pre-existing "Visual Tool Preview" feature; see mvp-scope.md)*  
+**Screen:** SCR-COMPLETE-001 → SCR-EDITOR-001  
+**Flow:** FLOW-COMPLETE-001  
+
+Completion screen phải hiển thị "Recommended for you" — danh sách artwork cards. Tap vào một artwork phải mở Coloring Editor trực tiếp, áp dụng resume-or-create rule giống `REQ-HOME-009`.
+
+### Acceptance Criteria
+
+Given user đang ở SCR-COMPLETE-001  
+When user tap một artwork trong "Recommended for you"  
+Then app phải resolve progress (restore nếu có, tạo mới nếu chưa có)  
+And SCR-EDITOR-001 phải mở với đúng artwork.
+
+---
+
 # 9. MOD-006 — Progress & My Works Requirements
+
+**Status: Partially LEGACY — 2026-08-14 re-baseline.** `SCR-WORKS-001` (My Works) is superseded by `SCR-PROFILE-001` (MOD-010) as the bottom-nav personal-artwork destination. Requirements describing persistence behavior (data-layer, not screen-specific) remain fully active; requirements describing the `SCR-WORKS-001` screen itself are marked Legacy below.
 
 ## REQ-WORK-001 — Persist Artwork Progress
 
@@ -641,6 +743,8 @@ Artwork đã thay đổi phải được lưu vào local persistence.
 
 ## REQ-WORK-002 — Display My Works
 
+**Status: LEGACY — superseded by `REQ-PROFILE-003`/`REQ-PROFILE-004` (2026-08-14). Preserved, not routed from bottom navigation.**
+
 **Feature:** FE-WORK-002  
 **Screen:** SCR-WORKS-001  
 **Flow:** FLOW-WORKS-001  
@@ -651,6 +755,8 @@ My Works phải hiển thị artwork user đã bắt đầu hoặc hoàn thành.
 
 ## REQ-WORK-003 — Resume from My Works
 
+**Status: LEGACY — superseded by `REQ-PROFILE-005` (2026-08-14). Preserved, not routed.**
+
 **Feature:** FE-WORK-003  
 **Screen:** SCR-WORKS-001 → SCR-EDITOR-001 / SCR-PREVIEW-001  
 **Flow:** FLOW-RESUME-001  
@@ -660,6 +766,8 @@ User phải có thể tiếp tục artwork In Progress từ My Works.
 ---
 
 ## REQ-WORK-004 — Completed State
+
+**Status: LEGACY — superseded by `REQ-PROFILE-003` (2026-08-14). Preserved, not routed.**
 
 **Feature:** FE-WORK-004  
 **Screen:** SCR-WORKS-001  
@@ -678,11 +786,13 @@ Progress phải tồn tại sau app relaunch.
 
 ## REQ-WORK-006 — Save Final Image
 
+**Status: Updated — 2026-08-14, promoted to core Completion behavior.**
+
 **Feature:** FE-WORK-006  
 **Screen:** SCR-COMPLETE-001  
 **Priority:** SHOULD  
 
-User nên có thể xuất artwork hoàn thành thành image.
+User phải có thể save rendered colored artwork image xuống thiết bị ("Save/Download" trên Completion).
 
 ---
 
@@ -697,11 +807,13 @@ Nếu user chọn Save to Device, app phải yêu cầu quyền hệ thống ph�
 
 ## REQ-WORK-008 — Share
 
+**Status: Updated — 2026-08-14, production implementation invokes native device share sheet.**
+
 **Feature:** FE-WORK-008  
 **Screen:** SCR-COMPLETE-001  
 **Priority:** SHOULD  
 
-App nên hỗ trợ system share sheet cho artwork hoàn thành.
+App phải hỗ trợ native device share sheet cho artwork hoàn thành ("Share" trên Completion).
 
 ---
 
@@ -834,7 +946,171 @@ Nếu monetization được bật, Settings phải cung cấp entry Restore Purc
 
 ---
 
-# 12. Content Requirements
+# 12. MOD-009 — Library & Discovery Requirements *(new — 2026-08-14)*
+
+## REQ-LIB-001 — Display Library Screen
+
+**Feature:** FE-LIB-001  
+**Screen:** SCR-LIBRARY-001  
+
+Library phải hiển thị artwork grid với category filter.
+
+### Acceptance Criteria
+
+Given Library load thành công  
+When user mở Library  
+Then artwork grid và filter control phải hiển thị.
+
+---
+
+## REQ-LIB-002 — Filter By Category
+
+**Feature:** FE-LIB-002  
+**Screen:** SCR-LIBRARY-001  
+
+User phải có thể filter artwork theo category (All, Manga, Animal, Nature, Food, v.v.).
+
+### Acceptance Criteria
+
+Given user chọn filter "Nature"  
+When filter áp dụng  
+Then chỉ artwork thuộc category Nature được hiển thị.
+
+---
+
+## REQ-LIB-003 — Open Artwork From Library
+
+**Feature:** FE-LIB-003  
+**Screen:** SCR-LIBRARY-001 → SCR-EDITOR-001  
+**Flow:** FLOW-LIBRARY-001  
+
+User phải có thể tap artwork trong Library để mở Coloring Editor trực tiếp, áp dụng resume-or-create rule giống `REQ-HOME-009`.
+
+---
+
+## REQ-LIB-004 — Entry With Pre-Applied Filter
+
+**Feature:** FE-LIB-004  
+**Screen:** SCR-HOME-001 → SCR-LIBRARY-001  
+**Flow:** FLOW-LIBRARY-001  
+
+Khi Library được mở từ Home "See all", filter tương ứng phải active mặc định. Khi mở từ Bottom Nav, filter "All" phải active mặc định.
+
+---
+
+## REQ-LIB-005 — Empty Filter Result
+
+**Feature:** FE-LIB-002  
+**Screen:** SCR-LIBRARY-001  
+**Flow:** FLOW-EMPTY-001  
+
+Nếu filter không có artwork tương ứng, app phải hiển thị empty state thay vì màn trắng.
+
+---
+
+## REQ-LIB-006 — Library Load Error
+
+**Feature:** FE-LIB-001  
+**Screen:** SCR-LIBRARY-001  
+**Flow:** FLOW-ERROR-001  
+
+Nếu artwork list không load được, app phải hiển thị error state và Retry.
+
+---
+
+# 13. MOD-010 — Profile Requirements *(new — 2026-08-14)*
+
+## BR-PROFILE-001 — Personal Artwork State Rule
+
+User rời Coloring Editor mà không nhấn Done:
+- artwork status = `IN_PROGRESS`
+- artwork xuất hiện ở Profile / All
+- artwork xuất hiện ở Profile / In Progress
+- artwork không xuất hiện ở Profile / Completed
+
+User nhấn Done trong Coloring Editor:
+- artwork status = `COMPLETED`
+- artwork xuất hiện ở Profile / All
+- artwork xuất hiện ở Profile / Completed
+- artwork không còn xuất hiện ở Profile / In Progress
+
+**Source:** Explicit product decision, 2026-08-14.
+
+---
+
+## REQ-PROFILE-001 — Display Profile Screen
+
+**Feature:** FE-PROFILE-001  
+**Screen:** SCR-PROFILE-001  
+
+Profile phải hiển thị personal artwork của user, phân đoạn theo All / Completed / In Progress.
+
+---
+
+## REQ-PROFILE-002 — Empty State
+
+**Feature:** FE-PROFILE-002  
+**Screen:** SCR-PROFILE-001  
+**Flow:** FLOW-PROFILE-001  
+
+Nếu user chưa có personal artwork, Profile phải hiển thị empty state kèm CTA "Explore Library".
+
+### Acceptance Criteria
+
+Given user chưa có artwork nào (In Progress hoặc Completed)  
+When Profile load  
+Then empty state phải hiển thị  
+And CTA "Explore Library" phải mở SCR-LIBRARY-001.
+
+---
+
+## REQ-PROFILE-003 — Segmented View
+
+**Feature:** FE-PROFILE-003  
+**Screen:** SCR-PROFILE-001  
+
+Profile phải cung cấp 3 segment: All, Completed, In Progress. Xem `BR-PROFILE-001` cho quy tắc phân loại.
+
+---
+
+## REQ-PROFILE-004 — Personal Artwork Grid
+
+**Feature:** FE-PROFILE-004  
+**Screen:** SCR-PROFILE-001  
+
+Mỗi segment phải hiển thị artwork grid tương ứng với trạng thái đã chọn.
+
+---
+
+## REQ-PROFILE-005 — Open Artwork From Profile
+
+**Feature:** FE-PROFILE-005  
+**Screen:** SCR-PROFILE-001 → SCR-EDITOR-001  
+**Flow:** FLOW-PROFILE-001  
+
+User phải có thể tap artwork trong Profile để mở Coloring Editor trực tiếp. Vì artwork trong Profile luôn có progress, hành vi luôn là restore (không có nhánh tạo mới).
+
+---
+
+## REQ-PROFILE-006 — Settings Icon Entry
+
+**Feature:** FE-PROFILE-006  
+**Screen:** SCR-PROFILE-001 → SCR-SETTINGS-001  
+
+Profile phải cung cấp Settings icon để mở `SCR-SETTINGS-001`. `SCR-SETTINGS-001` vẫn là màn hình riêng biệt, không bị gộp vào Profile.
+
+---
+
+## REQ-PROFILE-007 — Artwork State Sync
+
+**Feature:** FE-PROFILE-004  
+**Screen:** SCR-PROFILE-001  
+
+Profile phải phản ánh chính xác trạng thái artwork (`IN_PROGRESS` / `COMPLETED`) ngay sau khi user rời Coloring Editor, theo `BR-PROFILE-001`.
+
+---
+
+# 14. Content Requirements
 
 ## REQ-CONTENT-001 — Artwork Metadata
 
@@ -889,7 +1165,7 @@ App phải:
 
 ---
 
-# 13. Non-Functional Requirements
+# 15. Non-Functional Requirements
 
 ## NFR-PERF-001 — App Launch Performance
 
@@ -972,7 +1248,7 @@ Artwork thumbnail phải đủ rõ để user nhận biết subject trên mobile
 
 ---
 
-# 14. Preconditions & Postconditions
+# 16. Preconditions & Postconditions
 
 ## Coloring Flow
 
@@ -1013,7 +1289,7 @@ Artwork thumbnail phải đủ rõ để user nhận biết subject trên mobile
 
 ---
 
-# 15. Error Behavior Catalog
+# 17. Error Behavior Catalog
 
 ## ERR-001 — Category Load Failure
 
@@ -1057,7 +1333,7 @@ Expected:
 
 ---
 
-# 16. Edge Case Catalog
+# 18. Edge Case Catalog
 
 ## EDGE-EDITOR-001
 User tap cùng vùng nhiều lần.
@@ -1110,26 +1386,37 @@ Expected:
 
 ---
 
-# 17. Traceability Matrix — Core Requirements
+# 19. Traceability Matrix — Core Requirements
 
-| Requirement | Module | Feature | Screen | Flow |
-|---|---|---|---|---|
-| REQ-ENTRY-001 | MOD-001 | FE-ENTRY-001 | SCR-ENTRY-001 | FLOW-ENTRY-001 |
-| REQ-HOME-003 | MOD-002 | FE-HOME-005 | SCR-HOME-001 / SCR-CATEGORY-001 | FLOW-DISCOVER-001 |
-| REQ-CAT-004 | MOD-003 | FE-CAT-004 | SCR-CATEGORY-001 / SCR-PREVIEW-001 | FLOW-DISCOVER-001 |
-| REQ-PREVIEW-002 | MOD-004 | FE-PREVIEW-002 | SCR-PREVIEW-001 / SCR-EDITOR-001 | FLOW-COLOR-001 |
-| REQ-EDITOR-003 | MOD-005 | FE-EDITOR-003 | SCR-EDITOR-001 | FLOW-COLOR-001 |
-| REQ-EDITOR-006 | MOD-005 | FE-EDITOR-006 | SCR-EDITOR-001 | FLOW-COLOR-001 |
-| REQ-EDITOR-011 | MOD-005 | FE-EDITOR-011 | SCR-EDITOR-001 | FLOW-RESUME-001 |
-| REQ-EDITOR-012 | MOD-005 | FE-EDITOR-012 | SCR-EDITOR-001 | FLOW-RESUME-001 |
-| REQ-WORK-002 | MOD-006 | FE-WORK-002 | SCR-WORKS-001 | FLOW-WORKS-001 |
-| REQ-MON-002 | MOD-007 | FE-MON-002 | SCR-PAYWALL-001 | FLOW-PREMIUM-001 |
-| REQ-MON-007 | MOD-007 | FE-MON-007 | SCR-PAYWALL-001 / PREVIEW | FLOW-REWARD-001 |
-| REQ-SET-001 | MOD-008 | FE-SET-001 | SCR-SETTINGS-001 | FLOW-SETTINGS-001 |
+**Status column added 2026-08-14.**
+
+| Requirement | Module | Feature | Screen | Flow | Status |
+|---|---|---|---|---|---|
+| REQ-ENTRY-001 | MOD-001 | FE-ENTRY-001 | SCR-ENTRY-001 | FLOW-ENTRY-001 | Active |
+| REQ-HOME-003 | MOD-002 | FE-HOME-005 | SCR-HOME-001 / SCR-CATEGORY-001 | FLOW-DISCOVER-001 | Legacy — superseded by REQ-HOME-008 |
+| REQ-HOME-008 | MOD-002 | FE-LIB-004 | SCR-HOME-001 / SCR-LIBRARY-001 | FLOW-LIBRARY-001 | Active — NEW |
+| REQ-HOME-009 | MOD-002 | FE-HOME-010 | SCR-HOME-001 / SCR-EDITOR-001 | FLOW-COLOR-001 / FLOW-RESUME-001 | Active — NEW |
+| REQ-HOME-010 | MOD-002 | FE-HOME-011 | SCR-HOME-001 / SCR-LIBRARY-001 / SCR-PROFILE-001 | — | Active — NEW |
+| REQ-CAT-004 | MOD-003 | FE-CAT-004 | SCR-CATEGORY-001 / SCR-PREVIEW-001 | FLOW-DISCOVER-001 | Legacy — not routed |
+| REQ-PREVIEW-002 | MOD-004 | FE-PREVIEW-002 | SCR-PREVIEW-001 / SCR-EDITOR-001 | FLOW-COLOR-001 | Legacy — not routed |
+| REQ-EDITOR-003 | MOD-005 | FE-EDITOR-003 | SCR-EDITOR-001 | FLOW-COLOR-001 | Active |
+| REQ-EDITOR-006 | MOD-005 | FE-EDITOR-006 | SCR-EDITOR-001 | FLOW-COLOR-001 | Active |
+| REQ-EDITOR-011 | MOD-005 | FE-EDITOR-011 | SCR-EDITOR-001 | FLOW-RESUME-001 | Active |
+| REQ-EDITOR-012 | MOD-005 | FE-EDITOR-012 | SCR-EDITOR-001 | FLOW-RESUME-001 | Active |
+| REQ-EDITOR-017 | MOD-005 | FE-EDITOR-022 | SCR-COMPLETE-001 / SCR-EDITOR-001 | FLOW-COMPLETE-001 | Active — NEW (Feature ID corrected 2026-08-14) |
+| REQ-WORK-002 | MOD-006 | FE-WORK-002 | SCR-WORKS-001 | FLOW-WORKS-001 | Legacy — superseded by REQ-PROFILE-003/004 |
+| REQ-MON-002 | MOD-007 | FE-MON-002 | SCR-PAYWALL-001 | FLOW-PREMIUM-001 | Active |
+| REQ-MON-007 | MOD-007 | FE-MON-007 | SCR-PAYWALL-001 / PREVIEW | FLOW-REWARD-001 | Active |
+| REQ-SET-001 | MOD-008 | FE-SET-001 | SCR-SETTINGS-001 | FLOW-SETTINGS-001 | Active |
+| REQ-LIB-001 | MOD-009 | FE-LIB-001 | SCR-LIBRARY-001 | FLOW-LIBRARY-001 | Active — NEW |
+| REQ-LIB-003 | MOD-009 | FE-LIB-003 | SCR-LIBRARY-001 / SCR-EDITOR-001 | FLOW-LIBRARY-001 | Active — NEW |
+| REQ-PROFILE-001 | MOD-010 | FE-PROFILE-001 | SCR-PROFILE-001 | FLOW-PROFILE-001 | Active — NEW |
+| REQ-PROFILE-005 | MOD-010 | FE-PROFILE-005 | SCR-PROFILE-001 / SCR-EDITOR-001 | FLOW-PROFILE-001 | Active — NEW |
+| REQ-PROFILE-006 | MOD-010 | FE-PROFILE-006 | SCR-PROFILE-001 / SCR-SETTINGS-001 | — | Active — NEW |
 
 ---
 
-# 18. Requirement Coverage Summary
+# 20. Requirement Coverage Summary
 
 ## App Entry
 Covered:
@@ -1140,13 +1427,33 @@ Covered:
 
 ## Discovery
 Covered:
-- Home
-- Categories
+- Home (category sections)
 - Artwork thumbnails
-- Category navigation
+- Direct-to-Coloring resolution (resume-or-create)
+- See all → Library with filter
 - Partial/error state
 
-## Drawing Selection
+Legacy (preserved, not part of approved coverage):
+- Category screen navigation
+- Featured/Daily/Continue blocks
+
+## Library *(new)*
+Covered:
+- Category filter (All/Manga/Animal/Nature/Food/...)
+- Filtered artwork grid
+- Direct-to-Coloring resolution
+- Empty/error state
+
+## Profile *(new)*
+Covered:
+- Empty state → Explore Library
+- All/Completed/In Progress segmentation
+- Personal artwork grid
+- Direct-to-Coloring resolution (resume)
+- Settings icon entry
+- Artwork state sync rule (BR-PROFILE-001)
+
+## Drawing Selection *(legacy — Category/Preview screens)*
 Covered:
 - Drawing grid
 - Drawing states
@@ -1171,10 +1478,13 @@ Covered:
 ## Progress
 Covered:
 - Local save
-- My Works
 - Resume
-- Completed state
+- Completed state (via Profile, MOD-010)
 - Export/share
+- Artwork state sync (BR-PROFILE-001)
+
+Legacy (preserved, not routed):
+- My Works screen (SCR-WORKS-001)
 
 ## Monetization
 Covered conditionally:
@@ -1195,7 +1505,7 @@ Covered:
 
 ---
 
-# 19. Open Requirement Decisions
+# 21. Open Requirement Decisions
 
 Các điểm sau vẫn cần xác nhận để chuyển một số requirement từ conditional → final.
 
@@ -1226,12 +1536,14 @@ Hybrid Fill + Brush hay Fill-focused?
 ## RD-009 — Offline Scope
 Toàn bộ bundled content hay chỉ local progress?
 
-## RD-010 — Completion
+## RD-010 — Completion — **RESOLVED 2026-08-14**
 Completion là dedicated screen hay modal/result state?
+
+**Resolution:** Dedicated screen (`SCR-COMPLETE-001`) retained, with revised content: Share, Save/Download, Back to Home, Recommended for you.
 
 ---
 
-# 20. Definition of Requirement Complete
+# 22. Definition of Requirement Complete
 
 Step 5 được xem là hoàn thành khi:
 

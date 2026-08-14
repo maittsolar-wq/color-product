@@ -24,20 +24,33 @@ Traceability:
 
 # 2. Selector Contract
 
-Native app should expose stable accessibility/test IDs:
+**Status: Updated — 2026-08-14 re-baseline.** Full contract lives in `selectors-contract.md`; summary below. New IDs added for Library/Profile; legacy IDs preserved for screens no longer routed from the approved MVP core flow.
 
 ```text
 home-screen
 premium-home
-continue-coloring
+home-category-section-<categoryId>
+home-see-all-<categoryId>
 
-category-screen
-drawing-grid
+nav-home
+nav-library
+nav-profile
+
+library-screen
+library-filter-all
+library-filter-<categoryId>
+library-grid
+
+profile-screen
+profile-empty-state
+profile-explore-library
+profile-segment-all
+profile-segment-in-progress
+profile-segment-completed
+profile-grid
+profile-settings-icon
+
 drawing-card-<drawingId>
-
-drawing-preview
-start-coloring
-continue-coloring
 
 coloring-canvas
 undo
@@ -59,10 +72,10 @@ palette-color-black
 
 editor-fit
 
-my-works
-my-works-screen
-in-progress-section
-completed-section
+completion-recommended
+completion-share
+completion-save
+completion-back-home
 
 settings
 settings-screen
@@ -74,6 +87,19 @@ restore-purchase
 premium-active
 ```
 
+Legacy (preserved, screen not routed from approved flow):
+```text
+category-screen
+drawing-grid
+drawing-preview
+start-coloring
+continue-coloring
+my-works
+my-works-screen
+in-progress-section
+completed-section
+```
+
 Important:
 - Do not rely on display text when a stable ID can be exposed.
 - Dynamic drawing card selector format:
@@ -83,46 +109,56 @@ Important:
 
 # 3. Maestro Mapping
 
-| Test Case | Automation |
-|---|---|
-| TC-SMOKE-001 → 005 | `maestro/smoke/smoke-main.yaml` |
-| TC-HOME-001 → 004 | `maestro/discovery/home.yaml` |
-| TC-CAT-001 → 003 | `maestro/discovery/category.yaml` |
-| TC-PREVIEW-001 → 003 | `maestro/discovery/preview.yaml` |
-| TC-EDITOR-016 → 018 | `maestro/editor/tool-rail.yaml` |
-| TC-EDITOR-020 | `maestro/editor/palette.yaml` |
-| TC-EDITOR-006 → 009 | `maestro/editor/undo-redo.yaml` |
-| TC-EDITOR-013 → 015 | `maestro/editor/reset.yaml` |
-| TC-EDITOR-023 | `maestro/editor/fit-zoom.yaml` |
-| TC-EDITOR-024 | `maestro/editor/done.yaml` |
-| TC-SAVE-001/002/004 | `maestro/progress/autosave-restore.yaml` |
-| TC-WORK-001 → 004 | `maestro/works/my-works.yaml` |
-| TC-MON-001/002 | `maestro/monetization/paywall-close.yaml` |
-| TC-MON-003 → 005 | `maestro/monetization/purchase-restore-template.yaml` |
-| TC-SET-001 → 004 | `maestro/settings/settings.yaml` |
+**Status: Updated — 2026-08-14 re-baseline.** New rows are mapped to planned file paths that do not exist yet (documentation/mapping only in this pass — no automation implementation performed, per re-baseline scope). Legacy rows keep their existing files, marked not routed from the approved MVP core flow.
+
+| Test Case | Automation | Status |
+|---|---|---|
+| TC-SMOKE-001 → 005 | `maestro/smoke/smoke-main.yaml` | Active |
+| TC-HOME-001, 005 | `maestro/discovery/home.yaml` | Active — needs update to drop TC-HOME-002/003/004 legacy steps |
+| TC-HOME-006 → 009 | `maestro/discovery/home.yaml` *(planned addition)* | Planned — not yet implemented |
+| TC-CAT-001 → 003 | `maestro/discovery/category.yaml` | Legacy — not routed |
+| TC-PREVIEW-001 → 003 | `maestro/discovery/preview.yaml` | Legacy — not routed |
+| TC-LIB-001 → 005 | `maestro/discovery/library.yaml` *(planned)* | Planned — not yet implemented |
+| TC-PROFILE-001 → 006 | `maestro/profile/profile.yaml` *(planned)* | Planned — not yet implemented |
+| TC-EDITOR-016 → 018 | `maestro/editor/tool-rail.yaml` | Active |
+| TC-EDITOR-020 | `maestro/editor/palette.yaml` | Active |
+| TC-EDITOR-006 → 009 | `maestro/editor/undo-redo.yaml` | Active |
+| TC-EDITOR-013 → 015 | `maestro/editor/reset.yaml` | Active |
+| TC-EDITOR-023 | `maestro/editor/fit-zoom.yaml` | Active |
+| TC-EDITOR-024 | `maestro/editor/done.yaml` | Active |
+| TC-COMPLETE-005/006 | `maestro/editor/done.yaml` *(planned addition)* | Planned — not yet implemented |
+| TC-SAVE-001/002/004 | `maestro/progress/autosave-restore.yaml` | Active |
+| TC-WORK-001 → 004 | `maestro/works/my-works.yaml` | Legacy — not routed from bottom nav |
+| TC-MON-001/002 | `maestro/monetization/paywall-close.yaml` | Active |
+| TC-MON-003 → 005 | `maestro/monetization/purchase-restore-template.yaml` | Active |
+| TC-SET-001 → 004 | `maestro/settings/settings.yaml` | Active |
 
 ---
 
 # 4. Playwright Mapping
 
-Prototype automation covers:
+**Status: Updated — 2026-08-14 re-baseline. Prototype code (`prototype.spec.js`) has NOT been modified in this pass — mapping below documents current coverage and flags what will need to change when implementation proceeds.**
 
-- Home → Category
-- Category → Preview
-- Preview → Editor
+Current prototype automation (unchanged, still reflects the legacy flow) covers:
+
+- Home → Category *(legacy path — will break once Home routes artwork taps directly to Editor)*
+- Category → Preview *(legacy path)*
+- Preview → Editor *(legacy path)*
 - Tool rail selection
 - Palette selection
 - Prototype Fill
 - Fit/Zoom
 - Done → Completion
-- My Works
-- Paywall
-- Settings
+- My Works *(legacy — targets `my-works` testid/`SCR-WORKS-001`)*
+- Paywall *(`premium-home` → `SCR-PAYWALL-001` — already matches the approved PRO flow, no change needed)*
+- Settings *(legacy — targets `settings` testid/`SCR-SETTINGS-001` directly from bottom nav)*
 
 File:
 `playwright/tests/prototype.spec.js`
 
 These tests validate the Step 6 Hi‑Fi HTML, not the native APK.
+
+**Planned test additions (not yet implemented):** Home → Library (See all), Home → Editor direct (resume/create), Library filter + artwork tap, Profile segments + empty state + artwork tap, Completion "Recommended for you", Bottom Nav → Library/Profile.
 
 ---
 
@@ -203,3 +239,5 @@ Actual native automation execution requires:
 - real appId;
 - installable build;
 - stable native test IDs.
+
+**2026-08-14 addendum:** This re-baseline updated the selector contract and mapping tables to cover Library/Profile/Home-direct-navigation/Completion. It did **not** implement any new Maestro YAML, Playwright spec, or prototype code changes — those remain planned/flagged above, consistent with the re-baseline's documentation-only scope.

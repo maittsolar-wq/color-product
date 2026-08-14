@@ -181,3 +181,20 @@ Unchanged:
 **Optional future settings:** editor preference fields.
 
 This file replaces the previous Step 7 data model for downstream AI context.
+
+---
+
+# 11. Re-Baseline Impact Assessment (2026-08-14)
+
+**Trigger:** Approval of Library (`SCR-LIBRARY-001`), Profile (`SCR-PROFILE-001`), revised Home structure, direct-to-Coloring navigation, and revised Completion flow.
+
+**Result: No schema change required.**
+
+- `Drawing.categoryId` already supports Library's category filter — no new field needed.
+- `Progress` (`id`, `drawingId`, `status`, `regionColors`, `brushStrokes`, `createdAt`, `updatedAt`) already supports:
+  - the resume-or-create resolution rule (`FS-DISCOVERY-RESOLVE-001` in `functional-spec.md`) used by Home, Library, Profile, and Completion's "Recommended for you";
+  - Profile's All / In Progress / Completed segmentation, driven entirely by `Progress.status` per `BR-PROFILE-001` — `IN_PROGRESS` and `COMPLETED` are the only two states involved, both already modeled.
+- No Favorite/Bookmark entity, field, or persistence was added, per the approved decision that Favorite/Bookmark is out of MVP.
+- Library and Profile are UI-layer groupings/filters over existing `Drawing` and `Progress` entities — neither introduces a new persisted entity.
+
+**Conclusion:** `data-model.md` content is unchanged from v0.2. This section is an assessment record only, added per the update order's "only if required" instruction.

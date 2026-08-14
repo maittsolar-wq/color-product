@@ -49,16 +49,23 @@ No new MVP feature was introduced by the Hi‑Fi design.
 
 ## FS-UI-001 — Stable Screen IDs
 
+**Status: Updated — 2026-08-14 re-baseline.**
+
 The native implementation must preserve equivalent identifiers for:
 
 - `SCR-HOME-001`
-- `SCR-CATEGORY-001`
-- `SCR-PREVIEW-001`
+- `SCR-LIBRARY-001` *(new)*
+- `SCR-PROFILE-001` *(new)*
 - `SCR-EDITOR-001`
 - `SCR-COMPLETE-001`
-- `SCR-WORKS-001`
 - `SCR-PAYWALL-001`
 - `SCR-SETTINGS-001`
+
+Legacy (preserved, not routed from approved MVP core flow — do not delete or rename):
+
+- `SCR-CATEGORY-001`
+- `SCR-PREVIEW-001`
+- `SCR-WORKS-001`
 
 ## FS-UI-002 — Stable Testability IDs
 
@@ -67,16 +74,27 @@ Interactive production UI should expose stable accessibility/test identifiers ma
 Examples:
 
 - `premium-home`
-- `continue-coloring`
+- `home-category-section-<categoryId>`
+- `home-see-all-<categoryId>`
+- `library-filter-<categoryId>`
 - `drawing-grid`
 - `drawing-card-<drawingId>`
-- `start-coloring`
 - `coloring-canvas`
 - `undo`
 - `redo`
 - `purchase`
-- `my-works`
+- `library`
+- `profile`
+- `profile-segment-all` / `profile-segment-in-progress` / `profile-segment-completed`
+- `profile-explore-library`
+- `profile-settings-icon`
+- `completion-recommended`
 - `settings`
+
+Legacy identifiers (preserved, no longer part of the approved routing contract but still valid if the legacy screens are reached):
+- `continue-coloring`
+- `start-coloring`
+- `my-works`
 
 These are contracts for QA automation and should not depend on display text.
 
@@ -86,49 +104,100 @@ These are contracts for QA automation and should not depend on display text.
 
 ## FS-HOME-001 — Home Assembly
 
+**Status: Updated — 2026-08-14 re-baseline.**
+
 **Screen:** SCR-HOME-001  
-**Requirements:** REQ-HOME-001 → REQ-HOME-006  
+**Requirements:** REQ-HOME-001, REQ-HOME-002, REQ-HOME-004, REQ-HOME-007, REQ-HOME-008, REQ-HOME-009, REQ-HOME-010  
 
-Hi‑Fi Home contains:
+Approved Home contains:
 
-1. App header
-2. Premium CTA (conditional)
-3. Continue Coloring (conditional)
-4. Featured
-5. Categories
-6. Daily Pick (conditional)
-7. Bottom navigation
+1. App header with PRO pill
+2. Repeatable category sections (title, "See all", horizontally scrollable artwork cards) — e.g. Manga, Animal, Nature
+3. Bottom navigation (Home / Library / Profile)
 
-### Continue Coloring
+**Legacy content blocks (superseded, preserved — REQ-HOME-003/005/006):** Continue Coloring, Featured, icon-based Categories grid, Daily Pick. Not part of the approved assembly.
 
-Component:
-`CMP-HOME-CONTINUE`
+### Category Sections
 
-Visibility:
-- show when at least one valid In Progress record exists.
-
-Default item:
-- latest updated In Progress drawing.
-
-Tap:
-- opens `SCR-EDITOR-001` directly in V1 assumption.
-
-### Featured
-
-Must resolve valid Drawing entities.
+Each section resolves a set of Drawing entities for its category.
 
 Invalid content:
+- a section that fails to load does not block other sections from rendering (REQ-HOME-007).
 - hide invalid card or render safe fallback.
-- Home must remain usable.
 
-### Categories
+### Artwork Card Tap
 
-Tap category:
-`SCR-HOME-001 → SCR-CATEGORY-001`
+See `FS-DISCOVERY-RESOLVE-001` (§4.1) — shared resolution logic used by Home, Library, Profile, and Completion.
+
+### See All
+
+Tap "See all" on a category section:
+`SCR-HOME-001 → SCR-LIBRARY-001` with that category's filter pre-applied (`REQ-HOME-008`).
+
+### PRO
+
+Tap PRO pill:
+`SCR-HOME-001 → SCR-PAYWALL-001` (unchanged from prior behavior).
+
+---
+
+## 4.1 FS-DISCOVERY-RESOLVE-001 — Artwork-Tap Resolution *(new — 2026-08-14, shared logic)*
+
+**Requirements:** REQ-HOME-009, REQ-LIB-003, REQ-PROFILE-005, REQ-EDITOR-017
+
+Applies whenever an artwork card is tapped on `SCR-HOME-001`, `SCR-LIBRARY-001`, `SCR-COMPLETE-001` ("Recommended for you"), or `SCR-PROFILE-001`.
+
+```text
+On artwork card tap:
+1. Look up Progress record for (drawingId, user).
+2. If Progress exists and status = IN_PROGRESS or COMPLETED:
+   - restore that Progress
+3. If no Progress exists:
+   - create a new Progress record (status = IN_PROGRESS)
+4. Open SCR-EDITOR-001 with the resolved/created Progress.
+```
+
+**Note:** On `SCR-PROFILE-001` specifically, the artwork always has an existing Progress record (Profile only lists personal artwork) — step 3 (create) does not apply there; see `REQ-PROFILE-005`.
+
+This resolver replaces the CTA-resolution role previously owned exclusively by `SCR-PREVIEW-001` (`FS-PREVIEW-002`). Locked-artwork handling (`REQ-PREVIEW-004`) is preserved as part of this resolver: if the artwork is locked, route to `SCR-PAYWALL-001` instead of `SCR-EDITOR-001`.
+
+---
+
+## 4.2 Library Functional Specification *(new — 2026-08-14)*
+
+### FS-LIB-001 — Library Assembly
+
+**Screen:** SCR-LIBRARY-001  
+**Requirements:** REQ-LIB-001, REQ-LIB-002, REQ-LIB-005, REQ-LIB-006
+
+Contains:
+1. Category filter control (All / Manga / Animal / Nature / Food / …)
+2. Filtered artwork grid
+
+### FS-LIB-002 — Filter Resolution
+
+**Requirement:** REQ-LIB-004
+
+```text
+On open from Home "See all":
+  filter = the category tapped
+On open from Bottom Nav:
+  filter = All
+On open from Profile "Explore Library":
+  filter = All
+```
+
+### FS-LIB-003 — Artwork Tap
+
+**Requirement:** REQ-LIB-003
+
+Tap artwork card → `FS-DISCOVERY-RESOLVE-001` (§4.1).
 
 ---
 
 # 5. Category Functional Specification
+
+**Status: LEGACY — `SCR-CATEGORY-001` not routed from approved Home flow (2026-08-14). Preserved for traceability.**
 
 ## FS-CAT-001 — Drawing Grid
 
@@ -164,6 +233,8 @@ If not confirmed:
 
 # 6. Preview Functional Specification
 
+**Status: LEGACY — `SCR-PREVIEW-001` not routed from approved MVP core discovery flow (2026-08-14). Preserved for traceability. CTA resolution logic (`FS-PREVIEW-002`) is superseded by the shared `FS-DISCOVERY-RESOLVE-001` (§4.1).**
+
 ## FS-PREVIEW-001 — Preview Resolution
 
 **Screen:** SCR-PREVIEW-001
@@ -175,7 +246,7 @@ Load:
 - access
 - progress
 
-## FS-PREVIEW-002 — CTA Resolution
+## FS-PREVIEW-002 — CTA Resolution *(LEGACY — logic superseded by FS-DISCOVERY-RESOLVE-001, §4.1)*
 
 Component:
 `CMP-PREVIEW-START`
@@ -189,9 +260,7 @@ Completed  → View / Color Again
 Default    → Start Coloring
 ```
 
-V1 keeps Preview as a dedicated screen.
-
-If later removed, Step 4/5 must be updated first.
+**Status:** Preview is no longer routed from the approved MVP core discovery flow (2026-08-14). Step 4 (`information-architecture-user-flow.md`) and Step 5 (`requirements.md`) have been updated accordingly, per the condition originally stated here. This CTA rule is preserved for traceability; its equivalent logic now lives in `FS-DISCOVERY-RESOLVE-001`.
 
 ---
 
@@ -489,21 +558,34 @@ Native UI may keep this subtle.
 
 ## FS-COMPLETE-001
 
+**Status: Updated — 2026-08-14 re-baseline.**
+
 Tap Done:
 1. save current state
 2. mark progress COMPLETED
 3. set completedAt
 4. open `SCR-COMPLETE-001`
 
-Completion actions:
-- Save Image
-- Share
-- My Works
-- Home
+Completion actions (approved):
+- Share → native device share sheet
+- Save/Download → save rendered colored artwork image to device
+- Back to Home
+- Recommended for you → artwork cards; tap resolves via `FS-DISCOVERY-RESOLVE-001` (§4.1), opens `SCR-EDITOR-001` directly
+
+**Legacy actions (superseded, preserved):** View in My Works, undifferentiated "Home" action folded into "Back to Home".
+
+## FS-COMPLETE-002 — Recommended For You *(new — 2026-08-14)*
+
+**Component:** `CMP-COMPLETE-RECOMMENDED`  
+**Requirement:** REQ-EDITOR-017
+
+Populate with a set of Drawing entities (source/algorithm not specified by this pass — implementation may start with simple same-category or "not yet started" heuristics). Tap → `FS-DISCOVERY-RESOLVE-001`.
 
 ---
 
 # 18. My Works
+
+**Status: LEGACY — `SCR-WORKS-001` superseded by `SCR-PROFILE-001` (§18.1) (2026-08-14). Preserved for traceability, not routed from bottom navigation.**
 
 ## FS-WORK-001
 
@@ -524,6 +606,53 @@ Tap In Progress:
 
 Tap Completed:
 - Preview/Result based on final product decision.
+
+---
+
+## 18.1 Profile (supersedes My Works) *(new — 2026-08-14)*
+
+### FS-PROFILE-001 — Profile Assembly
+
+**Screen:** SCR-PROFILE-001  
+**Requirements:** REQ-PROFILE-001 → REQ-PROFILE-004
+
+Segments:
+- All
+- Completed
+- In Progress
+
+Data source:
+Progress records (same underlying entity as legacy My Works — no new persistence model, see `data-model.md`).
+
+Recommended sort:
+`updatedAt DESC`
+
+Empty state (no Progress records at all):
+- show empty state with "Explore Library" CTA → `SCR-LIBRARY-001` (`REQ-PROFILE-002`).
+
+### FS-PROFILE-002 — Artwork State Rule
+
+**Business Rule:** BR-PROFILE-001
+
+```text
+On Editor exit without Done:
+  Progress.status = IN_PROGRESS
+  → appears in Profile/All, Profile/In Progress
+  → does not appear in Profile/Completed
+
+On Editor Done:
+  Progress.status = COMPLETED
+  → appears in Profile/All, Profile/Completed
+  → no longer appears in Profile/In Progress
+```
+
+### FS-PROFILE-003 — Artwork Tap
+
+Tap artwork card → `FS-DISCOVERY-RESOLVE-001` (§4.1). Always resolves to restore (Profile artwork always has an existing Progress record).
+
+### FS-PROFILE-004 — Settings Icon
+
+Tap Settings icon → `SCR-SETTINGS-001` (`REQ-PROFILE-006`). Settings remains a separate screen; Profile does not absorb Settings content.
 
 ---
 
@@ -601,36 +730,47 @@ No change from previous Step 7:
 
 # 23. Traceability — Hi‑Fi Components
 
-| Requirement | Screen | Hi‑Fi Component | Functional Spec |
-|---|---|---|---|
-| REQ-HOME-006 | SCR-HOME-001 | CMP-HOME-CONTINUE | FS-HOME-001 |
-| REQ-CAT-002 | SCR-CATEGORY-001 | CMP-CAT-GRID | FS-CAT-001 |
-| REQ-PREVIEW-002 | SCR-PREVIEW-001 | CMP-PREVIEW-START | FS-PREVIEW-002 |
-| REQ-EDITOR-001 | SCR-EDITOR-001 | CMP-EDITOR-CANVAS | Editor section |
-| REQ-EDITOR-002 | SCR-EDITOR-001 | CMP-EDITOR-PALETTE | FS-EDITOR-COLOR-001 |
-| REQ-EDITOR-003 | SCR-EDITOR-001 | CMP-EDITOR-CANVAS / TOOL-RAIL | FS-EDITOR-FILL-001 |
-| REQ-EDITOR-004 | SCR-EDITOR-001 | CMP-EDITOR-TOOL-RAIL | FS-EDITOR-BRUSH-001 |
-| REQ-EDITOR-006 | SCR-EDITOR-001 | CMP-EDITOR-TOPBAR | FS-EDITOR-HISTORY-001 |
-| REQ-EDITOR-007 | SCR-EDITOR-001 | CMP-EDITOR-TOPBAR | FS-EDITOR-HISTORY-002 |
-| REQ-EDITOR-011 | SCR-EDITOR-001 | Save indicator | FS-SAVE-* |
-| REQ-EDITOR-014 | SCR-EDITOR-001 | Done | FS-COMPLETE-001 |
-| REQ-WORK-002 | SCR-WORKS-001 | Work grid/segments | FS-WORK-001 |
-| REQ-MON-002 | SCR-PAYWALL-001 | Paywall CTA | FS-MON-001 |
+**Status column added 2026-08-14.**
+
+| Requirement | Screen | Hi‑Fi Component | Functional Spec | Status |
+|---|---|---|---|---|
+| REQ-HOME-006 | SCR-HOME-001 | CMP-HOME-CONTINUE | FS-HOME-001 | Legacy — superseded by REQ-HOME-009 |
+| REQ-HOME-008 | SCR-HOME-001 / SCR-LIBRARY-001 | CMP-HOME-SEEALL | FS-HOME-001 | Active — NEW |
+| REQ-HOME-009 | SCR-HOME-001 / SCR-EDITOR-001 | CMP-HOME-CATEGORY-SECTION | FS-DISCOVERY-RESOLVE-001 | Active — NEW |
+| REQ-CAT-002 | SCR-CATEGORY-001 | CMP-CAT-GRID | FS-CAT-001 | Legacy — not routed |
+| REQ-PREVIEW-002 | SCR-PREVIEW-001 | CMP-PREVIEW-START | FS-PREVIEW-002 | Legacy — superseded by FS-DISCOVERY-RESOLVE-001 |
+| REQ-EDITOR-001 | SCR-EDITOR-001 | CMP-EDITOR-CANVAS | Editor section | Active |
+| REQ-EDITOR-002 | SCR-EDITOR-001 | CMP-EDITOR-PALETTE | FS-EDITOR-COLOR-001 | Active |
+| REQ-EDITOR-003 | SCR-EDITOR-001 | CMP-EDITOR-CANVAS / TOOL-RAIL | FS-EDITOR-FILL-001 | Active |
+| REQ-EDITOR-004 | SCR-EDITOR-001 | CMP-EDITOR-TOOL-RAIL | FS-EDITOR-BRUSH-001 | Active |
+| REQ-EDITOR-006 | SCR-EDITOR-001 | CMP-EDITOR-TOPBAR | FS-EDITOR-HISTORY-001 | Active |
+| REQ-EDITOR-007 | SCR-EDITOR-001 | CMP-EDITOR-TOPBAR | FS-EDITOR-HISTORY-002 | Active |
+| REQ-EDITOR-011 | SCR-EDITOR-001 | Save indicator | FS-SAVE-* | Active |
+| REQ-EDITOR-014 | SCR-EDITOR-001 | Done | FS-COMPLETE-001 | Active |
+| REQ-EDITOR-017 | SCR-COMPLETE-001 / SCR-EDITOR-001 | CMP-COMPLETE-RECOMMENDED | FS-COMPLETE-002 | Active — NEW |
+| REQ-WORK-002 | SCR-WORKS-001 | Work grid/segments | FS-WORK-001 | Legacy — superseded by FS-PROFILE-001 |
+| REQ-MON-002 | SCR-PAYWALL-001 | Paywall CTA | FS-MON-001 | Active |
+| REQ-LIB-001 | SCR-LIBRARY-001 | CMP-LIBRARY-GRID | FS-LIB-001 | Active — NEW |
+| REQ-LIB-002 | SCR-LIBRARY-001 | CMP-LIBRARY-FILTERS | FS-LIB-002 | Active — NEW |
+| REQ-PROFILE-001 | SCR-PROFILE-001 | CMP-PROFILE-SEGMENTED / GRID | FS-PROFILE-001 | Active — NEW |
+| REQ-PROFILE-002 | SCR-PROFILE-001 | CMP-PROFILE-EMPTY-STATE | FS-PROFILE-001 | Active — NEW |
+| REQ-PROFILE-007 | SCR-PROFILE-001 | CMP-PROFILE-GRID | FS-PROFILE-002 | Active — NEW |
 
 ---
 
 # 24. Open Decisions Preserved
 
-The following remain unresolved and must not be silently finalized:
+**Status: Updated — 2026-08-14.** Items resolved by this re-baseline are struck through; remaining items are still unresolved and must not be silently finalized.
 
 - Platform
 - Brush in final MVP
-- Daily in MVP
-- Preview retention
+- ~~Daily in MVP~~ — **Resolved: Legacy, not part of approved Home structure (DD-012).**
+- ~~Preview retention~~ — **Resolved: Legacy, not routed from approved MVP core flow (DD-013).**
 - Monetization provider/model
 - Premium scope
 - Final brand tokens
 - Audience classification
+- **New:** Formal retirement timeline (if any) for legacy `SCR-CATEGORY-001` / `SCR-PREVIEW-001` / `SCR-WORKS-001` — currently preserved indefinitely, no retirement decision made.
 
 ---
 

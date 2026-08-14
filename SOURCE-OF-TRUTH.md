@@ -71,12 +71,28 @@ COLOR-PRODUCT-LATEST/
 
 ## Current Workflow State
 
-- Step 1–5: BA baseline complete
-- Step 6: Hi-Fi HTML design baseline created, visual execution still needs refinement/approval
-- Step 7: Synced
-- Step 8: Synced
-- Step 9: Synced
+- Step 1–5: BA baseline complete; Step 4 (IA) and Step 5 (Requirements) re-synced 2026-08-14 to the Home/Library/Profile re-baseline (see below)
+- Step 6: Hi-Fi HTML design baseline created, visual execution still needs refinement/approval. `ui-spec.md` and `design-decisions.md` re-synced 2026-08-14; **prototype HTML/CSS/JS is NOT yet re-synced** — see Re-Baseline Status below
+- Step 7: Synced; `functional-spec.md` re-synced 2026-08-14. `data-model.md` assessed — no schema change required
+- Step 8: Synced; `test-cases.md` re-synced 2026-08-14
+- Step 9: Synced; `selectors-contract.md` and `automation-map.md` re-synced 2026-08-14 (documentation/mapping only — no Maestro/Playwright implementation changes yet)
 - Step 10: Prepared and synced; real execution awaits APK/build
+
+## Re-Baseline Status (2026-08-14) — Home / Library / Profile Navigation
+
+**Approved decisions on record** (see `design-decisions.md` DD-010 → DD-015, `information-architecture-user-flow.md` UXD-006 → UXD-008):
+
+- New screens: `SCR-LIBRARY-001` (discovery/browse), `SCR-PROFILE-001` (personal artwork + Settings entry).
+- `SCR-CATEGORY-001`, `SCR-PREVIEW-001`, `SCR-WORKS-001` are **Legacy — preserved, not routed** from the approved MVP core flow (not deleted, not renamed).
+- Home restructured to repeatable category sections only (Featured/Daily/Continue/icon-grid Categories are Legacy).
+- Artwork tap (Home/Library/Profile/Completion) opens Coloring directly — no Preview hop; resume-or-create rule applies.
+- Bottom navigation: Home / Library / Profile (was Home / My Works / Settings).
+- Completion revised: Share (native share sheet), Save/Download, Back to Home, Recommended for you.
+- Favorite/Bookmark confirmed out of MVP; decorative bookmark icon on legacy Preview flagged non-approved.
+
+**Artifacts updated to reflect this baseline:** `information-architecture-user-flow.md`, `requirements.md`, `ui-spec.md`, `design-decisions.md`, `functional-spec.md`, `data-model.md` (assessed, unchanged), `selectors-contract.md`, `test-cases.md`, `automation-map.md`.
+
+**Not yet updated (explicitly deferred, pending a separate implementation pass):** `03-design/prototype/index.html`, `styles.css`, `app.js`, and `05-test/playwright/tests/prototype.spec.js`. Until that pass runs, the prototype reflects the pre-2026-08-14 flow (Home → Category/Preview, My Works/Settings bottom nav) and should not be treated as matching the current approved documentation baseline.
 
 ## Claude Code Rule
 

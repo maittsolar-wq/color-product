@@ -48,16 +48,23 @@ Không:
 
 # 3. Hi‑Fi Prototype Scope
 
-Prototype gồm:
+**Status: Updated — 2026-08-14 re-baseline.**
+
+Approved scope:
 
 - `SCR-HOME-001` — Home
-- `SCR-CATEGORY-001` — Category
-- `SCR-PREVIEW-001` — Drawing Preview
+- `SCR-LIBRARY-001` — Library *(new)*
+- `SCR-PROFILE-001` — Profile *(new)*
 - `SCR-EDITOR-001` — Coloring Editor
 - `SCR-COMPLETE-001` — Completion
-- `SCR-WORKS-001` — My Works
 - `SCR-PAYWALL-001` — Paywall
 - `SCR-SETTINGS-001` — Settings
+
+Legacy (preserved, not routed from approved MVP core flow):
+
+- `SCR-CATEGORY-001` — Category
+- `SCR-PREVIEW-001` — Drawing Preview
+- `SCR-WORKS-001` — My Works
 
 Editor được ưu tiên cao nhất về độ hoàn thiện.
 
@@ -94,36 +101,52 @@ Các attribute bắt buộc khi phù hợp:
 
 # 5. SCR-HOME-001 — Home
 
+**Status: Updated — 2026-08-14 re-baseline.**
+
 ## Purpose
 Content discovery.
 
-## Layout
+## Layout (approved)
+1. Top app header with PRO pill (small, near top-left).
+2. Repeatable category sections (title left / "See all" purple right / horizontally scrollable artwork cards), e.g. Manga, Animal, Nature.
+3. Bottom navigation (Home / Library / Profile).
+
+Home scrolls vertically; each section scrolls horizontally, with the next card partially visible to communicate scrollability.
+
+## Legacy Layout (superseded, preserved for traceability)
 1. Top app header.
 2. Continue Coloring.
 3. Featured.
-4. Categories.
+4. Categories (icon grid).
 5. Daily Pick.
-6. Bottom navigation.
+6. Bottom navigation (Home / My Works / Settings).
 
-## Components
+## Components (approved)
 - `CMP-HOME-HEADER`
+- `CMP-HOME-PREMIUM` *(PRO pill — already implemented in prototype; formalized here)*
+- `CMP-HOME-CATEGORY-SECTION` *(new — repeatable section: title + see-all + horizontal list)*
+- `CMP-HOME-SEEALL` *(new)*
+- `CMP-GLOBAL-BOTTOM-NAV` *(now targets Home / Library / Profile)*
+
+## Legacy Components (superseded, preserved — not part of approved Home)
 - `CMP-HOME-CONTINUE`
 - `CMP-HOME-FEATURED`
-- `CMP-HOME-CATEGORIES`
+- `CMP-HOME-CATEGORIES` *(icon grid)*
 - `CMP-HOME-DAILY`
-- `CMP-GLOBAL-BOTTOM-NAV`
 
 ## Requirements
-- REQ-HOME-001
-- REQ-HOME-002
-- REQ-HOME-003
-- REQ-HOME-004
-- REQ-HOME-005
-- REQ-HOME-006
+- REQ-HOME-001, REQ-HOME-002, REQ-HOME-004, REQ-HOME-007 (active)
+- REQ-HOME-008, REQ-HOME-009, REQ-HOME-010 (active, new)
+- REQ-HOME-003, REQ-HOME-005, REQ-HOME-006 (legacy — superseded, see `requirements.md`)
+
+## Bookmark/Favorite
+Not in MVP. No favorite/bookmark control appears anywhere in the approved Home UI.
 
 ---
 
 # 6. SCR-CATEGORY-001 — Category
+
+**Status: LEGACY — not routed from approved Home flow (2026-08-14). Preserved for traceability, not deleted or renamed. Browse/filter concepts below may inform `SCR-LIBRARY-001` (§11), which does not reuse this Screen ID or these Component IDs.**
 
 ## Layout
 1. Back/title header.
@@ -138,11 +161,13 @@ Content discovery.
 - `CMP-CAT-DRAWING-CARD`
 
 ## Requirements
-- REQ-CAT-001 → REQ-CAT-006
+- REQ-CAT-001 → REQ-CAT-006 (legacy)
 
 ---
 
 # 7. SCR-PREVIEW-001 — Drawing Preview
+
+**Status: LEGACY — not routed from approved MVP core flow (2026-08-14). Preserved for traceability, not deleted or renamed.** CTA Resolution logic below is reassigned to the artwork-tap resolver on Home/Library/Profile/Completion — see `functional-spec.md` §"Artwork-Tap Resolution".
 
 ## Layout
 1. Back / favorite.
@@ -159,7 +184,10 @@ Content discovery.
 - Completed → View / Color Again.
 
 ## Requirements
-- REQ-PREVIEW-001 → REQ-PREVIEW-005
+- REQ-PREVIEW-001 → REQ-PREVIEW-005 (legacy)
+
+## Note on decorative bookmark
+The "♡" icon in this screen's toolbar (prototype `index.html`, Preview `simple-toolbar`) is decorative only — no handler, no requirement, no component ID. Per approved decision, Favorite/Bookmark is out of MVP; this icon is flagged **non-approved / to be removed** from any new production UI. Since this screen itself is legacy, no prototype change is made in this pass — see `functional-spec.md` for the explicit flag.
 
 ---
 
@@ -278,16 +306,26 @@ Related:
 
 # 9. SCR-COMPLETE-001 — Completion
 
-## Layout
+**Status: Updated — role revised, 2026-08-14 re-baseline.**
+
+## Layout (approved)
 - Completion title.
 - Final artwork.
-- Save Image.
-- Share.
-- My Works.
-- Back Home.
+- Share → native device share sheet.
+- Save/Download → save rendered colored artwork image to device.
+- Back to Home.
+- Recommended for you → artwork cards (tap opens `SCR-EDITOR-001` directly, resume-or-create).
+
+## Legacy Layout items (superseded, preserved)
+- View in My Works button
+- Undifferentiated "Color another drawing" action
+
+## Components
+- `CMP-COMPLETE-RECOMMENDED` *(new — "Recommended for you" artwork card row)*
 
 ## Requirements
 - REQ-EDITOR-014
+- REQ-EDITOR-017 *(new)*
 - REQ-WORK-006
 - REQ-WORK-007
 - REQ-WORK-008
@@ -296,6 +334,8 @@ Related:
 
 # 10. SCR-WORKS-001 — My Works
 
+**Status: LEGACY — superseded by `SCR-PROFILE-001` (§12) (2026-08-14). Preserved for traceability, not deleted or renamed. `SCR-PROFILE-001` is a new, distinct screen — this Screen ID and its components are not reused.**
+
 ## Layout
 - Header.
 - In Progress / Completed segmented control.
@@ -303,11 +343,67 @@ Related:
 - Bottom navigation.
 
 ## Requirements
-- REQ-WORK-001 → REQ-WORK-005
+- REQ-WORK-001 → REQ-WORK-005 (REQ-WORK-002/003/004 legacy — see `requirements.md`)
 
 ---
 
-# 11. SCR-PAYWALL-001 — Paywall
+# 11. SCR-LIBRARY-001 — Library *(new — 2026-08-14)*
+
+## Purpose
+Browse/explore all available artwork, filterable by category.
+
+## Layout
+1. Header.
+2. Category filter control (All / Manga / Animal / Nature / Food / …).
+3. Artwork grid (approximately square thumbnails, rounded cards, subtle border).
+
+## Components
+- `CMP-LIBRARY-HEADER`
+- `CMP-LIBRARY-FILTERS`
+- `CMP-LIBRARY-GRID`
+- `CMP-LIBRARY-DRAWING-CARD`
+
+## Requirements
+- REQ-LIB-001 → REQ-LIB-006
+
+## Notes
+- Entry filter state: pre-applied category when opened via Home "See all"; "All" when opened via Bottom Nav.
+- Artwork tap → `SCR-EDITOR-001` directly (resume-or-create), no Preview hop.
+- Concepts may draw on legacy `CMP-CAT-*` (§6) but do not reuse those Component IDs.
+
+---
+
+# 12. SCR-PROFILE-001 — Profile *(new — 2026-08-14)*
+
+## Purpose
+User-centric personal artwork + Settings entry point.
+
+## Layout
+1. Header.
+2. Empty state (no personal artwork) with "Explore Library" CTA — shown when no artwork exists.
+3. Segmented control: All / Completed / In Progress.
+4. Personal artwork grid.
+5. Settings icon.
+
+## Components
+- `CMP-PROFILE-HEADER`
+- `CMP-PROFILE-EMPTY-STATE`
+- `CMP-PROFILE-EXPLORE-CTA`
+- `CMP-PROFILE-SEGMENTED`
+- `CMP-PROFILE-GRID`
+- `CMP-PROFILE-SETTINGS-ICON`
+
+## Requirements
+- REQ-PROFILE-001 → REQ-PROFILE-007
+- BR-PROFILE-001 (artwork state rule)
+
+## Notes
+- Not `SCR-SETTINGS-001` — Settings icon routes to the separate Settings screen (§14).
+- Artwork tap → `SCR-EDITOR-001` directly (always resume — Profile artwork always has progress).
+
+---
+
+# 13. SCR-PAYWALL-001 — Paywall
 
 ## Layout
 - Close.
@@ -327,7 +423,7 @@ Must be premium-looking but not aggressive.
 
 ---
 
-# 12. SCR-SETTINGS-001 — Settings
+# 14. SCR-SETTINGS-001 — Settings
 
 ## Sections
 - Premium.
@@ -339,7 +435,7 @@ Must be premium-looking but not aggressive.
 
 ---
 
-# 13. Responsive Rules
+# 15. Responsive Rules
 
 ## Mobile Phone
 - 2-column content grid.
@@ -357,7 +453,7 @@ Must be premium-looking but not aggressive.
 
 ---
 
-# 14. Accessibility Baseline
+# 16. Accessibility Baseline
 
 - Touch targets approx. 44x44pt equivalent.
 - Important actions have accessible names.
@@ -367,24 +463,24 @@ Must be premium-looking but not aggressive.
 
 ---
 
-# 15. Design Review Checklist
+# 17. Design Review Checklist
 
 Before approving Step 6:
 
-- [ ] Home hierarchy approved.
-- [ ] Category density approved.
-- [ ] Preview retained or removed.
+- [x] Home hierarchy approved — category-sections structure (2026-08-14).
+- [x] Preview status decided — legacy, not routed (2026-08-14).
 - [ ] Editor toolbar approved.
 - [ ] Tool rail approved.
 - [ ] Palette and slider approved.
-- [ ] Completion flow approved.
-- [ ] My Works structure approved.
+- [x] Completion flow approved — Share/Save/Back Home/Recommended for you (2026-08-14).
+- [x] My Works → Profile direction approved (2026-08-14).
+- [x] Library structure approved (2026-08-14).
 - [ ] Paywall direction approved.
 - [ ] Overall cross-age visual approved.
 
 ---
 
-# 16. Step 6 Definition of Complete
+# 18. Step 6 Definition of Complete
 
 Step 6 is complete when:
 

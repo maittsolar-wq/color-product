@@ -66,35 +66,96 @@ Expected:
 
 # 3. Home
 
-## TC-HOME-001 — Categories Display
+**Status: Updated — 2026-08-14 re-baseline.**
+
+## TC-HOME-001 — Category Sections Display
 **Priority:** P1  
 **Automation:** Yes
 
 Expected:
-- category section visible.
+- at least one category section (title + See all + horizontal artwork list) visible.
 
 ## TC-HOME-002 — Category Opens Correct Content
-**Priority:** P1  
-**Automation:** Yes
+**Status: LEGACY — superseded by `TC-HOME-006` (2026-08-14). Preserved, not part of approved Home flow.**  
+**Priority:** —  
+**Automation:** —
 
 ## TC-HOME-003 — Continue Coloring Visible
-**Priority:** P1  
-**Automation:** Yes
+**Status: LEGACY — superseded by `TC-HOME-007`/`TC-HOME-008` (2026-08-14). Preserved, not part of approved Home structure.**  
+**Priority:** —  
+**Automation:** —
 
 ## TC-HOME-004 — Continue Coloring Hidden
-**Priority:** P2  
-**Automation:** Yes
+**Status: LEGACY — see TC-HOME-003.**  
+**Priority:** —  
+**Automation:** —
 
 ## TC-HOME-005 — Partial Content Failure
 **Priority:** P1  
 **Automation:** Needs fixture
 
 Expected:
-- failed Featured does not block Categories.
+- a category section failing to load does not block other sections.
+
+## TC-HOME-006 — See All Opens Library With Filter *(new — 2026-08-14)*
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-HOME-008
+
+Steps:
+1. Open Home.
+2. Tap "See all" on a category section (e.g. Manga).
+
+Expected:
+- `SCR-LIBRARY-001` opens;
+- Manga filter is active.
+
+## TC-HOME-007 — Artwork Tap Opens Coloring Direct (Resume) *(new — 2026-08-14)*
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-HOME-009
+
+Precondition:
+- artwork has existing progress.
+
+Steps:
+1. Open Home.
+2. Tap an artwork card with existing progress.
+
+Expected:
+- no Preview screen shown;
+- `SCR-EDITOR-001` opens directly;
+- existing progress is restored.
+
+## TC-HOME-008 — Artwork Tap Opens Coloring Direct (Create New) *(new — 2026-08-14)*
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-HOME-009
+
+Precondition:
+- artwork has no existing progress.
+
+Steps:
+1. Open Home.
+2. Tap an artwork card with no progress.
+
+Expected:
+- no Preview screen shown;
+- `SCR-EDITOR-001` opens directly;
+- a new progress record is created.
+
+## TC-HOME-009 — Bottom Navigation Routes to Library / Profile *(new — 2026-08-14)*
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-HOME-010
+
+Expected:
+- tap Library tab → `SCR-LIBRARY-001` opens with "All" filter active;
+- tap Profile tab → `SCR-PROFILE-001` opens.
 
 ---
 
-# 4. Category
+# 4. Category *(LEGACY — SCR-CATEGORY-001 not routed from approved Home flow, 2026-08-14. Preserved for traceability.)*
 
 ## TC-CAT-001 — Drawing Grid Loads
 **Priority:** P1  
@@ -121,7 +182,7 @@ Hi‑Fi filter chips `All/New/Free` are not mandatory test cases until Product a
 
 ---
 
-# 5. Preview
+# 5. Preview *(LEGACY — SCR-PREVIEW-001 not routed from approved MVP core flow, 2026-08-14. Preserved for traceability. Equivalent coverage now lives in TC-HOME-007/008, TC-LIB-003, TC-PROFILE-005.)*
 
 ## TC-PREVIEW-001 — New Drawing Shows Start Coloring
 **Priority:** P1  
@@ -139,6 +200,111 @@ Hi‑Fi filter chips `All/New/Free` are not mandatory test cases until Product a
 ## TC-PREVIEW-004 — Completed State
 **Priority:** P2  
 **Automation:** Yes
+
+---
+
+# 5a. Library *(new — 2026-08-14)*
+
+## TC-LIB-001 — Library Loads With All Filter
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-001, REQ-LIB-004
+
+Steps:
+1. Open Library via Bottom Nav.
+
+Expected:
+- artwork grid visible; "All" filter active.
+
+## TC-LIB-002 — Filter By Category
+**Priority:** P1  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-002
+
+Steps:
+1. Open Library.
+2. Select "Animal" filter.
+
+Expected:
+- only Animal-category artwork shown.
+
+## TC-LIB-003 — Artwork Tap Opens Coloring Direct
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-003
+
+Expected:
+- no Preview hop; resume-or-create rule applies (see TC-HOME-007/008).
+
+## TC-LIB-004 — Empty Filter Result
+**Priority:** P2  
+**Automation:** Fixture  
+**Requirement:** REQ-LIB-005
+
+## TC-LIB-005 — Load Error Retry
+**Priority:** P1  
+**Automation:** Fixture  
+**Requirement:** REQ-LIB-006
+
+---
+
+# 5b. Profile *(new — 2026-08-14)*
+
+## TC-PROFILE-001 — Empty State Shows Explore Library CTA
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-PROFILE-002
+
+Precondition:
+- user has no personal artwork.
+
+Expected:
+- empty state visible;
+- "Explore Library" CTA opens `SCR-LIBRARY-001`.
+
+## TC-PROFILE-002 — Segmented View Filters Correctly
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-PROFILE-003
+
+## TC-PROFILE-003 — Leaving Editor Without Done Marks In Progress
+**Priority:** P0  
+**Automation:** Yes/Partial  
+**Requirement:** REQ-PROFILE-007, BR-PROFILE-001
+
+Steps:
+1. Open an artwork, make an edit, back out without tapping Done.
+2. Open Profile.
+
+Expected:
+- artwork appears in All and In Progress;
+- artwork does not appear in Completed.
+
+## TC-PROFILE-004 — Done Marks Completed and Removes From In Progress
+**Priority:** P0  
+**Automation:** Yes/Partial  
+**Requirement:** REQ-PROFILE-007, BR-PROFILE-001
+
+Steps:
+1. Open an artwork, tap Done.
+2. Open Profile.
+
+Expected:
+- artwork appears in All and Completed;
+- artwork no longer appears in In Progress.
+
+## TC-PROFILE-005 — Artwork Tap Opens Coloring Direct (Resume)
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-PROFILE-005
+
+## TC-PROFILE-006 — Settings Icon Opens Settings
+**Priority:** P1  
+**Automation:** Yes  
+**Requirement:** REQ-PROFILE-006
+
+Expected:
+- `SCR-SETTINGS-001` opens (not merged into Profile UI).
 
 ---
 
@@ -378,7 +544,7 @@ Existing behavior unchanged.
 
 ---
 
-# 12. My Works
+# 12. My Works *(LEGACY — SCR-WORKS-001 not routed from bottom navigation, superseded by TC-PROFILE-001 → 006, 2026-08-14. Preserved for traceability.)*
 
 ## TC-WORK-001 — In Progress Listed
 ## TC-WORK-002 — Completed Listed
@@ -390,6 +556,8 @@ No requirement behavior change.
 ---
 
 # 13. Completion
+
+**Status: Updated — 2026-08-14 re-baseline.**
 
 ## TC-COMPLETE-001 — Complete Drawing
 **Priority:** P1  
@@ -409,6 +577,28 @@ Expected:
 ## TC-COMPLETE-004 — Share
 **Priority:** P2  
 **Automation:** Partial
+
+## TC-COMPLETE-005 — Recommended For You Opens Coloring Direct *(new — 2026-08-14)*
+**Priority:** P1  
+**Automation:** Yes/Partial  
+**Requirement:** REQ-EDITOR-017  
+**Test ID:** `completion-recommended`
+
+Steps:
+1. Complete a drawing (Done → Completion screen).
+2. Tap an artwork in "Recommended for you".
+
+Expected:
+- resume-or-create rule applies;
+- `SCR-EDITOR-001` opens directly, no Preview hop.
+
+## TC-COMPLETE-006 — Back to Home *(new — 2026-08-14)*
+**Priority:** P1  
+**Automation:** Yes  
+**Test ID:** `completion-back-home`
+
+Expected:
+- `SCR-HOME-001` opens.
 
 ---
 
@@ -510,9 +700,19 @@ Covers:
 | TC-EDITOR-021 | REQ-EDITOR-016 | SCR-EDITOR-001 | CMP-EDITOR-SLIDER |
 | TC-EDITOR-023 | FS-EDITOR-VIEW-001 | SCR-EDITOR-001 | CMP-EDITOR-QUICK-ACTIONS |
 | TC-EDITOR-024 | REQ-EDITOR-014 | SCR-EDITOR-001 | CMP-EDITOR-TOPBAR |
+| TC-HOME-006 | REQ-HOME-008 | SCR-HOME-001 / SCR-LIBRARY-001 | CMP-HOME-SEEALL |
+| TC-HOME-007 | REQ-HOME-009 | SCR-HOME-001 / SCR-EDITOR-001 | CMP-HOME-CATEGORY-SECTION |
+| TC-HOME-009 | REQ-HOME-010 | SCR-HOME-001 / SCR-LIBRARY-001 / SCR-PROFILE-001 | CMP-GLOBAL-BOTTOM-NAV |
+| TC-LIB-002 | REQ-LIB-002 | SCR-LIBRARY-001 | CMP-LIBRARY-FILTERS |
+| TC-LIB-003 | REQ-LIB-003 | SCR-LIBRARY-001 / SCR-EDITOR-001 | CMP-LIBRARY-DRAWING-CARD |
+| TC-PROFILE-002 | REQ-PROFILE-003 | SCR-PROFILE-001 | CMP-PROFILE-SEGMENTED |
+| TC-PROFILE-003/004 | REQ-PROFILE-007 / BR-PROFILE-001 | SCR-PROFILE-001 | CMP-PROFILE-GRID |
+| TC-COMPLETE-005 | REQ-EDITOR-017 | SCR-COMPLETE-001 / SCR-EDITOR-001 | CMP-COMPLETE-RECOMMENDED |
 
 ---
 
 # 20. Step 8 Sync Completion
 
 This file supersedes the previous Step 8 test-cases artifact for downstream automation.
+
+**2026-08-14 addendum:** This re-baseline adds Library/Profile/Home-direct-navigation/Completion test coverage and marks Category/Preview/My Works coverage Legacy (preserved, not routed from the approved MVP core flow). No TC ID was deleted or renumbered.

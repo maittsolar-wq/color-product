@@ -1,11 +1,13 @@
 # MVP Scope & Feature Prioritization — Coloring App
 
 **Document ID:** MVP-COLOR-001  
-**Version:** 0.1  
-**Status:** Draft  
+**Version:** 0.2  
+**Status:** Draft — Feature ID registry synchronized to Home/Library/Profile re-baseline (2026-08-14)  
 **Related Documents:**  
 - `00-product/product-brief.md`
 - `00-product/competitor-analysis.md`
+
+**2026-08-14 sync note:** Feature IDs `FE-HOME-010/011`, `FE-LIB-001…004`, `FE-PROFILE-001…006` registered below to match `requirements.md`, `information-architecture-user-flow.md`, `ui-spec.md`, `functional-spec.md`, `test-cases.md`, and `automation-map.md` exactly. `FE-HOME-005/006/007` and `FE-WORK-002/003/004` marked Legacy/Superseded, preserved. The `FE-EDITOR-017` collision (see Module 5) is **resolved**: `FE-EDITOR-017` remains "Visual Tool Preview" unchanged; "Completion Recommended Artwork" now uses `FE-EDITOR-022` everywhere, including in `requirements.md` and `information-architecture-user-flow.md`.
 
 ---
 
@@ -74,16 +76,18 @@ Monetization không được phá trải nghiệm tô màu cốt lõi.
 
 MVP được chia thành 8 module chính:
 
-| Module ID | Module | Mục tiêu |
-|---|---|---|
-| MOD-001 | App Entry | Launch app và đưa user vào trải nghiệm |
-| MOD-002 | Home & Discovery | Khám phá category và artwork |
-| MOD-003 | Category & Drawing List | Xem danh sách tranh |
-| MOD-004 | Drawing Preview | Xem tranh trước khi bắt đầu |
-| MOD-005 | Coloring Editor | Trải nghiệm tô màu cốt lõi |
-| MOD-006 | Progress & My Works | Lưu và tiếp tục tác phẩm |
-| MOD-007 | Monetization | Ads / Premium nếu được chốt |
-| MOD-008 | Settings & Basic App Controls | Cấu hình cơ bản |
+| Module ID | Module | Mục tiêu | Status |
+|---|---|---|---|
+| MOD-001 | App Entry | Launch app và đưa user vào trải nghiệm | Active |
+| MOD-002 | Home & Discovery | Khám phá category và artwork (category sections) | Active — updated 2026-08-14 |
+| MOD-003 | Category & Drawing List | Xem danh sách tranh | Legacy — not routed from Home (2026-08-14) |
+| MOD-004 | Drawing Preview | Xem tranh trước khi bắt đầu | Legacy — not routed (2026-08-14) |
+| MOD-005 | Coloring Editor | Trải nghiệm tô màu cốt lõi | Active |
+| MOD-006 | Progress & My Works | Lưu và tiếp tục tác phẩm | Legacy — superseded by MOD-010 (2026-08-14) |
+| MOD-007 | Monetization | Ads / Premium nếu được chốt | Active |
+| MOD-008 | Settings & Basic App Controls | Cấu hình cơ bản | Active |
+| MOD-009 | Library & Discovery *(new)* | Browse/filter toàn bộ artwork | Active — 2026-08-14 |
+| MOD-010 | Profile *(new)* | Personal artwork + Settings entry | Active — 2026-08-14 |
 
 ---
 
@@ -139,6 +143,8 @@ Onboarding tối đa 2–3 màn nếu thực sự cần giải thích value.
 
 # 7. Module 2 — Home & Discovery
 
+**Status: Updated — 2026-08-14 re-baseline.**
+
 ## MUST
 
 ### FE-HOME-001 — Home Screen
@@ -147,8 +153,12 @@ Hiển thị các nội dung chính của app.
 ### FE-HOME-002 — Category List
 Cho phép user duyệt category.
 
+**Updated 2026-08-14:** Behavior now expressed as repeatable category sections (title + See all + horizontal artwork list) rather than an icon grid. Same Feature ID, updated scope — matches `REQ-HOME-002` downstream.
+
 ### FE-HOME-003 — Featured/New Content
 Có khu vực hiển thị một số tranh nổi bật hoặc mới.
+
+**Status: LEGACY — 2026-08-14.** Not part of the approved Home structure (Home = category sections only). Preserved for traceability.
 
 ### FE-HOME-004 — Drawing Thumbnail
 Thumbnail phải rõ và đủ lớn để nhận diện nội dung.
@@ -156,19 +166,33 @@ Thumbnail phải rõ và đủ lớn để nhận diện nội dung.
 ### FE-HOME-005 — Open Category
 Tap category để mở danh sách tranh tương ứng.
 
+**Status: LEGACY — superseded by `FE-LIB-004` (2026-08-14).** Preserved, not routed from approved Home flow.
+
 ### FE-HOME-006 — Open Drawing
 Cho phép user mở tranh trực tiếp nếu layout hỗ trợ.
+
+**Status: LEGACY — superseded by `FE-HOME-010` (2026-08-14).** Preserved, not routed.
+
+### FE-HOME-010 — Open Artwork From Home Direct (Resume-or-Create) *(new — 2026-08-14)*
+Tap bất kỳ artwork card nào trên Home mở Coloring Editor trực tiếp, không qua Preview: nếu artwork đã có progress thì restore, nếu chưa có thì tạo progress mới. Matches `REQ-HOME-009` downstream.
+
+### FE-HOME-011 — Bottom Navigation: Home / Library / Profile *(new — 2026-08-14)*
+Bottom navigation gồm 3 tab: Home, Library, Profile. Settings không còn là tab riêng — truy cập qua Profile. Matches `REQ-HOME-010` downstream.
 
 ## SHOULD
 
 ### FE-HOME-007 — Continue Coloring
 Hiển thị tác phẩm đang tô gần nhất.
 
+**Status: LEGACY — superseded by `FE-HOME-010` (2026-08-14),** which applies the resume-or-create rule to every artwork card rather than a dedicated Continue Coloring block. Preserved, not part of approved Home structure.
+
 ### FE-HOME-008 — New / Recently Added
 Khu vực tranh mới.
 
 ### FE-HOME-009 — Daily Drawing
 Một tranh nổi bật mỗi ngày.
+
+**Status: LEGACY — 2026-08-14.** Not part of the approved Home structure. Preserved for traceability.
 
 ## COULD
 
@@ -309,6 +333,9 @@ Cho phép reset tranh sau confirmation.
 ### FE-EDITOR-014 — Completion
 User có thể xác nhận hoàn thành tranh.
 
+### FE-EDITOR-022 — Completion Recommended Artwork *(new — 2026-08-14; corrected from the colliding `FE-EDITOR-017`, see flag below)*
+Completion screen hiển thị "Recommended for you" — artwork cards. Tap một artwork mở Coloring Editor trực tiếp, áp dụng resume-or-create rule giống `FE-HOME-010`. Matches `REQ-EDITOR-017` downstream (Requirement ID unaffected by this Feature ID correction).
+
 ## SHOULD
 
 ### FE-EDITOR-015 — Multiple Palettes
@@ -319,6 +346,8 @@ Có nhiều nhóm màu cơ bản.
 
 ### FE-EDITOR-017 — Visual Tool Preview
 Tool có icon/preview dễ hiểu.
+
+**✅ ID COLLISION RESOLVED (2026-08-14):** `requirements.md` and `information-architecture-user-flow.md` previously mis-cited `FE-EDITOR-017` for an unrelated feature — "Completion Recommended Artwork" (the "Recommended for you" → Coloring action on `SCR-COMPLETE-001`). This entry (`Visual Tool Preview`) is the original, already-approved owner of `FE-EDITOR-017` and was never renamed or reassigned. The Completion Recommended Artwork feature has been corrected to `FE-EDITOR-022` (registered above) in both `requirements.md` (`REQ-EDITOR-017`'s Feature field and the traceability matrix) and `information-architecture-user-flow.md` (§5.7 Related Features and the Feature→Screen Mapping table). No remaining collision.
 
 ### FE-EDITOR-018 — Hide UI / Focus Mode
 Có thể giảm toolbar để xem artwork rõ hơn.
@@ -356,6 +385,8 @@ Texture fill.
 
 # 11. Module 6 — Progress & My Works
 
+**Status: Partially LEGACY — 2026-08-14 re-baseline.** `SCR-WORKS-001` (My Works) is superseded by `SCR-PROFILE-001` (MOD-010). Persistence features (data-layer, not screen-specific) remain fully active.
+
 ## MUST
 
 ### FE-WORK-001 — Save Progress
@@ -364,11 +395,17 @@ Lưu trạng thái tranh đang tô.
 ### FE-WORK-002 — My Works
 Có khu vực hiển thị artwork user đã bắt đầu hoặc hoàn thành.
 
+**Status: LEGACY — superseded by `FE-PROFILE-003`/`FE-PROFILE-004` (2026-08-14).** Preserved, not routed from bottom navigation.
+
 ### FE-WORK-003 — Resume
 Cho phép tiếp tục tô từ My Works.
 
+**Status: LEGACY — superseded by `FE-PROFILE-005` (2026-08-14).** Preserved, not routed.
+
 ### FE-WORK-004 — Completed State
 Phân biệt tranh đã hoàn thành.
+
+**Status: LEGACY — superseded by `FE-PROFILE-003` (2026-08-14).** Preserved, not routed.
 
 ### FE-WORK-005 — Local Persistence
 Progress vẫn tồn tại sau khi app đóng/mở lại.
@@ -485,6 +522,48 @@ Bật/tắt haptic nếu được sử dụng.
 
 ---
 
+# 13a. Module 9 — Library & Discovery *(new — 2026-08-14 re-baseline)*
+
+## MUST
+
+### FE-LIB-001 — Library Screen
+Browse/explore toàn bộ artwork khả dụng.
+
+### FE-LIB-002 — Category Filter
+User có thể filter artwork theo category (All, Manga, Animal, Nature, Food, v.v.).
+
+### FE-LIB-003 — Open Artwork From Library
+Tap artwork trong Library mở Coloring Editor trực tiếp, áp dụng resume-or-create rule giống `FE-HOME-010`.
+
+### FE-LIB-004 — Entry With Pre-Applied Filter
+Khi mở từ Home "See all", filter tương ứng active mặc định. Khi mở từ Bottom Nav, filter "All" active mặc định.
+
+---
+
+# 13b. Module 10 — Profile *(new — 2026-08-14 re-baseline)*
+
+## MUST
+
+### FE-PROFILE-001 — Profile Screen
+User-centric screen hiển thị personal artwork.
+
+### FE-PROFILE-002 — Empty State / Explore Library
+Nếu chưa có personal artwork, hiển thị empty state kèm CTA "Explore Library" → Library.
+
+### FE-PROFILE-003 — Segmented View (All / Completed / In Progress)
+Phân đoạn personal artwork theo 3 trạng thái.
+
+### FE-PROFILE-004 — Personal Artwork Grid
+Hiển thị artwork grid tương ứng với segment đã chọn.
+
+### FE-PROFILE-005 — Open Artwork From Profile
+Tap artwork trong Profile mở Coloring Editor trực tiếp (luôn resume — artwork trong Profile luôn có progress).
+
+### FE-PROFILE-006 — Settings Icon Entry
+Profile → Settings icon → Settings Screen. Settings vẫn là màn hình riêng biệt, không gộp vào Profile.
+
+---
+
 # 14. Content Scope for MVP
 
 Content là một phần quan trọng của MVP.
@@ -575,7 +654,40 @@ Style trong cùng category phải đủ nhất quán.
 
 # 16. MVP Navigation Architecture
 
-Recommended:
+**Status: Updated — 2026-08-14 re-baseline.**
+
+Approved:
+
+```text
+App
+│
+├── Home
+│   └── Category Sections (See all → Library)
+│
+├── Library
+│   └── Filtered Artwork Grid
+│
+├── Coloring Editor
+│
+├── Completion
+│
+├── Profile
+│   └── Settings
+│
+└── Paywall
+```
+
+Bottom navigation:
+
+```text
+Home
+Library
+Profile
+```
+
+Settings is reached via Profile, not a root tab.
+
+### Legacy (superseded, preserved for traceability)
 
 ```text
 App
@@ -599,9 +711,7 @@ App
 └── Settings
 ```
 
-Bottom navigation nếu sử dụng nên giữ tối giản.
-
-Ví dụ:
+Legacy bottom navigation:
 
 ```text
 Home
@@ -609,7 +719,7 @@ My Works
 Settings
 ```
 
-Category là flow con của Home, không nhất thiết cần một tab riêng.
+Category là flow con của Home, không nhất thiết cần một tab riêng — reinforced by the 2026-08-14 re-baseline (category browsing now lives in Home sections + Library, not a dedicated tab).
 
 ---
 
