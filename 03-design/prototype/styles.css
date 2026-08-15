@@ -14,11 +14,9 @@
 .tool-icon-brush{-webkit-mask-image:url('assets/icons/pen.png');mask-image:url('assets/icons/pen.png')}
 .tool-icon-fill{-webkit-mask-image:url('assets/icons/fill.png');mask-image:url('assets/icons/fill.png')}
 .tool-icon-erase{-webkit-mask-image:url('assets/icons/eraser.png');mask-image:url('assets/icons/eraser.png')}
-.tool-more-icon{width:20px;height:20px;object-fit:contain;display:block}
 .editor-icon-mask{display:block;width:18px;height:18px;background-color:currentColor;-webkit-mask-size:contain;-webkit-mask-repeat:no-repeat;-webkit-mask-position:center;mask-size:contain;mask-repeat:no-repeat;mask-position:center}
 .icon-color-picker{-webkit-mask-image:url('assets/icons/color-picker.png');mask-image:url('assets/icons/color-picker.png')}
 .icon-tip{-webkit-mask-image:url('assets/icons/tip.png');mask-image:url('assets/icons/tip.png')}
-.icon-settingbrush{width:27px;height:27px;object-fit:contain;display:block}
 .fit-icon{width:17px;height:17px;object-fit:contain;display:block}
 [data-testid="editor-fit"]{display:grid;place-items:center}
 [data-testid="editor-fit"] .fit-icon-min{display:none}
@@ -75,9 +73,13 @@
 .undo-box,.mini-tools{height:48px;background:#F6F6F7;border-radius:16px;display:flex;align-items:center;padding:0 3px;gap:2px}
 .undo-box .editor-icon-btn,.mini-tools .editor-icon-btn{width:40px;height:40px}
 .editor-workspace{position:absolute;left:0;right:0;top:64px;bottom:196px;background:var(--editor-workspace);overflow:hidden;display:grid;place-items:center;padding-right:76px;box-sizing:border-box}
-.artboard{width:76%;max-width:420px;aspect-ratio:1;background:var(--editor-artboard);border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 20px rgba(0,0,0,.05);display:grid;place-items:center;transform:scale(1);transition:transform .22s ease}
-.artboard.zoomed{transform:scale(1.58)}
-.artboard svg{width:92%;height:92%}
+.artboard{width:76%;max-width:420px;aspect-ratio:1;background:var(--editor-artboard);border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 20px rgba(0,0,0,.05);display:grid;place-items:center;transition:width .22s ease,max-width .22s ease}
+.artboard svg,.artboard canvas{grid-area:1/1;width:92%;height:92%}
+.artboard svg{pointer-events:none}
+.artboard canvas{touch-action:none}
+#fillCanvas{z-index:1}
+#brushCanvas{z-index:2}
+.artboard svg{z-index:3}
 .tool-rail{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:#fff;border-radius:20px;padding:8px 4px;box-shadow:0 6px 18px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:4px}
 .tool-rail button{width:56px;min-height:52px;border:0;background:transparent;color:#5B5B5E;padding:8px 2px;border-radius:14px;display:grid;place-items:center;gap:2px;cursor:pointer;transition:background-color .15s ease,color .15s ease}
 .tool-rail button svg{display:block}
@@ -85,9 +87,6 @@
 .tool-rail button:hover{background:#F5F4FA}
 .tool-rail button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .tool-rail .selected{color:var(--accent);background:var(--accent-soft)}
-.tool-rail .plus{min-height:44px;margin-top:2px}
-.workspace-settings{position:absolute;left:9px;bottom:9px;width:38px;height:38px;border:0;border-radius:50%;background:#fff;display:grid;place-items:center;color:#5B5B5E;box-shadow:0 2px 8px rgba(0,0,0,.06);cursor:pointer}
-.workspace-settings:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 .editor-bottom{position:absolute;left:0;right:0;bottom:0;height:196px;background:#fff;border-top:1px solid var(--editor-control-border);padding:12px 14px max(10px,env(safe-area-inset-bottom))}
 .slider-wrap{position:relative;height:36px;display:flex;align-items:center;padding:0 2px}
 .slider-wrap input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:36px;background:transparent;cursor:pointer;margin:0;--p:18%}
@@ -166,3 +165,46 @@
 .search-empty-state .primary{background:var(--accent)}
 .search-empty-state .primary:hover{background:#6C3FF0}
 [data-testid="completion-recommended"] .drawing-card b{font-size:13px;font-weight:700}@media(max-width:720px){.prototype-shell{padding:0}.prototype-nav{display:none}.phone-frame{width:100%;max-width:430px;height:100vh}.screen{top:28px}.status-bar{position:sticky;top:0}}
+
+/* --- Focus / Expanded mode: driven entirely by #artboard.zoomed (same
+   control/testid as before), scoped via :has() so no second class is needed. --- */
+.focus-compact-controls{display:none;position:absolute;left:9px;bottom:9px;align-items:center;gap:8px}
+.focus-tool-indicator{width:38px;height:38px;border-radius:50%;background:#fff;display:grid;place-items:center;color:#5B5B5E;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.focus-tool-indicator .tool-icon{width:18px;height:18px}
+.focus-color-indicator{width:28px;height:28px;border-radius:50%;background:var(--c,#168B2D);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18)}
+.editor-screen:has(#artboard.zoomed) .editor-workspace{bottom:64px;padding-right:0}
+.editor-screen:has(#artboard.zoomed) .artboard{width:94%;max-width:560px}
+.editor-screen:has(#artboard.zoomed) .tool-rail{display:none}
+.editor-screen:has(#artboard.zoomed) .focus-compact-controls{display:flex}
+.editor-screen:has(#artboard.zoomed) .editor-bottom{height:60px;padding-top:6px}
+.editor-screen:has(#artboard.zoomed) .slider-wrap{display:none}
+.editor-screen:has(#artboard.zoomed) .palette{display:none}
+.editor-screen:has(#artboard.zoomed) .editor-quick{position:absolute;right:18px;bottom:18px;left:auto;grid-template-columns:none;padding:0}
+.editor-screen:has(#artboard.zoomed) .editor-quick>*{display:none}
+.editor-screen:has(#artboard.zoomed) .editor-quick>[data-testid="editor-fit"]{display:grid;width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.14);border:0}
+
+/* --- Color Picker bottom sheet (over SCR-EDITOR-001, not a new screen) --- */
+.color-picker-overlay{position:absolute;inset:0;background:rgba(20,18,22,.42);z-index:50;display:flex;align-items:flex-end}
+.color-picker-overlay[hidden]{display:none}
+.color-picker-sheet{width:100%;max-height:54%;background:#fff;border-radius:30px 30px 0 0;padding:16px 18px max(18px,env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.14);display:flex;flex-direction:column;box-sizing:border-box}
+.color-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
+.color-picker-card{background:#fff;border:1px solid #ECECEE;box-shadow:0 4px 16px rgba(0,0,0,.06);border-radius:20px;margin:0 4px;padding:28px;display:grid;place-items:center}
+.hue-ring-wrap{position:relative;width:min(220px,52vw);height:min(220px,52vw);touch-action:none}
+.hue-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#ff0000,#ff8a00,#ffea00,#37ff00,#00e5ff,#0026ff,#8f00ff,#ff00c8,#ff0000)}
+.hue-ring::after{content:'';position:absolute;inset:15%;border-radius:50%;background:#fff}
+.hue-center-preview{position:absolute;left:50%;top:50%;width:42%;height:42%;border-radius:50%;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);background:#168B2D;pointer-events:none}
+.hue-handle{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25);transform:translate(-50%,-50%);cursor:pointer;padding:0}
+
+/* Eyedropper "armed" affordance — next artboard tap will sample, not draw/fill. */
+.editor-icon-btn.armed{background:var(--accent-soft);color:var(--accent)}
+
+/* --- Editor Settings sheet (over SCR-EDITOR-001, distinct from SCR-SETTINGS-001) --- */
+.editor-settings-overlay{position:absolute;inset:0;background:rgba(20,18,22,.42);z-index:50;display:flex;align-items:flex-end}
+.editor-settings-overlay[hidden]{display:none}
+.editor-settings-sheet{width:100%;max-height:64%;background:#FAF9F7;border-radius:28px 28px 0 0;box-shadow:0 -8px 24px rgba(0,0,0,.14);display:flex;flex-direction:column;overflow:hidden}
+.editor-settings-scroll{overflow:auto;padding:6px 18px max(18px,env(safe-area-inset-bottom))}
+.editor-settings-scroll .settings-group{margin-top:10px}
+
+/* --- Eyedropper sampling magnifier (follows the pointer while dragging) --- */
+.eyedropper-magnifier{position:fixed;width:44px;height:44px;border-radius:50%;border:3px solid #fff;box-shadow:0 0 0 1px rgba(0,0,0,.15),0 4px 14px rgba(0,0,0,.25);pointer-events:none;z-index:80;transform:translate(-50%,-130%)}
+.eyedropper-magnifier[hidden]{display:none}

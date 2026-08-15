@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260816-library-search">
+<link rel="stylesheet" href="styles.css?v=20260816-region-engine">
 </head>
 <body>
 <div class="prototype-shell">
@@ -406,7 +406,7 @@
             <img src="assets/icons/lock.png" alt="" class="lock-icon lock-icon-locked">
             <img src="assets/icons/unlock.png" alt="" class="lock-icon lock-icon-unlocked">
           </button>
-          <button class="editor-icon-btn" aria-label="Canvas settings">
+          <button class="editor-icon-btn" data-testid="editor-settings-gear" aria-label="Settings" onclick="openEditorSettings()">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.8-1.6L13 2h-2l-.7 2.8a7 7 0 0 0-2.8 1.6l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .5.1 1.1.2 1.6l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.8 1.6L11 22h2l.7-2.8a7 7 0 0 0 2.8-1.6l2.3.9 2-3.4-2-1.5c.1-.5.2-1.1.2-1.6Z"/></svg>
           </button>
         </div>
@@ -420,7 +420,17 @@
         data-requirement="REQ-EDITOR-003"
         data-testid="coloring-canvas">
         <div class="artboard" id="artboard" data-testid="editor-zoom-state" data-state="default">
-          <svg viewBox="0 0 360 360" aria-label="Elephant coloring page">
+          <!-- Fill/Brush are raster layers (bottom to top: fillCanvas, then
+               brushCanvas), so any connected region the flood-fill engine
+               finds — including the white background outside the subject —
+               can be painted, not just a fixed set of pre-drawn SVG shapes.
+               The SVG on top (pointer-events:none — see styles.css) is the
+               single immutable line-art source, both for display AND as the
+               barrier geometry rasterized by buildBarrierMask(); it is never
+               modified by Fill/Brush/Erase. See report for the engine. -->
+          <canvas id="fillCanvas" width="360" height="360" data-testid="editor-fill-canvas" aria-hidden="true"></canvas>
+          <canvas id="brushCanvas" width="360" height="360" data-testid="editor-brush-layer" aria-hidden="true"></canvas>
+          <svg id="artboardSvg" viewBox="0 0 360 360" aria-label="Elephant coloring page">
             <g class="lineart" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
               <path d="M116 86c-28-35-72-19-72 27 0 36 25 62 57 54"/>
               <path d="M244 86c28-35 72-19 72 27 0 36-25 62-57 54"/>
@@ -433,8 +443,8 @@
               <path d="M230 245c12 22 15 43 7 61-4 9-16 12-26 6"/>
             </g>
             <path class="fill-region" id="region_001" d="M150 254c14-19 47-19 61 0-12 18-22 27-31 27s-18-9-30-27z"
-              fill="#fff" stroke="#111" stroke-width="6" onclick="fillRegion(this)"/>
-            <circle class="fill-region" id="region_002" cx="180" cy="247" r="8" fill="#fff" stroke="#111" stroke-width="3" onclick="fillRegion(this)"/>
+              fill="none" stroke="#111" stroke-width="6"/>
+            <circle class="fill-region" id="region_002" cx="180" cy="247" r="8" fill="none" stroke="#111" stroke-width="3"/>
           </svg>
         </div>
 
@@ -454,14 +464,16 @@
             <span class="tool-icon tool-icon-erase" aria-hidden="true"></span>
             <span>Erase</span>
           </button>
-          <button class="plus" data-testid="tool-more" aria-label="More tools">
-            <img src="assets/icons/Add.png" alt="" class="tool-more-icon">
-          </button>
         </div>
 
-        <button class="workspace-settings" aria-label="Canvas display options">
-          <img src="assets/icons/settingbrush.png" alt="" class="icon-settingbrush">
-        </button>
+        <div class="focus-compact-controls" data-testid="editor-focus-controls">
+          <span class="focus-tool-indicator" data-testid="focus-active-tool" aria-label="Current tool: Brush">
+            <span class="tool-icon tool-icon-brush" data-testid="focus-active-tool-icon" aria-hidden="true"></span>
+          </span>
+          <span class="focus-color-indicator" data-testid="focus-active-color" aria-label="Current color" style="--c:#168B2D"></span>
+        </div>
+
+        <div class="eyedropper-magnifier" data-testid="eyedropper-magnifier" aria-hidden="true" hidden></div>
       </div>
 
       <div class="editor-bottom">
@@ -486,21 +498,22 @@
           <button class="color" style="--c:#2C8E92" data-color="#2C8E92" aria-label="Teal" aria-pressed="false" onclick="selectColor(this)"><span class="swatch"></span></button>
           <button class="color" style="--c:#F4E6BE" data-color="#F4E6BE" aria-label="Cream" aria-pressed="false" onclick="selectColor(this)"><span class="swatch"></span></button>
           <button class="color" style="--c:#E7EDF2" data-color="#E7EDF2" aria-label="Ice" aria-pressed="false" onclick="selectColor(this)"><span class="swatch"></span></button>
+          <button class="color custom-color" style="--c:#168B2D" data-color="#168B2D" data-testid="palette-color-custom" aria-label="Custom color" aria-pressed="false" onclick="selectColor(this)"><span class="swatch"></span></button>
         </div>
 
         <div class="editor-quick"
           data-component-id="CMP-EDITOR-QUICK-ACTIONS">
-          <button aria-label="Eyedropper">
+          <button data-testid="editor-eyedropper" aria-label="Eyedropper" onclick="armEyedropper()">
             <span class="editor-icon-mask icon-color-picker" aria-hidden="true"></span>
           </button>
-          <button aria-label="Previous style">
+          <button data-testid="editor-color-prev" aria-label="Previous color" onclick="stepPaletteColor(-1)">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
           </button>
-          <button class="playful" aria-label="Playful style">
+          <button class="playful" aria-label="Playful style" onclick="openColorPicker()">
             <svg viewBox="0 0 24 24" width="15" height="15" fill="currentColor" stroke="none" aria-hidden="true"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8L12 3Z"/></svg>
             Playful
           </button>
-          <button aria-label="Next style">
+          <button data-testid="editor-color-next" aria-label="Next color" onclick="stepPaletteColor(1)">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
           </button>
           <button data-testid="editor-fit" aria-label="Fit to screen" aria-pressed="false" onclick="toggleZoom()">
@@ -510,6 +523,89 @@
         </div>
 
         <div class="save-status" id="saveStatus" data-testid="editor-save-state">Saved</div>
+      </div>
+
+      <!-- Color Picker: a bottom sheet OVER SCR-EDITOR-001, not a new screen. -->
+      <div class="color-picker-overlay" data-testid="color-picker-overlay" hidden>
+        <div class="color-picker-sheet" data-component-id="CMP-EDITOR-COLORPICKER" data-testid="color-picker-sheet">
+          <header class="color-picker-header">
+            <button class="editor-circle editor-icon-btn" data-testid="color-picker-back" aria-label="Cancel" onclick="closeColorPicker(false)">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+            </button>
+            <button class="done-circle editor-icon-btn" data-testid="color-picker-save" aria-label="Save color" onclick="closeColorPicker(true)">
+              <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 13l4 4L19 7"/></svg>
+            </button>
+          </header>
+          <div class="color-picker-card">
+            <div class="hue-ring-wrap" id="hueRingWrap" data-testid="color-picker-hue-ring">
+              <div class="hue-ring"></div>
+              <div class="hue-center-preview" id="colorPreview" data-testid="color-picker-preview"></div>
+              <button class="hue-handle" id="hueHandle" data-testid="color-picker-hue-handle" aria-label="Hue handle"></button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Editor Settings: a bottom sheet OVER SCR-EDITOR-001, belonging to
+           the Editor — NOT a navigation to SCR-SETTINGS-001 (Profile's
+           General/Support/Legal screen, kept entirely separate). -->
+      <div class="editor-settings-overlay" data-testid="editor-settings-overlay" hidden>
+        <div class="editor-settings-sheet" data-component-id="CMP-EDITOR-SETTINGS" data-testid="editor-settings-sheet">
+          <header class="settings-sheet-header">
+            <span class="settings-header-spacer" aria-hidden="true"></span>
+            <h1>Settings</h1>
+            <button class="icon-btn" data-testid="editor-settings-close" aria-label="Close" onclick="closeEditorSettings()">
+              <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+            </button>
+          </header>
+          <div class="editor-settings-scroll">
+            <div class="settings-group" data-component-id="CMP-EDITOR-SETTINGS-GROUP">
+              <button class="settings-row"
+                data-testid="editor-settings-sound-toggle"
+                data-setting-key="sound"
+                role="switch"
+                aria-checked="true"
+                onclick="toggleSetting('sound', this)">
+                <span class="settings-row-left">
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16.5 9a4 4 0 0 1 0 6"/></svg>
+                  <b>Sounds</b>
+                </span>
+                <span class="toggle-switch" data-state="on"><i></i></span>
+              </button>
+              <button class="settings-row"
+                data-testid="editor-settings-color-history-toggle"
+                data-setting-key="colorHistory"
+                role="switch"
+                aria-checked="false"
+                onclick="toggleSetting('colorHistory', this)">
+                <span class="settings-row-left">
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 8v5l3 2"/><circle cx="12" cy="13" r="8"/><path d="M9 2h6"/></svg>
+                  <b>Color History</b>
+                </span>
+                <span class="toggle-switch" data-state="off"><i></i></span>
+              </button>
+              <button class="settings-row"
+                data-testid="editor-settings-mirror-toggle"
+                data-setting-key="mirrorMode"
+                role="switch"
+                aria-checked="false"
+                onclick="toggleSetting('mirrorMode', this)">
+                <span class="settings-row-left">
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"/><path d="M7 7l-3 5 3 5"/><path d="M17 7l3 5-3 5"/></svg>
+                  <b>Mirror Mode</b>
+                </span>
+                <span class="toggle-switch" data-state="off"><i></i></span>
+              </button>
+              <button class="settings-row" data-testid="editor-settings-how-to-color">
+                <span class="settings-row-left">
+                  <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11.25 11.5H12v5h.75"/></svg>
+                  <b>How to Color</b>
+                </span>
+                <svg class="chevron" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -620,6 +716,7 @@
           <div class="settings-group" data-component-id="CMP-SETTINGS-GENERAL">
             <button class="settings-row"
               data-testid="settings-sound-toggle"
+              data-setting-key="sound"
               role="switch"
               aria-checked="true"
               onclick="toggleSetting('sound', this)">
@@ -690,6 +787,6 @@
     </section>
   </div>
 </div>
-<script src="app.js?v=20260816-library-search"></script>
+<script src="app.js?v=20260816-region-engine"></script>
 </body>
 </html>
