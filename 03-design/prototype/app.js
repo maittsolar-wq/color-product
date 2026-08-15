@@ -163,6 +163,16 @@ function renderProfileGrid(){
   if(segmentEmpty) segmentEmpty.hidden = visibleCount > 0;
 }
 
+const settingsState = { sound: true };
+
+function toggleSetting(key, btn){
+  settingsState[key] = !settingsState[key];
+  const on = settingsState[key];
+  btn.setAttribute('aria-checked', String(on));
+  const sw = btn.querySelector('.toggle-switch');
+  if(sw) sw.dataset.state = on ? 'on' : 'off';
+}
+
 function selectColor(btn){
   activeColor = btn.dataset.color;
   document.querySelectorAll('.palette .color').forEach(c=>{

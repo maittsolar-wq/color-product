@@ -311,3 +311,69 @@ test('TC-SET-001 — Settings opens (via Profile)', async ({ page }) => {
   await page.locator('[data-testid="profile-settings-icon"]').click();
   await expect(page.locator('[data-screen-id="SCR-SETTINGS-001"]')).toHaveClass(/active/);
 });
+
+test('TC-SET-006 — Settings has no bottom navigation', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await page.locator('[data-testid="profile-settings-icon"]').click();
+
+  await expect(active(page).locator('.bottom-nav')).toHaveCount(0);
+});
+
+test('TC-SET-007 — Close X returns to Profile', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await page.locator('[data-testid="profile-settings-icon"]').click();
+
+  await page.locator('[data-testid="settings-close"]').click();
+  await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).toHaveClass(/active/);
+});
+
+test('TC-SET-008 — Sound toggle changes state', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await page.locator('[data-testid="profile-settings-icon"]').click();
+
+  const toggle = page.locator('[data-testid="settings-sound-toggle"]');
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'false');
+
+  await toggle.click();
+  await expect(toggle).toHaveAttribute('aria-checked', 'true');
+});
+
+test('TC-SET-009 — General, Support, and Legal rows are present', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await page.locator('[data-testid="profile-settings-icon"]').click();
+
+  for (const testid of [
+    'settings-sound-toggle',
+    'settings-row-language',
+    'settings-row-how-to-color',
+    'settings-row-contact-us',
+    'settings-row-rate-us',
+    'settings-row-terms',
+    'settings-row-privacy',
+  ]) {
+    await expect(page.locator(`[data-testid="${testid}"]`)).toBeVisible();
+  }
+  await expect(page.locator('[data-testid="settings-version"]')).toHaveText('Version v1.2.1');
+});
+
+test('TC-SET-010 — Profile segment/state is preserved after closing Settings', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await page.locator('[data-testid="profile-segment-completed"]').click();
+  await expect(page.locator('[data-testid="profile-segment-completed"]')).toHaveClass(/selected/);
+
+  await page.locator('[data-testid="profile-settings-icon"]').click();
+  await page.locator('[data-testid="settings-close"]').click();
+
+  await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="profile-segment-completed"]')).toHaveClass(/selected/);
+  await expect(active(page).locator('[data-testid="drawing-card-draw_nature_001"]')).toBeVisible();
+  await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeHidden();
+});

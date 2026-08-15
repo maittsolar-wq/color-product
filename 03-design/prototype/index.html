@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260814-home">
+<link rel="stylesheet" href="styles.css?v=20260814-settings-refine">
 </head>
 <body>
 <div class="prototype-shell">
@@ -514,31 +514,98 @@
     </section>
 
     <!-- SETTINGS -->
-    <section class="screen"
+    <section class="screen settings-screen"
       data-screen-id="SCR-SETTINGS-001"
-      data-requirement="REQ-SET-001">
-      <div class="screen-scroll">
-        <header class="app-header"><div><span class="eyebrow">App</span><h1>Settings</h1></div></header>
-        <div class="settings-group">
-          <button><span>★ Premium</span><b>Manage</b></button>
-          <button><span>Sound</span><b>On</b></button>
-          <button><span>Haptic</span><b>On</b></button>
+      data-requirement="REQ-SET-001"
+      data-testid="settings-screen">
+      <div class="settings-sheet">
+        <header class="settings-sheet-header" data-component-id="CMP-SETTINGS-HEADER">
+          <span class="settings-header-spacer" aria-hidden="true"></span>
+          <h1>Settings</h1>
+          <button class="icon-btn"
+            data-component-id="CMP-SETTINGS-CLOSE"
+            data-testid="settings-close"
+            aria-label="Close"
+            onclick="showScreen('SCR-PROFILE-001')">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </header>
+
+        <div class="settings-sheet-scroll">
+          <p class="settings-section-label">General</p>
+          <div class="settings-group" data-component-id="CMP-SETTINGS-GENERAL">
+            <button class="settings-row"
+              data-testid="settings-sound-toggle"
+              role="switch"
+              aria-checked="true"
+              onclick="toggleSetting('sound', this)">
+              <span class="settings-row-left">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9H4Z"/><path d="M16.5 9a4 4 0 0 1 0 6"/></svg>
+                <b>Sounds</b>
+              </span>
+              <span class="toggle-switch" data-state="on"><i></i></span>
+            </button>
+            <button class="settings-row" data-testid="settings-row-language">
+              <span class="settings-row-left">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.5 4 5.7 4 9s-1.5 6.5-4 9c-2.5-2.5-4-5.7-4-9s1.5-6.5 4-9Z"/></svg>
+                <b>Language</b>
+              </span>
+              <svg class="chevron" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <button class="settings-row" data-testid="settings-row-how-to-color">
+              <span class="settings-row-left">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 8h.01M11.25 11.5H12v5h.75"/></svg>
+                <b>How to Color</b>
+              </span>
+              <svg class="chevron" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          <p class="settings-section-label">Support</p>
+          <div class="settings-group" data-component-id="CMP-SETTINGS-SUPPORT">
+            <button class="settings-row" data-testid="settings-row-contact-us">
+              <span class="settings-row-left">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 5.5h16v10.5H9l-4 3.5V16H4V5.5Z"/></svg>
+                <b>Contact Us</b>
+              </span>
+              <svg class="chevron" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <button class="settings-row" data-testid="settings-row-rate-us">
+              <span class="settings-row-left">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3.5l2.6 5.4 5.9.6-4.4 4 1.2 5.8L12 16.3l-5.3 3-1.2-5.8-4.4-4 5.9-.6L12 3.5Z"/></svg>
+                <b>Rate Us</b>
+              </span>
+              <svg class="chevron" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          <p class="settings-section-label">Legal</p>
+          <div class="settings-group" data-component-id="CMP-SETTINGS-LEGAL">
+            <button class="settings-row" data-testid="settings-row-terms" data-requirement="REQ-SET-003">
+              <span class="settings-row-left">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="6" y="3" width="12" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg>
+                <b>Terms of Service</b>
+              </span>
+              <svg class="chevron" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+            <button class="settings-row" data-testid="settings-row-privacy" data-requirement="REQ-SET-002">
+              <span class="settings-row-left">
+                <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 3v6c0 4.5-3 8-7 9-4-1-7-4.5-7-9V6l7-3Z"/></svg>
+                <b>Privacy Policy</b>
+              </span>
+              <svg class="chevron" viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+            </button>
+          </div>
+
+          <p class="version"
+            data-component-id="CMP-SETTINGS-VERSION"
+            data-requirement="REQ-SET-004"
+            data-testid="settings-version">Version v1.2.1</p>
         </div>
-        <div class="settings-group">
-          <button><span>Privacy Policy</span><b>›</b></button>
-          <button><span>Terms of Use</span><b>›</b></button>
-          <button><span>Rate App</span><b>›</b></button>
-        </div>
-        <p class="version">Version 0.1.0</p>
       </div>
-      <nav class="bottom-nav">
-        <button onclick="showScreen('SCR-HOME-001')">⌂<span>Home</span></button>
-        <button onclick="showScreen('SCR-WORKS-001')">▦<span>My Works</span></button>
-        <button class="selected">⚙<span>Settings</span></button>
-      </nav>
     </section>
   </div>
 </div>
-<script src="app.js?v=20260814-home"></script>
+<script src="app.js?v=20260814-settings-refine"></script>
 </body>
 </html>
