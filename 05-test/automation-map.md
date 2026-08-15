@@ -29,6 +29,7 @@ Traceability:
 ```text
 home-screen
 premium-home
+continue-coloring
 home-category-section-<categoryId>
 home-see-all-<categoryId>
 
@@ -94,12 +95,13 @@ category-screen
 drawing-grid
 drawing-preview
 start-coloring
-continue-coloring
 my-works
 my-works-screen
 in-progress-section
 completed-section
 ```
+
+`continue-coloring` reactivated 2026-08-16 — moved back into the active Home selector list above (Continue Current Artwork card).
 
 Important:
 - Do not rely on display text when a stable ID can be exposed.
@@ -115,7 +117,7 @@ Important:
 | Test Case | Automation | Status |
 |---|---|---|
 | TC-SMOKE-001 → 005 | `maestro/smoke/smoke-main.yaml` | Active |
-| TC-HOME-001, 005 | `maestro/discovery/home.yaml` | Active — needs update to drop TC-HOME-002/003/004 legacy steps |
+| TC-HOME-001, 003, 004, 005 | `maestro/discovery/home.yaml` | Active — TC-HOME-003/004 reactivated 2026-08-16 (Continue card); needs update to drop TC-HOME-002 legacy step only |
 | TC-HOME-006 → 009 | `maestro/discovery/home.yaml` *(planned addition)* | Planned — not yet implemented |
 | TC-CAT-001 → 003 | `maestro/discovery/category.yaml` | Legacy — not routed |
 | TC-PREVIEW-001 → 003 | `maestro/discovery/preview.yaml` | Legacy — not routed |

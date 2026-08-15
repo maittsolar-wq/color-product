@@ -109,13 +109,14 @@ These are contracts for QA automation and should not depend on display text.
 **Screen:** SCR-HOME-001  
 **Requirements:** REQ-HOME-001, REQ-HOME-002, REQ-HOME-004, REQ-HOME-007, REQ-HOME-008, REQ-HOME-009, REQ-HOME-010  
 
-Approved Home contains:
+Approved Home contains (updated 2026-08-16):
 
 1. App header with PRO pill
-2. Repeatable category sections (title, "See all", horizontally scrollable artwork cards) — e.g. Manga, Animal, Nature
-3. Bottom navigation (Home / Library / Profile)
+2. Continue Current Artwork card (conditional — see `FS-HOME-002`) — **reactivated 2026-08-16**
+3. Repeatable category sections (title, "See all", horizontally scrollable artwork cards) — e.g. Manga, Animal, Nature
+4. Bottom navigation (Home / Library / Profile)
 
-**Legacy content blocks (superseded, preserved — REQ-HOME-003/005/006):** Continue Coloring, Featured, icon-based Categories grid, Daily Pick. Not part of the approved assembly.
+**Legacy content blocks (superseded, preserved — REQ-HOME-003/005):** Featured, icon-based Categories grid, Daily Pick. Not part of the approved assembly. (Continue Coloring/`REQ-HOME-006` reactivated — see `FS-HOME-002`, no longer in this legacy set.)
 
 ### Category Sections
 
@@ -138,6 +139,28 @@ Tap "See all" on a category section:
 
 Tap PRO pill:
 `SCR-HOME-001 → SCR-PAYWALL-001` (unchanged from prior behavior).
+
+## FS-HOME-002 — Continue Current Artwork *(reactivated 2026-08-16)*
+
+**Component:** `CMP-HOME-CONTINUE`
+**Requirement:** `REQ-HOME-006`
+
+```text
+On Home render:
+1. Collect all Progress records with status = IN_PROGRESS.
+2. If none exist:
+   - do not render the Continue card.
+3. If exactly one exists:
+   - show that artwork.
+4. If more than one exists:
+   - show the one with the most recent updatedAt.
+5. COMPLETED artwork is never eligible, regardless of recency.
+```
+
+Tap (card or its "Continue" control — both are the same single tap target, not two independent controls):
+`FS-DISCOVERY-RESOLVE-001` (§4.1), using the resolved artwork's id. Since the artwork is by definition already `IN_PROGRESS`, this always resolves to the restore branch — the create branch is structurally unreachable from this entry point.
+
+Re-evaluate steps 1–4 whenever Home becomes the active screen (not only on cold start), so the card reflects the latest state after returning from Editor/Completion/etc.
 
 ---
 
@@ -754,7 +777,7 @@ No change from previous Step 7:
 
 | Requirement | Screen | Hi‑Fi Component | Functional Spec | Status |
 |---|---|---|---|---|
-| REQ-HOME-006 | SCR-HOME-001 | CMP-HOME-CONTINUE | FS-HOME-001 | Legacy — superseded by REQ-HOME-009 |
+| REQ-HOME-006 | SCR-HOME-001 | CMP-HOME-CONTINUE | FS-HOME-002 | Active — REACTIVATED 2026-08-16 |
 | REQ-HOME-008 | SCR-HOME-001 / SCR-LIBRARY-001 | CMP-HOME-SEEALL | FS-HOME-001 | Active — NEW |
 | REQ-HOME-009 | SCR-HOME-001 / SCR-EDITOR-001 | CMP-HOME-CATEGORY-SECTION | FS-DISCOVERY-RESOLVE-001 | Active — NEW |
 | REQ-CAT-002 | SCR-CATEGORY-001 | CMP-CAT-GRID | FS-CAT-001 | Legacy — not routed |

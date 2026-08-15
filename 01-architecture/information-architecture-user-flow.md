@@ -209,7 +209,7 @@ Giới thiệu ngắn giá trị cốt lõi của app nếu onboarding được 
 **Exit Points**
 - `SCR-LIBRARY-001` (via "See all" on any category section, filter pre-applied; also via Bottom Nav → Library with All active)
 - `SCR-PROFILE-001` (via Bottom Nav)
-- `SCR-EDITOR-001` (direct — any artwork card tap; resume-or-create rule applies)
+- `SCR-EDITOR-001` (direct — any artwork card tap, including the reactivated Continue Current Artwork card; resume-or-create rule applies)
 - `SCR-PAYWALL-001` (via PRO entry)
 
 **Legacy exit points (preserved, no longer routed in approved MVP core flow):**
@@ -225,22 +225,24 @@ Giới thiệu ngắn giá trị cốt lõi của app nếu onboarding được 
 - FE-HOME-004
 - FE-HOME-005 *(legacy — see below)*
 - FE-HOME-006
-- FE-HOME-007 *(legacy — see below)*
+- FE-HOME-007 *(reactivated 2026-08-16 — Continue Current Artwork card)*
 - FE-HOME-008
 - FE-HOME-009 *(legacy — see below)*
 - FE-LIB-001, FE-LIB-004 *(new — See all → Library)*
 - FE-HOME-010, FE-HOME-011 *(new — direct-to-Coloring resolution, bottom nav)*
 
-**Home Content Blocks (approved)**
-- Repeatable category sections (title + "See all" + horizontally scrollable artwork cards), e.g. Manga, Animal, Nature
+**Home Content Blocks (approved, updated 2026-08-16)**
 - PRO entry
+- Continue Current Artwork card — **reactivated 2026-08-16**, conditional on ≥1 `IN_PROGRESS` artwork existing (see `REQ-HOME-006`)
+- Repeatable category sections (title + "See all" + horizontally scrollable artwork cards), e.g. Manga, Animal, Nature
 - Bottom navigation (Home / Library / Profile)
 
 **Legacy Home Content Blocks (preserved, not part of approved structure — see §15 UXD-008)**
 - Featured / New block
-- Continue Coloring block
 - Daily Drawing block
 - Icon-based Categories grid
+
+*(Continue Coloring block was listed here as legacy prior to 2026-08-16; reactivated above per explicit product decision — no longer part of this legacy set.)*
 
 **Notes**
 - Đây là màn discovery quan trọng nhất.
@@ -1105,7 +1107,7 @@ Return to Settings or previous monetization context
 | FE-HOME-002 | Category List | SCR-HOME-001 | Active — now category sections |
 | FE-HOME-005 | Open Category | SCR-HOME-001 → SCR-CATEGORY-001 | Legacy — superseded by FE-LIB-004 |
 | FE-HOME-006 | Open Drawing from Home | SCR-HOME-001 → SCR-PREVIEW-001 | Legacy — superseded by FE-HOME-010 |
-| FE-HOME-007 | Continue Coloring | SCR-HOME-001, SCR-WORKS-001, SCR-EDITOR-001 | Legacy — superseded by FE-HOME-010 |
+| FE-HOME-007 | Continue Coloring | SCR-HOME-001, SCR-EDITOR-001 | Active — REACTIVATED 2026-08-16 (Screen IDs corrected: SCR-WORKS-001 removed, was already legacy) |
 | FE-HOME-010 *(new)* | Open Artwork from Home Direct (resume-or-create) | SCR-HOME-001 → SCR-EDITOR-001 | Active |
 | FE-HOME-011 *(new)* | Bottom Navigation (Home/Library/Profile) | SCR-HOME-001, SCR-LIBRARY-001, SCR-PROFILE-001 | Active |
 | FE-CAT-001 | Category Screen | SCR-CATEGORY-001 | Legacy — not routed |
@@ -1184,10 +1186,11 @@ ROOT
 ├── Onboarding (optional)
 └── Main App (Bottom Nav: Home | Library | Profile)
     ├── Home
-    │   ├── Category Sections (Manga, Animal, Nature, ...)
-    │   │   ├── Artwork Card → Editor (direct, resume-or-create)
-    │   │   └── See all → Library (category filter active)
-    │   └── PRO → Paywall
+    │   ├── PRO → Paywall
+    │   ├── Continue Current Artwork card (conditional — reactivated 2026-08-16) → Editor (direct, resume)
+    │   └── Category Sections (Manga, Animal, Nature, ...)
+    │       ├── Artwork Card → Editor (direct, resume-or-create)
+    │       └── See all → Library (category filter active)
     │
     ├── Library
     │   ├── Category Filter (All / Manga / Animal / Nature / Food / ...)
@@ -1284,13 +1287,15 @@ Explicit product decision; Profile also unifies personal-artwork access with the
 
 **Preserves:** `SCR-WORKS-001` remains for traceability, marked Legacy/Superseded.
 
-### UXD-008 *(new — 2026-08-14)*
-Home is composed of repeatable category sections only — no separate Featured, Daily Pick, icon-based Categories grid, or dedicated Continue Coloring block.
+### UXD-008 *(2026-08-14, corrected 2026-08-16)*
+Home is composed of PRO entry, the Continue Current Artwork card (conditional), and repeatable category sections — no separate Featured, Daily Pick, or icon-based Categories grid.
 
 **Reason:**  
 Explicit product decision for a simpler, content-first Home structure.
 
-**Preserves:** Legacy Home content blocks and their component/requirement IDs remain defined, marked Legacy/Superseded — see §5.3.
+**2026-08-16 correction:** This decision originally also excluded the Continue Coloring block entirely. Product has since explicitly reactivated it (see `REQ-HOME-006`, §5.3) — intentional reactivation, not a reversal of the broader content-first direction. Featured, Daily Pick, and icon-grid Categories remain excluded.
+
+**Preserves:** Remaining legacy Home content blocks and their component/requirement IDs stay defined, marked Legacy/Superseded — see §5.3.
 
 ---
 

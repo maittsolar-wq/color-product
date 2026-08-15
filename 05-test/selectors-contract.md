@@ -19,12 +19,12 @@ Legacy (preserved, screen not routed from approved flow):
 
 ## Home
 - `premium-home`
-- `home-category-section-<categoryId>` *(new)*
-- `home-see-all-<categoryId>` *(new)*
+- `continue-coloring` *(reactivated 2026-08-16 — Continue Current Artwork card, shown only when an IN_PROGRESS artwork exists)*
+- `home-category-section-<categoryId>`
+- `home-see-all-<categoryId>`
 - `drawing-card-<drawingId>` *(shared pattern, see Drawing Card below)*
 
 Legacy (preserved, not part of approved Home):
-- `continue-coloring`
 - `my-works`
 - `settings`
 

@@ -81,14 +81,35 @@ Expected:
 **Automation:** —
 
 ## TC-HOME-003 — Continue Coloring Visible
-**Status: LEGACY — superseded by `TC-HOME-007`/`TC-HOME-008` (2026-08-14). Preserved, not part of approved Home structure.**  
-**Priority:** —  
-**Automation:** —
+**Status: ACTIVE — REACTIVATED 2026-08-16 (explicit product decision). Same historical ID, not a replacement.**  
+**Priority:** P1  
+**Automation:** Yes  
+**Requirement:** REQ-HOME-006  
+**Test ID:** `continue-coloring`
+
+Steps:
+1. Ensure at least one artwork has progress status `IN_PROGRESS`.
+2. Open Home.
+
+Expected:
+- Continue card is visible, showing that artwork's title/thumbnail.
+- If more than one `IN_PROGRESS` artwork exists, the most recently updated one is shown.
+- Tapping the card, or its "Continue" control, opens `SCR-EDITOR-001` directly for that exact artwork — no Preview/Category hop, no new session, existing progress restored.
 
 ## TC-HOME-004 — Continue Coloring Hidden
-**Status: LEGACY — see TC-HOME-003.**  
-**Priority:** —  
-**Automation:** —
+**Status: ACTIVE — REACTIVATED 2026-08-16. Same historical ID, not a replacement.**  
+**Priority:** P1  
+**Automation:** Yes  
+**Requirement:** REQ-HOME-006  
+**Test ID:** `continue-coloring`
+
+Steps:
+1. Ensure zero artworks have progress status `IN_PROGRESS` (none at all, or all `COMPLETED`).
+2. Open Home.
+
+Expected:
+- Continue card is not rendered/visible.
+- A `COMPLETED` artwork never causes the card to show.
 
 ## TC-HOME-005 — Partial Content Failure
 **Priority:** P1  

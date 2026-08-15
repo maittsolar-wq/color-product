@@ -13,6 +13,101 @@ function active(page) {
   return page.locator('.screen.active');
 }
 
+async function clearProgressAndReturnHome(page) {
+  await page.evaluate(() => {
+    Object.keys(progressStore).forEach(id => delete progressStore[id]);
+  });
+  await active(page).locator('[data-testid="nav-home"]').click().catch(() => {});
+  // If already on Home (e.g. right after openHome), just re-render explicitly.
+  await page.evaluate(() => renderHomeContinue());
+}
+
+test('TC-HOME-004 — Continue card hidden when there is no IN_PROGRESS artwork', async ({ page }) => {
+  await openHome(page);
+  await clearProgressAndReturnHome(page);
+
+  await expect(page.locator('[data-testid="continue-coloring"]')).toBeHidden();
+});
+
+test('TC-HOME-004b — COMPLETED-only artwork does not show the Continue card', async ({ page }) => {
+  await openHome(page);
+  await page.evaluate(() => {
+    Object.keys(progressStore).forEach(id => delete progressStore[id]);
+    progressStore['draw_nature_001'] = 'COMPLETED';
+    renderHomeContinue();
+  });
+
+  await expect(page.locator('[data-testid="continue-coloring"]')).toBeHidden();
+});
+
+test('TC-HOME-003 — Continue card shows the single IN_PROGRESS artwork', async ({ page }) => {
+  await openHome(page);
+  // Default seeded state already has exactly one IN_PROGRESS record.
+  const card = page.locator('[data-testid="continue-coloring"]');
+  await expect(card).toBeVisible();
+  await expect(card.locator('.continue-title')).toHaveText('Little Elephant');
+  await expect(card).toHaveAttribute('data-artwork-id', 'draw_animals_001');
+});
+
+test('TC-HOME-003b — Continue card shows the most recently updated of multiple IN_PROGRESS artworks', async ({ page }) => {
+  await openHome(page);
+  // Seeded default: draw_animals_001 is IN_PROGRESS. Open a second artwork
+  // without completing it, then return Home — the more recently touched
+  // one (draw_manga_001) must win.
+  await active(page).locator('[data-testid="drawing-card-draw_manga_001"]').click();
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+
+  await page.locator('.editor-topbar .editor-circle').click(); // Back -> Home
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
+
+  const card = page.locator('[data-testid="continue-coloring"]');
+  await expect(card).toBeVisible();
+  await expect(card).toHaveAttribute('data-artwork-id', 'draw_manga_001');
+  await expect(card.locator('.continue-title')).toHaveText('Moon Samurai');
+
+  const bothInProgress = await page.evaluate(() => ({
+    animals: progressStore['draw_animals_001'],
+    manga: progressStore['draw_manga_001'],
+  }));
+  expect(bothInProgress).toEqual({ animals: 'IN_PROGRESS', manga: 'IN_PROGRESS' });
+});
+
+test('TC-HOME-CONTINUE-001 — Continue button opens the correct artwork directly, resuming progress', async ({ page }) => {
+  await openHome(page);
+  const card = page.locator('[data-testid="continue-coloring"]');
+  await card.locator('.continue-btn').click();
+
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-CATEGORY-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+
+  const id = await page.evaluate(() => currentArtworkId);
+  expect(id).toBe('draw_animals_001');
+  const status = await page.evaluate(() => progressStore['draw_animals_001']);
+  expect(status).toBe('IN_PROGRESS'); // resumed, not reset
+});
+
+test('TC-HOME-CONTINUE-002 — Clicking the card itself does the same thing as the button', async ({ page }) => {
+  await openHome(page);
+  const card = page.locator('[data-testid="continue-coloring"]');
+  await card.click(); // click the card, not specifically the button
+
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+  const id = await page.evaluate(() => currentArtworkId);
+  expect(id).toBe('draw_animals_001');
+});
+
+test('TC-HOME-CONTINUE-003 — PRO pill remains visible and works with the Continue card present', async ({ page }) => {
+  await openHome(page);
+  await expect(page.locator('[data-testid="continue-coloring"]')).toBeVisible();
+
+  const pro = page.locator('[data-testid="premium-home"]');
+  await expect(pro).toBeVisible();
+  await pro.click();
+  await expect(page.locator('[data-screen-id="SCR-PAYWALL-001"]')).toHaveClass(/active/);
+});
+
 for (const drawingId of ['draw_manga_001', 'draw_animals_001', 'draw_nature_001']) {
   test(`TC-HOME-007/008 — Home artwork (${drawingId}) opens Coloring directly (no Preview hop)`, async ({ page }) => {
     await openHome(page);
@@ -260,6 +355,112 @@ test('TC-EDITOR-020 — Palette selection', async ({ page }) => {
   await expect(pink).toHaveClass(/selected/);
 });
 
+test('TC-EDITOR-022 — Palette selection does not immediately modify artwork', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+
+  const region = page.locator('#region_001');
+  const before = await region.getAttribute('fill');
+
+  await page.locator('[data-testid="palette-color-pink"]').click();
+  await expect(region).toHaveAttribute('fill', before);
+  await expect(page.locator('[data-testid="editor-active-color"]')).toHaveAttribute('data-active-color', '#FF6D80');
+});
+
+test('TC-EDITOR-BRUSH-001 — Brush tool does not accidentally trigger Fill', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+
+  // Brush is selected by default on entry.
+  await expect(page.locator('[data-testid="tool-brush"]')).toHaveClass(/selected/);
+
+  const region = page.locator('#region_001');
+  const before = await region.getAttribute('fill');
+  await region.click();
+  await expect(region).toHaveAttribute('fill', before);
+});
+
+test('TC-EDITOR-UNDO-001 — Undo/Redo reflect real history, never a faked enabled state', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+
+  const undoBtn = page.locator('[data-testid="undo"]');
+  const redoBtn = page.locator('[data-testid="redo"]');
+
+  // Nothing to undo/redo yet on a fresh Editor entry.
+  await expect(undoBtn).toBeDisabled();
+  await expect(redoBtn).toBeDisabled();
+
+  await page.locator('[data-testid="tool-fill"]').click();
+  const region = page.locator('#region_001');
+  const original = await region.getAttribute('fill');
+  await region.click();
+  const filled = await region.getAttribute('fill');
+  expect(filled).not.toBe(original);
+
+  await expect(undoBtn).toBeEnabled();
+  await expect(redoBtn).toBeDisabled();
+
+  await undoBtn.click();
+  await expect(region).toHaveAttribute('fill', original);
+  await expect(undoBtn).toBeDisabled();
+  await expect(redoBtn).toBeEnabled();
+
+  await redoBtn.click();
+  await expect(region).toHaveAttribute('fill', filled);
+  await expect(undoBtn).toBeEnabled();
+  await expect(redoBtn).toBeDisabled();
+});
+
+test('TC-EDITOR-BACK-001 — Back returns to Home when Editor was entered from Home', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_manga_001"]').click();
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+
+  await page.locator('.editor-topbar .editor-circle').click();
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+});
+
+test('TC-EDITOR-BACK-002 — Back returns to Library when Editor was entered from Library', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="drawing-card-draw_food_001"]').click();
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+
+  await page.locator('.editor-topbar .editor-circle').click();
+  await expect(page.locator('[data-screen-id="SCR-LIBRARY-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+});
+
+test('TC-EDITOR-BACK-003 — Back returns to Profile when Editor was entered from Profile, and preserves colored state', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+
+  await page.locator('[data-testid="tool-fill"]').click();
+  await page.locator('#region_001').click();
+  const filledColor = await page.locator('#region_001').getAttribute('fill');
+
+  await page.locator('.editor-topbar .editor-circle').click();
+  await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+
+  // Reopening the same artwork must show the state exactly as left, not reset.
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await expect(page.locator('#region_001')).toHaveAttribute('fill', filledColor);
+
+  const status = await page.evaluate(() => progressStore['draw_animals_001']);
+  expect(status).toBe('IN_PROGRESS'); // resumed, not reset — status untouched by Back
+});
+
+test('TC-EDITOR-025 — Editor has no bottom navigation', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await expect(active(page).locator('.bottom-nav')).toHaveCount(0);
+});
+
 test('TC-SMOKE-004 — Prototype fill changes one region', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
@@ -328,14 +529,8 @@ test('TC-COMPLETE-003/TC-COMPLETE-007 — Header Back reopens the SAME completed
   await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
 
   // Color a region so there's real state to verify is preserved.
-  // Uses dispatchEvent('click'): region_001/region_002 have a known,
-  // pre-existing, unrelated geometric overlap in the Editor SVG (see
-  // TC-SMOKE-004) — a real mouse click at region_001's screen coordinates
-  // actually lands on region_002 (even with force:true, since that still
-  // uses real hit-testing). dispatchEvent fires the click directly on the
-  // element, bypassing hit-testing — it does not touch or fix Editor.
   await page.locator('[data-testid="tool-fill"]').click();
-  await page.locator('#region_001').dispatchEvent('click');
+  await page.locator('#region_001').click();
   const filledColor = await page.locator('#region_001').getAttribute('fill');
   expect(filledColor).not.toBe('#fff');
 

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260815-completion-back-fix">
+<link rel="stylesheet" href="styles.css?v=20260816-home-continue">
 </head>
 <body>
 <div class="prototype-shell">
@@ -40,8 +40,27 @@
             data-component-id="CMP-HOME-PREMIUM"
             data-requirement="REQ-MON-002"
             data-testid="premium-home"
-            onclick="showScreen('SCR-PAYWALL-001')">★ PRO</button>
+            onclick="showScreen('SCR-PAYWALL-001')">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="#F5A623" stroke="none" aria-hidden="true"><path d="M3 8l4 3 5-6 5 6 4-3-2 11H5L3 8Z"/></svg>
+            PRO
+          </button>
         </header>
+
+        <button class="continue-card"
+          data-component-id="CMP-HOME-CONTINUE"
+          data-requirement="REQ-HOME-006"
+          data-testid="continue-coloring"
+          onclick="continueCurrentArtwork()"
+          hidden>
+          <div class="continue-copy">
+            <h2 class="continue-title">Cozy Autumn</h2>
+            <span class="continue-btn">
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Z"/></svg>
+              Continue
+            </span>
+          </div>
+          <div class="continue-art"></div>
+        </button>
 
         <section class="home-category-section"
           data-component-id="CMP-HOME-CATEGORY-SECTION"
@@ -326,14 +345,14 @@
       data-requirement="REQ-EDITOR-001">
       <div class="editor-topbar"
         data-component-id="CMP-EDITOR-TOPBAR">
-        <button class="editor-circle editor-icon-btn" onclick="showScreen('SCR-PREVIEW-001')" aria-label="Back">
+        <button class="editor-circle editor-icon-btn" onclick="exitEditor()" aria-label="Back">
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
         </button>
         <div class="undo-box" role="group" aria-label="History">
-          <button class="editor-icon-btn" data-testid="undo" aria-label="Undo" disabled>
+          <button class="editor-icon-btn" data-testid="undo" aria-label="Undo" onclick="undoAction()" disabled>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10a6 6 0 0 1 0 12h-2"/></svg>
           </button>
-          <button class="editor-icon-btn" data-testid="redo" aria-label="Redo" disabled>
+          <button class="editor-icon-btn" data-testid="redo" aria-label="Redo" onclick="redoAction()" disabled>
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 14l5-5-5-5"/><path d="M20 9H10a6 6 0 0 0 0 12h2"/></svg>
           </button>
         </div>
@@ -372,7 +391,7 @@
             </g>
             <path class="fill-region" id="region_001" d="M150 254c14-19 47-19 61 0-12 18-22 27-31 27s-18-9-30-27z"
               fill="#fff" stroke="#111" stroke-width="6" onclick="fillRegion(this)"/>
-            <circle class="fill-region" id="region_002" cx="180" cy="247" r="13" fill="#fff" stroke="#111" stroke-width="5" onclick="fillRegion(this)"/>
+            <circle class="fill-region" id="region_002" cx="180" cy="247" r="8" fill="#fff" stroke="#111" stroke-width="3" onclick="fillRegion(this)"/>
           </svg>
         </div>
 
@@ -627,6 +646,6 @@
     </section>
   </div>
 </div>
-<script src="app.js?v=20260815-completion-back-fix"></script>
+<script src="app.js?v=20260816-home-continue"></script>
 </body>
 </html>

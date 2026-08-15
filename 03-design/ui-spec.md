@@ -106,38 +106,39 @@ Các attribute bắt buộc khi phù hợp:
 ## Purpose
 Content discovery.
 
-## Layout (approved)
+## Layout (approved, updated 2026-08-16)
 1. Top app header with PRO pill (small, near top-left).
-2. Repeatable category sections (title left / "See all" purple right / horizontally scrollable artwork cards), e.g. Manga, Animal, Nature.
-3. Bottom navigation (Home / Library / Profile).
+2. Continue Current Artwork card — **reactivated 2026-08-16**, shown only when an `IN_PROGRESS` artwork exists.
+3. Repeatable category sections (title left / "See all" purple right / horizontally scrollable artwork cards), e.g. Manga, Animal, Nature.
+4. Bottom navigation (Home / Library / Profile).
 
 Home scrolls vertically; each section scrolls horizontally, with the next card partially visible to communicate scrollability.
 
 ## Legacy Layout (superseded, preserved for traceability)
 1. Top app header.
-2. Continue Coloring.
+2. Continue Coloring. *(reactivated 2026-08-16 — see approved layout above, no longer legacy)*
 3. Featured.
 4. Categories (icon grid).
 5. Daily Pick.
 6. Bottom navigation (Home / My Works / Settings).
 
-## Components (approved)
+## Components (approved, updated 2026-08-16)
 - `CMP-HOME-HEADER`
 - `CMP-HOME-PREMIUM` *(PRO pill — already implemented in prototype; formalized here)*
-- `CMP-HOME-CATEGORY-SECTION` *(new — repeatable section: title + see-all + horizontal list)*
-- `CMP-HOME-SEEALL` *(new)*
-- `CMP-GLOBAL-BOTTOM-NAV` *(now targets Home / Library / Profile)*
+- `CMP-HOME-CONTINUE` *(reactivated 2026-08-16 — Continue Current Artwork card)*
+- `CMP-HOME-CATEGORY-SECTION` *(repeatable section: title + see-all + horizontal list)*
+- `CMP-HOME-SEEALL`
+- `CMP-GLOBAL-BOTTOM-NAV` *(targets Home / Library / Profile)*
 
 ## Legacy Components (superseded, preserved — not part of approved Home)
-- `CMP-HOME-CONTINUE`
 - `CMP-HOME-FEATURED`
 - `CMP-HOME-CATEGORIES` *(icon grid)*
 - `CMP-HOME-DAILY`
 
 ## Requirements
-- REQ-HOME-001, REQ-HOME-002, REQ-HOME-004, REQ-HOME-007 (active)
-- REQ-HOME-008, REQ-HOME-009, REQ-HOME-010 (active, new)
-- REQ-HOME-003, REQ-HOME-005, REQ-HOME-006 (legacy — superseded, see `requirements.md`)
+- REQ-HOME-001, REQ-HOME-002, REQ-HOME-004, REQ-HOME-006, REQ-HOME-007 (active — REQ-HOME-006 reactivated 2026-08-16)
+- REQ-HOME-008, REQ-HOME-009, REQ-HOME-010 (active)
+- REQ-HOME-003, REQ-HOME-005 (legacy — superseded, see `requirements.md`)
 
 ## Bookmark/Favorite
 Not in MVP. No favorite/bookmark control appears anywhere in the approved Home UI.

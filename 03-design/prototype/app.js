@@ -2,10 +2,28 @@ let activeColor = '#168B2D';
 let activeTool = 'brush';
 let zoomed = false;
 let currentArtworkId = 'draw_animals_001';
+// The screen Editor was entered from, captured fresh each time openArtwork()
+// runs. Editor's own Back button returns here — per NAV-008 this must be
+// "the actual previous screen" (Home/Library/Profile/Completion), never the
+// legacy Preview/Category hop.
+let editorOrigin = 'SCR-HOME-001';
+
+// Session-only fill history (data-model.md: activeTool/activeColor/etc. are
+// explicitly session-only, not persisted Progress fields — undo/redo history
+// belongs in that same category). Reset whenever Editor is freshly entered.
+let undoStack = [];
+let redoStack = [];
 
 const progressStore = {
   draw_animals_001: 'IN_PROGRESS',
   draw_nature_001: 'COMPLETED'
+};
+
+// Recency signal only, for the Continue card's "most recently updated wins"
+// rule (data-model.md already documents Progress.updatedAt — this is that
+// field for the prototype's flat progressStore, not a second status store).
+const progressUpdatedAt = {
+  draw_animals_001: Date.now()
 };
 
 // Display metadata for artwork already introduced on Home/Library. Profile
@@ -31,20 +49,86 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const target = document.querySelector(`[data-screen-id="${id}"]`);
   if(target) target.classList.add('active');
+  // Re-evaluate every time Home becomes active (not just cold start) so the
+  // card reflects the latest state after returning from Editor/Completion/etc.
+  if(id === 'SCR-HOME-001') renderHomeContinue();
 }
 
 function openArtwork(drawingId){
+  const activeScreen = document.querySelector('.screen.active');
+  if(activeScreen) editorOrigin = activeScreen.dataset.screenId;
+
   currentArtworkId = drawingId;
   if(!progressStore[drawingId]){
     progressStore[drawingId] = 'IN_PROGRESS';
   }
+  progressUpdatedAt[drawingId] = Date.now();
+
+  undoStack = [];
+  redoStack = [];
+  updateHistoryButtons();
+
   showScreen('SCR-EDITOR-001');
+}
+
+function exitEditor(){
+  // Autosave is already continuous (fillRegion/undo/redo flip the Saving/
+  // Saved indicator immediately); this just returns to wherever the user
+  // actually came from — never a hardcoded Preview/Category hop.
+  showScreen(editorOrigin);
 }
 
 function completeArtwork(){
   progressStore[currentArtworkId] = 'COMPLETED';
+  progressUpdatedAt[currentArtworkId] = Date.now();
   renderCompletion();
   showScreen('SCR-COMPLETE-001');
+}
+
+function getContinueArtworkId(){
+  const inProgressIds = Object.keys(progressStore).filter(id => progressStore[id] === 'IN_PROGRESS');
+  if(inProgressIds.length === 0) return null;
+  return inProgressIds.sort((a, b) => (progressUpdatedAt[b] || 0) - (progressUpdatedAt[a] || 0))[0];
+}
+
+function renderHomeContinue(){
+  const card = document.querySelector('[data-testid="continue-coloring"]');
+  if(!card) return;
+
+  const id = getContinueArtworkId();
+  if(!id){
+    card.hidden = true;
+    return;
+  }
+
+  const meta = ARTWORK_LIBRARY[id] || { title: id, thumbClass: 'thumb-blue', thumbContent: '★' };
+  card.hidden = false;
+  card.dataset.artworkId = id;
+
+  const title = card.querySelector('.continue-title');
+  if(title) title.textContent = meta.title;
+
+  const art = card.querySelector('.continue-art');
+  if(art){
+    art.innerHTML = '';
+    art.className = 'continue-art';
+    if(meta.thumbImg){
+      const img = document.createElement('img');
+      img.src = meta.thumbImg;
+      art.appendChild(img);
+    } else {
+      const symbol = document.createElement('div');
+      symbol.className = `thumb ${meta.thumbClass}`;
+      symbol.textContent = meta.thumbContent;
+      art.appendChild(symbol);
+    }
+  }
+}
+
+function continueCurrentArtwork(){
+  const id = getContinueArtworkId();
+  if(!id) return; // card should be hidden already if this is null
+  openArtwork(id);
 }
 
 // Candidate pool for "Recommended for you" — filtered to exclude whatever was
@@ -297,15 +381,58 @@ function selectTool(btn, tool){
   if(rail) rail.dataset.activeTool = activeTool;
 }
 
-function fillRegion(el){
-  if(activeTool === 'erase'){
-    el.setAttribute('fill','#fff');
-  } else {
-    el.setAttribute('fill',activeColor);
-  }
+function markSaving(){
   const status = document.getElementById('saveStatus');
+  if(!status) return;
   status.textContent = 'Saving...';
   setTimeout(()=>status.textContent='Saved',350);
+}
+
+function fillRegion(el){
+  // Brush has no region-tap semantics in this prototype (no freehand stroke
+  // engine — see report). A tap while Brush is active must NOT accidentally
+  // run Fill's behavior.
+  if(activeTool === 'brush') return;
+
+  const nextFill = activeTool === 'erase' ? '#fff' : activeColor;
+  const prevFill = el.getAttribute('fill');
+  if(prevFill === nextFill) return; // nothing actually changed — no history entry
+
+  el.setAttribute('fill', nextFill);
+  undoStack.push({ el, prevFill });
+  redoStack = [];
+  progressUpdatedAt[currentArtworkId] = Date.now();
+  updateHistoryButtons();
+  markSaving();
+}
+
+function updateHistoryButtons(){
+  const undoBtn = document.querySelector('[data-testid="undo"]');
+  const redoBtn = document.querySelector('[data-testid="redo"]');
+  if(undoBtn) undoBtn.disabled = undoStack.length === 0;
+  if(redoBtn) redoBtn.disabled = redoStack.length === 0;
+}
+
+function undoAction(){
+  if(undoStack.length === 0) return; // never fake an enabled state with nothing to undo
+  const action = undoStack.pop();
+  const currentFill = action.el.getAttribute('fill');
+  action.el.setAttribute('fill', action.prevFill);
+  redoStack.push({ el: action.el, prevFill: currentFill });
+  progressUpdatedAt[currentArtworkId] = Date.now();
+  updateHistoryButtons();
+  markSaving();
+}
+
+function redoAction(){
+  if(redoStack.length === 0) return;
+  const action = redoStack.pop();
+  const currentFill = action.el.getAttribute('fill');
+  action.el.setAttribute('fill', action.prevFill);
+  undoStack.push({ el: action.el, prevFill: currentFill });
+  progressUpdatedAt[currentArtworkId] = Date.now();
+  updateHistoryButtons();
+  markSaving();
 }
 
 function toggleZoom(){
@@ -325,3 +452,8 @@ if(slider){
   updateSliderFill();
   slider.addEventListener('input', updateSliderFill);
 }
+
+// Home is the initially-active screen in static markup — showScreen() is
+// never called for that first render, so the Continue card needs one
+// explicit initial render to match the seeded progressStore state.
+renderHomeContinue();

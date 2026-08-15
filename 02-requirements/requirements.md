@@ -211,18 +211,20 @@ Sau entry flow hợp lệ, user phải được đưa tới Home.
 
 Home phải hiển thị các khối discovery chính đã được bật trong MVP.
 
-### Minimum Content Blocks (approved 2026-08-14)
+### Minimum Content Blocks (approved 2026-08-14, updated 2026-08-16)
 
-- Repeatable category sections (e.g. Manga, Animal, Nature), each with title + See all + horizontally scrollable artwork cards
 - PRO entry
+- Continue Current Artwork card — **reactivated 2026-08-16**, shown only when at least one `IN_PROGRESS` artwork exists (see `REQ-HOME-006`)
+- Repeatable category sections (e.g. Manga, Animal, Nature), each with title + See all + horizontally scrollable artwork cards
 - Bottom navigation (Home / Library / Profile)
 
 ### Legacy Content Blocks (preserved, superseded — not part of approved structure)
 
 - Categories (icon grid)
 - Featured/New
-- Continue Coloring
 - Daily
+
+**2026-08-16 correction:** Continue Coloring was previously listed here as superseded/legacy. It has been reactivated as an approved Home content block per explicit product decision — see `REQ-HOME-006` below. Featured/New, icon-grid Categories, and Daily remain legacy/not reactivated.
 
 ### Acceptance Criteria
 
@@ -291,19 +293,41 @@ Nếu artwork xuất hiện trực tiếp trên Home, user phải có thể tap 
 
 ## REQ-HOME-006 — Continue Coloring
 
-**Status: LEGACY — superseded by `REQ-HOME-009` (2026-08-14), which applies the resume-or-create rule to every artwork card, not just a dedicated Continue Coloring block. Preserved, not part of approved Home structure.**
+**Status: ACTIVE — REACTIVATED 2026-08-16 (explicit product decision).** Briefly marked Legacy/superseded on 2026-08-14 under the assumption that `REQ-HOME-009`'s per-card resume-or-create rule made a dedicated Continue block redundant. Product has since decided the two coexist: `REQ-HOME-009` still governs every artwork card's tap behavior; this requirement governs the dedicated Continue card itself (visibility, which artwork it shows, and its own tap target). Same historical ID reactivated — not a new requirement.
 
 **Feature:** FE-HOME-007  
-**Screen:** SCR-HOME-001  
+**Screen:** SCR-HOME-001 → SCR-EDITOR-001  
 **Flow:** FLOW-RESUME-001  
 
-Nếu tồn tại artwork đang tô, Home nên hiển thị entry Continue Coloring.
+Nếu tồn tại artwork đang tô (status `IN_PROGRESS`), Home phải hiển thị "Continue Current Artwork" card. Nếu không có artwork nào `IN_PROGRESS`, card không được render.
 
 ### Acceptance Criteria
 
-Given user có ít nhất một artwork In Progress  
+**AC-HOME-006-01**
+
+Given user có ít nhất một artwork `IN_PROGRESS`  
 When Home load  
-Then Continue Coloring phải hiển thị nếu feature được bật.
+Then Continue card phải hiển thị đúng title/artwork của bản ghi đó.
+
+**AC-HOME-006-02**
+
+Given user có zero artwork `IN_PROGRESS` (kể cả khi có artwork `COMPLETED`)  
+When Home load  
+Then Continue card không được hiển thị.  
+And artwork `COMPLETED` không được xuất hiện trong Continue card.
+
+**AC-HOME-006-03**
+
+Given user có nhiều hơn một artwork `IN_PROGRESS`  
+When Home load  
+Then Continue card phải hiển thị artwork được cập nhật gần nhất (`updatedAt` mới nhất, theo `data-model.md`).
+
+**AC-HOME-006-04**
+
+Given Continue card đang hiển thị artwork X  
+When user tap vào card hoặc vào nút "Continue" bên trong card  
+Then cả hai phải có cùng hành vi: restore progress hiện tại của X và mở `SCR-EDITOR-001` trực tiếp  
+And không được tạo session mới, không reset artwork, không đi qua `SCR-CATEGORY-001` hoặc `SCR-PREVIEW-001`.
 
 ---
 
