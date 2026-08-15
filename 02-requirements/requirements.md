@@ -711,6 +711,38 @@ Nếu brush nằm trong MVP, user nên có thể thay đổi brush size.
 
 ---
 
+## REQ-EDITOR-018 — Completion Back to Same Artwork *(new — 2026-08-15 correction)*
+
+**Feature:** FE-EDITOR-012 *(existing — Restore; this is the same "reopen and restore" capability, triggered from a new entry point)*
+**Screen:** SCR-COMPLETE-001 → SCR-EDITOR-001
+**Flow:** FLOW-COMPLETE-001
+
+Top-left header Back trên Completion phải mở lại **đúng artwork vừa hoàn thành**, không phải một artwork khác và không phải Home. Đây là control tách biệt với nút "Back to Home".
+
+### Acceptance Criteria
+
+**AC-EDITOR-018-01**
+
+Given user vừa nhấn Done và đang ở SCR-COMPLETE-001 với artwork X (status COMPLETED)
+When user tap header Back (top-left)
+Then SCR-EDITOR-001 phải mở lại đúng artwork X
+And state/progress hiện tại của X phải được restore đúng (không phải session trắng mới)
+And status của X phải vẫn là COMPLETED (không tự động đổi về IN_PROGRESS)
+And flow không được đi qua SCR-PREVIEW-001 hoặc SCR-CATEGORY-001.
+
+**AC-EDITOR-018-02**
+
+Given user quay lại Editor từ Completion header Back và tiếp tục chỉnh sửa artwork X
+When user tap Done lần nữa
+Then app phải quay lại SCR-COMPLETE-001
+And status của X phải vẫn là COMPLETED.
+
+### Business Rule
+
+Header Back không được tự tạo progress record mới và không được reset artwork về trạng thái ban đầu. "Back to Home" (`REQ-EDITOR-014` primary action) vẫn giữ nguyên hành vi đưa user về `SCR-HOME-001` và không bị ảnh hưởng bởi requirement này.
+
+---
+
 ## REQ-EDITOR-017 — Completion Recommended Artwork *(new — 2026-08-14)*
 
 **Feature:** FE-EDITOR-022 *(corrected 2026-08-14 — was mistakenly FE-EDITOR-017, which is the pre-existing "Visual Tool Preview" feature; see mvp-scope.md)*  
@@ -1404,6 +1436,7 @@ Expected:
 | REQ-EDITOR-011 | MOD-005 | FE-EDITOR-011 | SCR-EDITOR-001 | FLOW-RESUME-001 | Active |
 | REQ-EDITOR-012 | MOD-005 | FE-EDITOR-012 | SCR-EDITOR-001 | FLOW-RESUME-001 | Active |
 | REQ-EDITOR-017 | MOD-005 | FE-EDITOR-022 | SCR-COMPLETE-001 / SCR-EDITOR-001 | FLOW-COMPLETE-001 | Active — NEW (Feature ID corrected 2026-08-14) |
+| REQ-EDITOR-018 | MOD-005 | FE-EDITOR-012 | SCR-COMPLETE-001 / SCR-EDITOR-001 | FLOW-COMPLETE-001 | Active — NEW (2026-08-15 correction) |
 | REQ-WORK-002 | MOD-006 | FE-WORK-002 | SCR-WORKS-001 | FLOW-WORKS-001 | Legacy — superseded by REQ-PROFILE-003/004 |
 | REQ-MON-002 | MOD-007 | FE-MON-002 | SCR-PAYWALL-001 | FLOW-PREMIUM-001 | Active |
 | REQ-MON-007 | MOD-007 | FE-MON-007 | SCR-PAYWALL-001 / PREVIEW | FLOW-REWARD-001 | Active |

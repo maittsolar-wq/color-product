@@ -558,7 +558,7 @@ Native UI may keep this subtle.
 
 ## FS-COMPLETE-001
 
-**Status: Updated — 2026-08-14 re-baseline.**
+**Status: Updated — 2026-08-15 correction (header Back).**
 
 Tap Done:
 1. save current state
@@ -567,9 +567,10 @@ Tap Done:
 4. open `SCR-COMPLETE-001`
 
 Completion actions (approved):
+- Header Back (top-left) → **corrected 2026-08-15**, see `FS-COMPLETE-003` — distinct from Back to Home
 - Share → native device share sheet
 - Save/Download → save rendered colored artwork image to device
-- Back to Home
+- Back to Home → `SCR-HOME-001`, unchanged
 - Recommended for you → artwork cards; tap resolves via `FS-DISCOVERY-RESOLVE-001` (§4.1), opens `SCR-EDITOR-001` directly
 
 **Legacy actions (superseded, preserved):** View in My Works, undifferentiated "Home" action folded into "Back to Home".
@@ -580,6 +581,25 @@ Completion actions (approved):
 **Requirement:** REQ-EDITOR-017
 
 Populate with a set of Drawing entities (source/algorithm not specified by this pass — implementation may start with simple same-category or "not yet started" heuristics). Tap → `FS-DISCOVERY-RESOLVE-001`.
+
+## FS-COMPLETE-003 — Header Back to Same Artwork *(new — 2026-08-15 correction)*
+
+**Requirement:** REQ-EDITOR-018
+**Test ID:** `completion-back` (distinct from `completion-back-home`)
+
+```text
+On header Back tap:
+1. Resolve drawingId = the artwork that was just completed (the same one Done was pressed on).
+2. Look up its existing Progress record — it always exists (status = COMPLETED).
+3. Restore that Progress into the Editor (same rule as FS-DISCOVERY-RESOLVE-001's restore branch;
+   the create branch never applies here).
+4. Open SCR-EDITOR-001. Do not route through SCR-PREVIEW-001 or SCR-CATEGORY-001.
+5. status remains COMPLETED — this action must not silently revert it to IN_PROGRESS.
+```
+
+If the user edits further and taps Done again: save current state, keep status COMPLETED (not re-derived from scratch), set/refresh completedAt, reopen `SCR-COMPLETE-001` — i.e. `FS-COMPLETE-001` steps 1–4 run again unchanged.
+
+**Not to be confused with:** "Back to Home" (`FS-COMPLETE-001`), which always goes to `SCR-HOME-001` regardless of which artwork was completed.
 
 ---
 
@@ -748,6 +768,7 @@ No change from previous Step 7:
 | REQ-EDITOR-011 | SCR-EDITOR-001 | Save indicator | FS-SAVE-* | Active |
 | REQ-EDITOR-014 | SCR-EDITOR-001 | Done | FS-COMPLETE-001 | Active |
 | REQ-EDITOR-017 | SCR-COMPLETE-001 / SCR-EDITOR-001 | CMP-COMPLETE-RECOMMENDED | FS-COMPLETE-002 | Active — NEW |
+| REQ-EDITOR-018 | SCR-COMPLETE-001 / SCR-EDITOR-001 | CMP-COMPLETE-HEADER | FS-COMPLETE-003 | Active — NEW (2026-08-15 correction) |
 | REQ-WORK-002 | SCR-WORKS-001 | Work grid/segments | FS-WORK-001 | Legacy — superseded by FS-PROFILE-001 |
 | REQ-MON-002 | SCR-PAYWALL-001 | Paywall CTA | FS-MON-001 | Active |
 | REQ-LIB-001 | SCR-LIBRARY-001 | CMP-LIBRARY-GRID | FS-LIB-001 | Active — NEW |

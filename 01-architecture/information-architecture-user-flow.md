@@ -378,8 +378,9 @@ Hiển thị trạng thái hoàn thành và các hành động sau khi hoàn t�
 - Editor → Done action
 
 **Exit Points**
-- `SCR-HOME-001` (Back to Home)
-- `SCR-EDITOR-001` (via "Recommended for you" artwork tap, direct, resume-or-create)
+- `SCR-HOME-001` (Back to Home — primary action button)
+- `SCR-EDITOR-001` (via top-left header Back — **corrected 2026-08-15**: reopens the *same* just-completed artwork, latest state/progress restored, no new session, status remains `COMPLETED`)
+- `SCR-EDITOR-001` (via "Recommended for you" artwork tap, direct, resume-or-create — a *different* artwork than the one just completed)
 - System share sheet (native, production)
 - Save-to-device flow (rendered colored artwork image)
 
@@ -395,14 +396,16 @@ Hiển thị trạng thái hoàn thành và các hành động sau khi hoàn t�
 - FE-WORK-008
 
 **Primary Actions (approved)**
+- Header Back (top-left) → same just-completed artwork, `SCR-EDITOR-001`, state restored, status stays `COMPLETED` — **corrected 2026-08-15**, distinct control from Back to Home
 - Share → native device share sheet
 - Save/Download → save rendered colored artwork image to device
-- Back to Home
+- Back to Home (bottom action button) → `SCR-HOME-001`, unchanged
 - Recommended for you → artwork cards, tap opens `SCR-EDITOR-001` directly (resume-or-create)
 
 **Notes**
 - Completion screen retained (not reduced to a modal).
 - "Recommended for you" replaces the previous "Color another drawing" / "View in My Works" exits.
+- **2026-08-15 correction:** the header Back control and the "Back to Home" button are two separate, independently-approved exits — header Back must not be treated as a synonym for Back to Home. See `REQ-EDITOR-018`.
 
 ---
 
@@ -625,8 +628,13 @@ Back từ Editor:
 ### NAV-004
 Back từ Paywall → previous screen without losing context.
 
-### NAV-005
-Back từ Completion → Home / previous logical destination (via "Recommended for you" → Editor).
+### NAV-005 *(corrected 2026-08-15)*
+Completion có hai control điều hướng riêng biệt, không được gộp chung:
+- Header Back (top-left, ‹) → mở lại **đúng artwork vừa hoàn thành** tại `SCR-EDITOR-001`, restore state/progress hiện tại, không tạo session mới, không đổi status khỏi `COMPLETED`, không đi qua Preview/Category.
+- "Back to Home" (primary action button) → `SCR-HOME-001`, không đổi.
+- "Recommended for you" → `SCR-EDITOR-001` cho một artwork **khác** (resume-or-create), không đổi.
+
+**Superseded:** bản trước ghi "Back từ Completion → Home" như một hành vi duy nhất — điều này không còn đúng vì header Back và Back to Home nay là hai control khác nhau với đích khác nhau.
 
 ### NAV-006 *(new — 2026-08-14)*
 Back từ Library:
@@ -769,7 +777,7 @@ SCR-HOME-001 Home → Tap Continue Coloring or Open SCR-WORKS-001 My Works → S
 
 ### 8.5 FLOW-COMPLETE-001 — Complete & Save Artwork
 
-**Status: Updated — 2026-08-14 re-baseline.**
+**Status: Updated — 2026-08-15 correction (header Back behavior).**
 
 ```text
 SCR-EDITOR-001 Coloring Editor
@@ -781,10 +789,21 @@ Save current state, mark artwork COMPLETED
 SCR-COMPLETE-001 Completion / Result
 ↓
 Choose:
+- Header Back (top-left) → SCR-EDITOR-001, SAME artwork, state restored, status stays COMPLETED
 - Share (native device share sheet)
 - Save/Download (save rendered colored artwork image to device)
-- Back to Home
-- Recommended for you → tap artwork → SCR-EDITOR-001 (direct, resume-or-create)
+- Back to Home → SCR-HOME-001
+- Recommended for you → tap artwork → SCR-EDITOR-001 (a DIFFERENT artwork, direct, resume-or-create)
+
+[If header Back taken]
+↓
+SCR-EDITOR-001 Coloring Editor (same artwork, status still COMPLETED)
+↓
+User may edit further
+↓
+Tap Done again
+↓
+SCR-COMPLETE-001 (status remains COMPLETED — not reverted to IN_PROGRESS)
 ```
 
 **Legacy actions (preserved, not part of approved Completion content):**

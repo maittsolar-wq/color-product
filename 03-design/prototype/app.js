@@ -43,7 +43,107 @@ function openArtwork(drawingId){
 
 function completeArtwork(){
   progressStore[currentArtworkId] = 'COMPLETED';
+  renderCompletion();
   showScreen('SCR-COMPLETE-001');
+}
+
+// Candidate pool for "Recommended for you" — filtered to exclude whatever was
+// just completed. Not a second artwork store: titles/thumbs still come from
+// ARTWORK_LIBRARY, and opening still goes through the shared openArtwork().
+const RECOMMENDED_POOL = [
+  'draw_manga_001', 'draw_animals_002', 'draw_nature_002', 'draw_food_001',
+  'draw_manga_002', 'draw_animals_003', 'draw_nature_003', 'draw_food_002'
+];
+
+function renderCompletion(){
+  const scope = document.querySelector('[data-screen-id="SCR-COMPLETE-001"]');
+  if(!scope) return;
+
+  const shareStatus = scope.querySelector('[data-testid="completion-share-status"]');
+  const saveStatus = scope.querySelector('[data-testid="completion-save-status"]');
+  if(shareStatus) shareStatus.hidden = true;
+  if(saveStatus) saveStatus.hidden = true;
+
+  const meta = ARTWORK_LIBRARY[currentArtworkId] || { thumbClass: 'thumb-blue', thumbContent: '★' };
+  const card = scope.querySelector('[data-testid="completion-artwork"]');
+  if(card){
+    card.className = 'completion-artwork-card';
+    card.innerHTML = '';
+    // For the one artwork with real interactive fill state, clone the live,
+    // currently-colored SVG rather than falling back to its flat thumbnail —
+    // "the most faithful available way" the prototype can show it.
+    const liveSvg = currentArtworkId === 'draw_animals_001'
+      ? document.querySelector('#artboard svg')
+      : null;
+    if(liveSvg){
+      const clone = liveSvg.cloneNode(true);
+      // Static preview only — strip ids/handlers so the clone can't collide
+      // with the live Editor's #region_001/#region_002 (duplicate DOM ids)
+      // and can't be tapped to fill, since this isn't a second editable canvas.
+      clone.removeAttribute('id');
+      clone.querySelectorAll('[id]').forEach(el => el.removeAttribute('id'));
+      clone.querySelectorAll('[onclick]').forEach(el => el.removeAttribute('onclick'));
+      card.appendChild(clone);
+    } else if(meta.thumbImg){
+      const img = document.createElement('img');
+      img.src = meta.thumbImg;
+      card.appendChild(img);
+    } else {
+      card.classList.add(meta.thumbClass);
+      card.textContent = meta.thumbContent;
+    }
+  }
+
+  const grid = scope.querySelector('[data-testid="completion-recommended"]');
+  if(grid){
+    grid.innerHTML = '';
+    RECOMMENDED_POOL
+      .filter(id => id !== currentArtworkId)
+      .slice(0, 4)
+      .forEach(id => {
+        const cardMeta = ARTWORK_LIBRARY[id] || { title: id, thumbClass: 'thumb-blue', thumbContent: '★' };
+        const btn = document.createElement('button');
+        btn.className = 'drawing-card';
+        btn.dataset.testid = `drawing-card-${id}`;
+        btn.onclick = () => openArtwork(id);
+
+        const thumb = document.createElement('div');
+        thumb.className = `thumb ${cardMeta.thumbClass}`;
+        if(cardMeta.thumbImg){
+          const img = document.createElement('img');
+          img.src = cardMeta.thumbImg;
+          thumb.appendChild(img);
+        } else {
+          thumb.textContent = cardMeta.thumbContent;
+        }
+
+        const title = document.createElement('b');
+        title.textContent = cardMeta.title;
+
+        btn.append(thumb, title);
+        grid.appendChild(btn);
+      });
+  }
+}
+
+function reopenCompletedArtwork(){
+  // Completion header Back: reopen the SAME artwork just completed.
+  // openArtwork() already resumes existing progress without touching status
+  // when a record exists (COMPLETED here) — pure reuse, no separate
+  // opening system, and distinct from "Back to home" (showScreen to Home).
+  openArtwork(currentArtworkId);
+}
+
+function shareCompletion(){
+  const scope = document.querySelector('[data-screen-id="SCR-COMPLETE-001"]');
+  const status = scope && scope.querySelector('[data-testid="completion-share-status"]');
+  if(status) status.hidden = false;
+}
+
+function saveCompletion(){
+  const scope = document.querySelector('[data-screen-id="SCR-COMPLETE-001"]');
+  const status = scope && scope.querySelector('[data-testid="completion-save-status"]');
+  if(status) status.hidden = false;
 }
 
 function filterLibrary(categoryId, btn){

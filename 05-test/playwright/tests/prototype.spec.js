@@ -288,12 +288,155 @@ test('TC-EDITOR-023 — Fit/Zoom quick action changes viewport only', async ({ p
   await expect(artboard).toHaveClass(/zoomed/);
 });
 
-test('TC-EDITOR-024 — Done opens Completion', async ({ page }) => {
+test('TC-EDITOR-024 — Done opens Completion and marks progress COMPLETED', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
 
   await page.locator('[data-testid="editor-done"]').click();
   await expect(page.locator('[data-screen-id="SCR-COMPLETE-001"]')).toHaveClass(/active/);
+
+  const status = await page.evaluate(() => progressStore['draw_animals_001']);
+  expect(status).toBe('COMPLETED');
+});
+
+test('TC-COMPLETE-001 — Completion has no bottom navigation', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-done"]').click();
+
+  await expect(active(page).locator('.bottom-nav')).toHaveCount(0);
+});
+
+test('TC-COMPLETE-002 — Back to home routes to Home directly (no Preview/Category/Library/Profile)', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-done"]').click();
+
+  await page.locator('[data-testid="completion-back-home"]').click();
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-CATEGORY-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-LIBRARY-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).not.toHaveClass(/active/);
+});
+
+test('TC-COMPLETE-003/TC-COMPLETE-007 — Header Back reopens the SAME completed artwork, preserving state and status', async ({ page }) => {
+  await openHome(page);
+
+  // 1. Open artwork in Editor
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+
+  // Color a region so there's real state to verify is preserved.
+  // Uses dispatchEvent('click'): region_001/region_002 have a known,
+  // pre-existing, unrelated geometric overlap in the Editor SVG (see
+  // TC-SMOKE-004) — a real mouse click at region_001's screen coordinates
+  // actually lands on region_002 (even with force:true, since that still
+  // uses real hit-testing). dispatchEvent fires the click directly on the
+  // element, bypassing hit-testing — it does not touch or fix Editor.
+  await page.locator('[data-testid="tool-fill"]').click();
+  await page.locator('#region_001').dispatchEvent('click');
+  const filledColor = await page.locator('#region_001').getAttribute('fill');
+  expect(filledColor).not.toBe('#fff');
+
+  // 2. Complete it
+  await page.locator('[data-testid="editor-done"]').click();
+
+  // 3. Completion becomes active
+  await expect(page.locator('[data-screen-id="SCR-COMPLETE-001"]')).toHaveClass(/active/);
+
+  // 4/5. Click Completion top-left Back -> SCR-EDITOR-001 becomes active
+  await page.locator('[data-testid="completion-back"]').click();
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-CATEGORY-001"]')).not.toHaveClass(/active/);
+
+  // 6. Same artworkId is active
+  const reopenedId = await page.evaluate(() => currentArtworkId);
+  expect(reopenedId).toBe('draw_animals_001');
+
+  // 7. Existing artwork state/progress is preserved (not a fresh blank session)
+  await expect(page.locator('#region_001')).toHaveAttribute('fill', filledColor);
+
+  // 8. Progress status remains COMPLETED (not reverted to IN_PROGRESS)
+  let status = await page.evaluate(() => progressStore['draw_animals_001']);
+  expect(status).toBe('COMPLETED');
+
+  // 9. Done again returns to Completion, status still COMPLETED
+  await page.locator('[data-testid="editor-done"]').click();
+  await expect(page.locator('[data-screen-id="SCR-COMPLETE-001"]')).toHaveClass(/active/);
+  status = await page.evaluate(() => progressStore['draw_animals_001']);
+  expect(status).toBe('COMPLETED');
+
+  // 10. Back to home is unaffected by this change — still goes to Home
+  await page.locator('[data-testid="completion-back-home"]').click();
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
+});
+
+test('TC-COMPLETE-004 — Share shows a visible prototype confirmation', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-done"]').click();
+
+  const status = page.locator('[data-testid="completion-share-status"]');
+  await expect(status).toBeHidden();
+  await page.locator('[data-testid="completion-share"]').click();
+  await expect(status).toBeVisible();
+});
+
+test('TC-COMPLETE-005 — Save shows a visible prototype confirmation', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-done"]').click();
+
+  const status = page.locator('[data-testid="completion-save-status"]');
+  await expect(status).toBeHidden();
+  await page.locator('[data-testid="completion-save"]').click();
+  await expect(status).toBeVisible();
+});
+
+test('TC-COMPLETE-006 — Recommended artwork opens Coloring directly (resume-or-create)', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-done"]').click();
+
+  const recommended = active(page).locator('[data-testid="completion-recommended"] .drawing-card').first();
+  const recommendedId = await recommended.getAttribute('data-testid');
+  await recommended.click();
+
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-CATEGORY-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+  expect(recommendedId).toMatch(/^drawing-card-draw_/);
+});
+
+test('TC-COMPLETE-007 — Recommended for you shows 4 cards excluding the just-completed artwork', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-done"]').click();
+
+  const cards = active(page).locator('[data-testid="completion-recommended"] .drawing-card');
+  await expect(cards).toHaveCount(4);
+  await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toHaveCount(0);
+});
+
+test('TC-COMPLETE-008 — Completed artwork appears under Profile All and Completed, not In Progress', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-done"]').click();
+  await page.locator('[data-testid="completion-back-home"]').click();
+
+  await active(page).locator('[data-testid="nav-profile"]').click();
+
+  await expect(page.locator('[data-testid="profile-segment-all"]')).toHaveClass(/selected/);
+  await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeVisible();
+
+  await page.locator('[data-testid="profile-segment-completed"]').click();
+  await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeVisible();
+
+  await page.locator('[data-testid="profile-segment-in-progress"]').click();
+  await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeHidden();
 });
 
 test('TC-MON-002 — Paywall close returns to Home', async ({ page }) => {

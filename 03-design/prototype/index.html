@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260814-settings-refine">
+<link rel="stylesheet" href="styles.css?v=20260815-completion-back-fix">
 </head>
 <body>
 <div class="prototype-shell">
@@ -15,7 +15,7 @@
     <button onclick="openLibrary('all')">Library</button>
     <button onclick="openProfile()">Profile</button>
     <button onclick="showScreen('SCR-EDITOR-001')">Editor</button>
-    <button onclick="showScreen('SCR-COMPLETE-001')">Completion</button>
+    <button onclick="renderCompletion(); showScreen('SCR-COMPLETE-001')">Completion</button>
     <button onclick="showScreen('SCR-PAYWALL-001')">Paywall</button>
     <button onclick="showScreen('SCR-SETTINGS-001')">Settings</button>
     <p style="margin-top:14px;font-size:11px;color:#999">Legacy (preserved, not routed):</p>
@@ -453,16 +453,37 @@
     <!-- COMPLETION -->
     <section class="screen"
       data-screen-id="SCR-COMPLETE-001"
-      data-requirement="REQ-EDITOR-014">
-      <div class="screen-scroll complete-screen">
-        <div class="complete-badge">✓</div>
-        <span class="eyebrow">Finished</span>
-        <h1>Your coloring is ready</h1>
-        <div class="large-preview finished"><img src="assets/elephant-lineart.svg"></div>
-        <button class="primary">Save Image</button>
-        <button class="secondary">Share</button>
-        <button class="text-action" onclick="showScreen('SCR-WORKS-001')">View My Works</button>
-        <button class="text-action" onclick="showScreen('SCR-HOME-001')">Back Home</button>
+      data-requirement="REQ-EDITOR-014"
+      data-testid="completion-screen">
+      <div class="screen-scroll completion-scroll">
+        <header class="completion-header" data-component-id="CMP-COMPLETE-HEADER">
+          <button class="icon-btn" data-testid="completion-back" aria-label="Back to coloring" onclick="reopenCompletedArtwork()">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <h1>Amazing!</h1>
+          <button class="icon-btn" data-testid="completion-save" aria-label="Save to device" onclick="saveCompletion()">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12m0 0-4-4m4 4 4-4"/><path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/></svg>
+          </button>
+        </header>
+        <p class="completion-subtitle">You completed this lesson</p>
+
+        <div class="completion-artwork-card"
+          data-component-id="CMP-COMPLETE-ARTWORK"
+          data-testid="completion-artwork"></div>
+
+        <p class="completion-status" data-testid="completion-save-status" hidden>Saved to device.</p>
+
+        <div class="completion-actions" data-component-id="CMP-COMPLETE-ACTIONS">
+          <button class="btn-outline-accent" data-testid="completion-share" onclick="shareCompletion()">Share</button>
+          <button class="primary" data-testid="completion-back-home" onclick="showScreen('SCR-HOME-001')">Back to home</button>
+        </div>
+
+        <p class="completion-status" data-testid="completion-share-status" hidden>Share sheet ready — link copied.</p>
+
+        <h2 class="completion-section-title">Recommended for you</h2>
+        <div class="drawing-grid"
+          data-component-id="CMP-COMPLETE-RECOMMENDED"
+          data-testid="completion-recommended"></div>
       </div>
     </section>
 
@@ -606,6 +627,6 @@
     </section>
   </div>
 </div>
-<script src="app.js?v=20260814-settings-refine"></script>
+<script src="app.js?v=20260815-completion-back-fix"></script>
 </body>
 </html>

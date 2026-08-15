@@ -88,6 +88,7 @@ COLOR-PRODUCT-LATEST/
 - Artwork tap (Home/Library/Profile/Completion) opens Coloring directly — no Preview hop; resume-or-create rule applies.
 - Bottom navigation: Home / Library / Profile (was Home / My Works / Settings).
 - Completion revised: Share (native share sheet), Save/Download, Back to Home, Recommended for you.
+- **Correction (2026-08-15):** Completion's top-left header Back is a *distinct* control from the "Back to Home" primary action button. Header Back → `SCR-EDITOR-001`, reopening the same just-completed artwork with its latest state/progress restored (no new session, status stays `COMPLETED`). "Back to Home" is unchanged → `SCR-HOME-001`. See `information-architecture-user-flow.md` NAV-005 and `requirements.md` REQ-EDITOR-018.
 - Favorite/Bookmark confirmed out of MVP; decorative bookmark icon on legacy Preview flagged non-approved.
 
 **Artifacts updated to reflect this baseline:** `information-architecture-user-flow.md`, `requirements.md`, `ui-spec.md`, `design-decisions.md`, `functional-spec.md`, `data-model.md` (assessed, unchanged), `selectors-contract.md`, `test-cases.md`, `automation-map.md`.

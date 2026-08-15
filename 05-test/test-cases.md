@@ -600,6 +600,24 @@ Expected:
 Expected:
 - `SCR-HOME-001` opens.
 
+## TC-COMPLETE-007 — Header Back Reopens the Same Completed Artwork *(new — 2026-08-15 correction)*
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-EDITOR-018  
+**Test ID:** `completion-back` (distinct from `completion-back-home`)
+
+Steps:
+1. Open an artwork, edit it, tap Done → Completion.
+2. Tap header Back (top-left).
+3. Edit the artwork further, tap Done again.
+
+Expected:
+- Step 2 opens `SCR-EDITOR-001` with the **same** artworkId — not Home, not Preview, not Category.
+- Existing colored/progress state is restored, not a blank new session.
+- Progress status remains `COMPLETED` throughout — it is not silently reverted to `IN_PROGRESS` by reopening.
+- Step 3 returns to `SCR-COMPLETE-001` with status still `COMPLETED`.
+- `TC-COMPLETE-006` (Back to Home) is unaffected — it must still open `SCR-HOME-001` and must not be confused with this control.
+
 ---
 
 # 14. Paywall / Monetization
@@ -708,6 +726,7 @@ Covers:
 | TC-PROFILE-002 | REQ-PROFILE-003 | SCR-PROFILE-001 | CMP-PROFILE-SEGMENTED |
 | TC-PROFILE-003/004 | REQ-PROFILE-007 / BR-PROFILE-001 | SCR-PROFILE-001 | CMP-PROFILE-GRID |
 | TC-COMPLETE-005 | REQ-EDITOR-017 | SCR-COMPLETE-001 / SCR-EDITOR-001 | CMP-COMPLETE-RECOMMENDED |
+| TC-COMPLETE-007 | REQ-EDITOR-018 | SCR-COMPLETE-001 / SCR-EDITOR-001 | CMP-COMPLETE-HEADER |
 
 ---
 

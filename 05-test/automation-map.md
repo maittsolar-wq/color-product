@@ -76,6 +76,7 @@ completion-recommended
 completion-share
 completion-save
 completion-back-home
+completion-back
 
 settings
 settings-screen
@@ -126,7 +127,7 @@ Important:
 | TC-EDITOR-013 → 015 | `maestro/editor/reset.yaml` | Active |
 | TC-EDITOR-023 | `maestro/editor/fit-zoom.yaml` | Active |
 | TC-EDITOR-024 | `maestro/editor/done.yaml` | Active |
-| TC-COMPLETE-005/006 | `maestro/editor/done.yaml` *(planned addition)* | Planned — not yet implemented |
+| TC-COMPLETE-005/006/007 | `maestro/editor/done.yaml` *(planned addition)* | Planned — not yet implemented |
 | TC-SAVE-001/002/004 | `maestro/progress/autosave-restore.yaml` | Active |
 | TC-WORK-001 → 004 | `maestro/works/my-works.yaml` | Legacy — not routed from bottom nav |
 | TC-MON-001/002 | `maestro/monetization/paywall-close.yaml` | Active |
