@@ -72,6 +72,9 @@ Completion contains: Share (native device share sheet), Save/Download (rendered 
 ## DD-015 — No Favorite/Bookmark in MVP *(new — 2026-08-14)*
 Favorite/Bookmark is explicitly out of MVP scope. No Favorite state, requirement, screen, or persistence is created. The decorative "♡" icon on the legacy `SCR-PREVIEW-001` toolbar (prototype `index.html`) is flagged **non-approved / to be removed** from any new production UI — it was never backed by a requirement or component ID.
 
+## DD-016 — Library Search Promoted to MVP *(new — 2026-08-16)*
+Library Search, previously a Could-Have/V1.1 candidate (`mvp-scope.md` §20, V11-006), is promoted to MVP MUST per explicit product decision. New Screen ID `SCR-SEARCH-001` introduced (child of Library, no bottom nav) — not a repurpose of `SCR-CATEGORY-001` or `SCR-PREVIEW-001`. Three states: Default, Results, No Results. Matching is case-insensitive against existing artwork title metadata only; no new search index/database entity, no trending/recommended content, no search-history persistence (none of these were previously approved). Back preserves the Library filter active before Search opened; "Explore library" (no-results CTA) always forces filter "All" — two distinct exits, not synonyms.
+
 ---
 
 # 3. Decisions Still Needing Product Approval

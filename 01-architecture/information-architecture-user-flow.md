@@ -70,7 +70,8 @@ App
 ├── Home (repeatable category sections; artwork tap → Coloring directly)
 │
 ├── Library (NEW — browse all artwork, filter by category)
-│   └── Drawing Grid (filtered)
+│   ├── Drawing Grid (filtered)
+│   └── Search (NEW — 2026-08-16, child of Library)
 │
 ├── Coloring Editor
 │
@@ -134,6 +135,7 @@ App
 | SCR-ENTRY-002 | Onboarding | MOD-001 App Entry | SHOULD | Active |
 | SCR-HOME-001 | Home | MOD-002 Home & Discovery | MUST | Active |
 | SCR-LIBRARY-001 | Library | MOD-009 Library & Discovery | MUST | Active — NEW |
+| SCR-SEARCH-001 | Search | MOD-009 Library & Discovery | MUST | Active — NEW (2026-08-16, child of Library) |
 | SCR-PROFILE-001 | Profile | MOD-010 Profile | MUST | Active — NEW |
 | SCR-CATEGORY-001 | Category / Drawing List | MOD-003 Category & Drawing List | — | Legacy — not routed from approved Home flow |
 | SCR-PREVIEW-001 | Drawing Preview | MOD-004 Drawing Preview | — | Legacy — not routed from approved MVP core flow |
@@ -337,6 +339,7 @@ Thực hiện toàn bộ trải nghiệm tô màu cốt lõi.
 - `SCR-LIBRARY-001` — artwork card tap (direct, resume-or-create)
 - `SCR-PROFILE-001` — artwork card tap (direct, resume — Profile artwork always has progress)
 - `SCR-COMPLETE-001` — "Recommended for you" artwork tap (direct, resume-or-create)
+- `SCR-SEARCH-001` — search result artwork tap (direct, resume-or-create) *(new — 2026-08-16)*
 - *Legacy:* Drawing Preview, My Works resume (preserved paths, not routed in approved MVP core flow)
 
 **Exit Points**
@@ -574,6 +577,38 @@ User-centric screen for personal artwork (in progress / completed) and settings 
 
 ---
 
+### 5.13 SCR-SEARCH-001 — Search (NEW — 2026-08-16, child of Library)
+
+**Purpose**  
+Let the user find a specific artwork by title within Library, without navigating away to a separate discovery destination.
+
+**Entry Points**
+- `SCR-LIBRARY-001` — Search icon (`library-search`)
+
+**Exit Points**
+- `SCR-EDITOR-001` (direct — search result artwork tap, resume-or-create rule)
+- Back → `SCR-LIBRARY-001`, preserving the category filter/state that was active before Search was opened
+- "Explore library" (no-results empty state) → `SCR-LIBRARY-001`, filter forced to "All" (does NOT preserve the prior filter — distinct from Back)
+
+**Related Features**
+- FE-LIB-005 — Search Screen
+- FE-LIB-006 — Search Query Matching
+- FE-LIB-007 — Search Empty State
+- FE-LIB-008 — Open Artwork From Search
+
+**Content**
+- Header: Back (top-left), "Search" (centered), no bottom navigation
+- Search input: search icon, placeholder "Search drawing", clear (X) when query non-empty
+- Three visual states: Default (empty query, no grid, no empty-state), Results (2-column artwork grid), No Results (empty-state illustration + "Explore library" CTA)
+
+**Notes**
+- Not a rename or repurpose of `SCR-CATEGORY-001` or `SCR-PREVIEW-001` — a new screen, new Screen ID.
+- Search is a child/detail flow of Library, not a bottom-nav root destination — see NAV-009.
+- Matching is against existing artwork title metadata already present in the prototype (case-insensitive substring match); no new search index/database entity is introduced — see `data-model.md` (unchanged).
+- No trending/recommended content and no search-history persistence in this pass — neither was previously approved anywhere in the spec set.
+
+---
+
 ## 6. Navigation Architecture
 
 ### 6.1 Recommended Root Navigation
@@ -646,8 +681,11 @@ Back từ Library:
 ### NAV-007 *(new — 2026-08-14)*
 Back từ Profile → standard root-tab back behavior (Profile is a root bottom-nav destination).
 
-### NAV-008 *(new — 2026-08-14)*
-Back từ Editor khi mở trực tiếp từ Home / Library / Profile / Completion → autosave, return to the originating screen (not to Preview).
+### NAV-008 *(new — 2026-08-14, extended 2026-08-16)*
+Back từ Editor khi mở trực tiếp từ Home / Library / Profile / Completion / Search → autosave, return to the originating screen (not to Preview). Search uses the same generic origin-tracking mechanism as the other entry points — no Search-specific Editor-back logic was added.
+
+### NAV-009 *(new — 2026-08-16)*
+Back từ Search → `SCR-LIBRARY-001`, preserving the exact category filter/state that was active before Search was opened (e.g. Library "Manga" → Search → Back → Library "Manga", not reset to "All"). This is distinct from the "Explore library" CTA on Search's no-results empty state, which always forces filter "All" regardless of the prior state.
 
 ---
 
@@ -660,6 +698,7 @@ Back từ Editor khi mở trực tiếp từ Home / Library / Profile / Completi
 | FLOW-ENTRY-001 | Launch & Enter App | MUST | Active |
 | FLOW-COLOR-001 | First Coloring Journey | MUST | Active — updated 2026-08-14 |
 | FLOW-LIBRARY-001 | Browse Library & Filter by Category | MUST | Active — NEW |
+| FLOW-LIBRARY-002 | Search Within Library | MUST | Active — NEW (2026-08-16) |
 | FLOW-PROFILE-001 | Access Profile / Personal Artwork | MUST | Active — NEW |
 | FLOW-DISCOVER-001 | Browse Category & Select Drawing | — | Legacy — superseded by FLOW-LIBRARY-001 |
 | FLOW-RESUME-001 | Resume Coloring | MUST | Active — updated 2026-08-14 |
@@ -865,6 +904,39 @@ Bottom Nav → Library tab → SCR-LIBRARY-001 (All filter active)
 **Success Criteria**
 - Filter reflects the originating category when entered via "See all".
 - Artwork tap always opens Coloring directly — no Preview hop.
+
+---
+
+### 8.7a FLOW-LIBRARY-002 — Search Within Library (NEW — 2026-08-16)
+
+```text
+SCR-LIBRARY-001 Library (any filter active)
+↓
+Tap Search icon
+↓
+SCR-SEARCH-001 Search (default state, filter/state preserved for later Back)
+↓
+Type query
+↓
+[Match found]                          [No match]
+Results grid (2-col)                   No-results empty state
+↓                                       ↓
+Tap artwork                            Tap "Explore library"
+↓                                       ↓
+Resolve Progress (resume-or-create)    SCR-LIBRARY-001 (filter forced to "All")
+↓
+SCR-EDITOR-001 Coloring Editor
+
+[Alternative] Tap Back (header) at any point
+↓
+SCR-LIBRARY-001, filter/state restored to what it was before Search opened
+```
+
+**Success Criteria**
+- Search default state shows no results grid and no no-results state.
+- Query matching is case-insensitive against artwork title.
+- Back restores the exact prior Library filter; "Explore library" always resets to "All" — these two exits are never conflated.
+- Search result artwork tap opens Coloring directly — no Preview hop, same shared resolver as Home/Library/Profile.
 
 ---
 
@@ -1094,7 +1166,7 @@ Return to Settings or previous monetization context
 | MOD-006 | Progress & My Works | SCR-WORKS-001, SCR-COMPLETE-001 | SCR-WORKS-001 Legacy — superseded by MOD-010 |
 | MOD-007 | Monetization | SCR-PAYWALL-001 | Active |
 | MOD-008 | Settings | SCR-SETTINGS-001 | Active |
-| MOD-009 | Library & Discovery *(new)* | SCR-LIBRARY-001 | Active |
+| MOD-009 | Library & Discovery *(new)* | SCR-LIBRARY-001, SCR-SEARCH-001 | Active — SCR-SEARCH-001 added 2026-08-16 |
 | MOD-010 | Profile *(new)* | SCR-PROFILE-001 | Active |
 
 ---
@@ -1136,6 +1208,10 @@ Return to Settings or previous monetization context
 | FE-LIB-002 *(new)* | Category Filter | SCR-LIBRARY-001 | Active |
 | FE-LIB-003 *(new)* | Open Artwork from Library | SCR-LIBRARY-001 → SCR-EDITOR-001 | Active |
 | FE-LIB-004 *(new)* | See all → Library with Filter | SCR-HOME-001 → SCR-LIBRARY-001 | Active |
+| FE-LIB-005 *(new — 2026-08-16)* | Search Screen | SCR-LIBRARY-001 → SCR-SEARCH-001 | Active |
+| FE-LIB-006 *(new — 2026-08-16)* | Search Query Matching | SCR-SEARCH-001 | Active |
+| FE-LIB-007 *(new — 2026-08-16)* | Search Empty State | SCR-SEARCH-001 → SCR-LIBRARY-001 | Active |
+| FE-LIB-008 *(new — 2026-08-16)* | Open Artwork From Search | SCR-SEARCH-001 → SCR-EDITOR-001 | Active |
 | FE-PROFILE-001 *(new)* | Profile Screen | SCR-PROFILE-001 | Active |
 | FE-PROFILE-002 *(new)* | Empty State + Explore Library CTA | SCR-PROFILE-001 → SCR-LIBRARY-001 | Active |
 | FE-PROFILE-003 *(new)* | Segmented View (All/Completed/In Progress) | SCR-PROFILE-001 | Active |
@@ -1160,6 +1236,7 @@ Level 0
 Level 1
 - Settings (via Profile)
 - Paywall
+- Search (via Library — new 2026-08-16)
 
 Level 2
 - Editor
@@ -1194,7 +1271,12 @@ ROOT
     │
     ├── Library
     │   ├── Category Filter (All / Manga / Animal / Nature / Food / ...)
-    │   └── Artwork Card → Editor (direct, resume-or-create)
+    │   ├── Artwork Card → Editor (direct, resume-or-create)
+    │   └── Search (new — 2026-08-16)
+    │       ├── Default / Results / No Results states
+    │       ├── Result Artwork → Editor (direct, resume-or-create)
+    │       ├── Back → Library (prior filter preserved)
+    │       └── Explore library (no-results) → Library (All)
     │
     ├── Profile
     │   ├── Empty State → Explore Library

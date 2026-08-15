@@ -1074,6 +1074,126 @@ Nếu artwork list không load được, app phải hiển thị error state và
 
 ---
 
+## REQ-LIB-007 — Open Search From Library *(new — 2026-08-16)*
+
+**Feature:** FE-LIB-005  
+**Screen:** SCR-LIBRARY-001 → SCR-SEARCH-001  
+**Flow:** FLOW-LIBRARY-002  
+
+User phải có thể tap Search icon trên Library để mở `SCR-SEARCH-001`. Library filter/state hiện tại phải được giữ nguyên (để restore khi Back).
+
+### Acceptance Criteria
+
+Given user đang ở Library với filter "Manga" active  
+When user tap Search icon  
+Then SCR-SEARCH-001 phải mở  
+And Library filter "Manga" phải được giữ nguyên trong background (chưa bị thay đổi), để restore đúng khi Back.
+
+---
+
+## REQ-LIB-008 — Search Default State *(new — 2026-08-16)*
+
+**Feature:** FE-LIB-005  
+**Screen:** SCR-SEARCH-001  
+
+Khi Search vừa mở, input phải trống, không hiển thị results grid, không hiển thị "No results" state.
+
+### Acceptance Criteria
+
+Given Search vừa mở  
+When query rỗng  
+Then không có results grid nào hiển thị  
+And không có "No results" state nào hiển thị.
+
+### Business Rule
+
+Không được tự tạo trending/recommended content hoặc search-history persistence trong scope này — chưa có contract nào được approve cho các tính năng đó.
+
+---
+
+## REQ-LIB-009 — Search Query Matching & Results *(new — 2026-08-16)*
+
+**Feature:** FE-LIB-006  
+**Screen:** SCR-SEARCH-001  
+
+User nhập query vào Search field; app phải match artwork theo title, case-insensitive, dùng metadata artwork đã có sẵn (không tạo search index/database mới). Nếu có ít nhất một artwork match, hiển thị results dạng grid 2 cột.
+
+### Acceptance Criteria
+
+**AC-LIB-009-01**
+
+Given user nhập "elephant" (bất kể hoa/thường)  
+When ít nhất một artwork title chứa "elephant"  
+Then results grid phải hiển thị đúng artwork match.
+
+**AC-LIB-009-02**
+
+Given query đang có ký tự  
+When user tap nút clear (X)  
+Then query phải reset về rỗng  
+And Search phải quay lại default state (REQ-LIB-008).
+
+---
+
+## REQ-LIB-010 — Search No Results / Explore Library *(new — 2026-08-16)*
+
+**Feature:** FE-LIB-007  
+**Screen:** SCR-SEARCH-001 → SCR-LIBRARY-001  
+
+Nếu query không rỗng và không match artwork nào, app phải hiển thị empty state ("No results found" + CTA "Explore library") thay vì grid rỗng/broken.
+
+### Acceptance Criteria
+
+Given query không match artwork nào  
+When kết quả được tính toán  
+Then "No results found" state phải hiển thị, không hiển thị grid rỗng.
+
+Given user tap "Explore library"  
+When điều hướng hoàn tất  
+Then SCR-LIBRARY-001 phải mở với filter "All" active — không restore filter trước đó.
+
+---
+
+## REQ-LIB-011 — Search Back Preserves Library Filter *(new — 2026-08-16)*
+
+**Feature:** FE-LIB-005  
+**Screen:** SCR-SEARCH-001 → SCR-LIBRARY-001  
+**Flow:** FLOW-LIBRARY-002  
+
+Tap Back trên Search phải quay lại `SCR-LIBRARY-001` với đúng filter/state đã active trước khi Search được mở.
+
+### Acceptance Criteria
+
+Given user đang ở Library filter "Manga", mở Search, rồi tap Back  
+When điều hướng hoàn tất  
+Then Library phải hiển thị lại với filter "Manga" active (không reset về "All").
+
+### Business Rule
+
+Hành vi này khác với "Explore library" (REQ-LIB-010), vốn luôn force filter "All".
+
+---
+
+## REQ-LIB-012 — Open Artwork From Search (Resume-or-Create) *(new — 2026-08-16)*
+
+**Feature:** FE-LIB-008  
+**Screen:** SCR-SEARCH-001 → SCR-EDITOR-001  
+**Flow:** FLOW-LIBRARY-002  
+
+User phải có thể tap artwork trong Search results để mở Coloring Editor trực tiếp, áp dụng resume-or-create rule giống `REQ-HOME-009`. Không được đi qua `SCR-CATEGORY-001` hoặc `SCR-PREVIEW-001`.
+
+### Acceptance Criteria
+
+Given artwork trong search results đã có progress  
+When user tap artwork  
+Then progress hiện có phải được restore và SCR-EDITOR-001 phải mở.
+
+Given artwork trong search results chưa có progress  
+When user tap artwork  
+Then progress mới phải được tạo và SCR-EDITOR-001 phải mở.
+
+---
+
 # 13. MOD-010 — Profile Requirements *(new — 2026-08-14)*
 
 ## BR-PROFILE-001 — Personal Artwork State Rule
@@ -1467,6 +1587,9 @@ Expected:
 | REQ-SET-001 | MOD-008 | FE-SET-001 | SCR-SETTINGS-001 | FLOW-SETTINGS-001 | Active |
 | REQ-LIB-001 | MOD-009 | FE-LIB-001 | SCR-LIBRARY-001 | FLOW-LIBRARY-001 | Active — NEW |
 | REQ-LIB-003 | MOD-009 | FE-LIB-003 | SCR-LIBRARY-001 / SCR-EDITOR-001 | FLOW-LIBRARY-001 | Active — NEW |
+| REQ-LIB-007 | MOD-009 | FE-LIB-005 | SCR-LIBRARY-001 / SCR-SEARCH-001 | FLOW-LIBRARY-002 | Active — NEW (2026-08-16) |
+| REQ-LIB-009 | MOD-009 | FE-LIB-006 | SCR-SEARCH-001 | FLOW-LIBRARY-002 | Active — NEW (2026-08-16) |
+| REQ-LIB-012 | MOD-009 | FE-LIB-008 | SCR-SEARCH-001 / SCR-EDITOR-001 | FLOW-LIBRARY-002 | Active — NEW (2026-08-16) |
 | REQ-PROFILE-001 | MOD-010 | FE-PROFILE-001 | SCR-PROFILE-001 | FLOW-PROFILE-001 | Active — NEW |
 | REQ-PROFILE-005 | MOD-010 | FE-PROFILE-005 | SCR-PROFILE-001 / SCR-EDITOR-001 | FLOW-PROFILE-001 | Active — NEW |
 | REQ-PROFILE-006 | MOD-010 | FE-PROFILE-006 | SCR-PROFILE-001 / SCR-SETTINGS-001 | — | Active — NEW |
@@ -1500,6 +1623,16 @@ Covered:
 - Filtered artwork grid
 - Direct-to-Coloring resolution
 - Empty/error state
+
+## Search *(new — 2026-08-16, child of Library)*
+Covered:
+- Search entry from Library (filter/state preserved for Back)
+- Default / Results / No Results states
+- Case-insensitive title matching
+- Clear (X) → default state
+- Direct-to-Coloring resolution (resume-or-create)
+- Back → prior Library filter restored
+- Explore library → Library, filter forced to All
 
 ## Profile *(new)*
 Covered:

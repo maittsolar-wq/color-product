@@ -7,6 +7,7 @@ Use these accessibility/test IDs in the native implementation.
 ## Global
 - `home-screen`
 - `library-screen` *(new)*
+- `search-screen` *(new — 2026-08-16)*
 - `profile-screen` *(new)*
 - `coloring-canvas`
 - `settings-screen`
@@ -43,6 +44,18 @@ Example:
 - `library-filter-all`
 - `library-filter-<categoryId>` (e.g. `library-filter-manga`, `library-filter-animal`, `library-filter-nature`)
 - `library-grid`
+- `library-search` *(documented 2026-08-16 — existed in prototype markup since the initial Library implementation as an inert icon; now wired to `SCR-SEARCH-001` and formally registered here)*
+
+## Search *(new — 2026-08-16, child of Library)*
+- `search-screen`
+- `search-back`
+- `search-input`
+- `search-clear`
+- `search-results-grid`
+- `search-empty-state`
+- `search-explore-library`
+
+Result artwork cards reuse the shared `drawing-card-<drawingId>` pattern (see Drawing Card above) — no separate Search-only card selector.
 
 ## Profile *(new — 2026-08-14)*
 - `profile-empty-state`

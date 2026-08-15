@@ -371,6 +371,39 @@ Browse/explore all available artwork, filterable by category.
 - Entry filter state: pre-applied category when opened via Home "See all"; "All" when opened via Bottom Nav.
 - Artwork tap → `SCR-EDITOR-001` directly (resume-or-create), no Preview hop.
 - Concepts may draw on legacy `CMP-CAT-*` (§6) but do not reuse those Component IDs.
+- Search icon (`library-search`) → `SCR-SEARCH-001` (§11a), preserving the current filter/state.
+
+---
+
+# 11a. SCR-SEARCH-001 — Search *(new — 2026-08-16, child of Library)*
+
+## Purpose
+Let the user find a specific artwork by title within Library, without a separate discovery destination.
+
+## Layout
+1. Header: Back (left, existing approved Back SVG), "Search" (centered), no bottom navigation.
+2. Search field: search icon (left), placeholder "Search drawing", clear (X, right) when query non-empty. ~44–48px height, rounded, subtle neutral border/background.
+3. Content area — three mutually exclusive states:
+   - **Default:** input empty; no grid; no empty state.
+   - **Results:** 2-column artwork grid, square thumbnails, ~12–16px radius, light border, no heavy shadow, vertically scrollable.
+   - **No Results:** vertically centered empty state — friendly illustration, bold "No results found" title, compact supporting copy, wide purple "Explore library" CTA.
+
+## Components
+- `CMP-SEARCH-HEADER`
+- `CMP-SEARCH-INPUT`
+- `CMP-SEARCH-RESULTS`
+- `CMP-SEARCH-EMPTY-STATE`
+- `CMP-SEARCH-EXPLORE-CTA`
+
+## Requirements
+- REQ-LIB-007 → REQ-LIB-012
+
+## Notes
+- Not a rename or repurpose of `SCR-CATEGORY-001` or `SCR-PREVIEW-001` — new Screen ID, new components.
+- Result artwork cards reuse `CMP-LIBRARY-DRAWING-CARD`'s pattern and the shared `drawing-card-<drawingId>` selector — no separate card component was created for Search.
+- Matching uses artwork title metadata already present in the prototype; case-insensitive. No new production search index/database.
+- Back restores the Library filter/state active before Search opened; "Explore library" always forces filter "All" — visually and behaviorally distinct exits, do not conflate.
+- No trending/recommended content, no search-history UI in this pass (none was previously approved).
 
 ---
 

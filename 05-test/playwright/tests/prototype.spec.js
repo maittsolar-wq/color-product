@@ -221,6 +221,110 @@ test('TC-LIB-003 — Library artwork opens Coloring directly (no Preview/Categor
   await expect(page.locator('[data-testid="coloring-canvas"]')).toBeVisible();
 });
 
+test('TC-SEARCH-001 — Library Search icon opens Search', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+
+  await active(page).locator('[data-testid="library-search"]').click();
+  await expect(page.locator('[data-screen-id="SCR-SEARCH-001"]')).toHaveClass(/active/);
+});
+
+test('TC-SEARCH-002 — Search default state shows no grid and no empty state', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-search"]').click();
+
+  await expect(active(page).locator('[data-testid="search-input"]')).toHaveValue('');
+  await expect(active(page).locator('[data-testid="search-results-grid"]')).toBeHidden();
+  await expect(active(page).locator('[data-testid="search-empty-state"]')).toBeHidden();
+  await expect(active(page).locator('[data-testid="search-clear"]')).toBeHidden();
+});
+
+test('TC-SEARCH-003 — Query with matching artwork shows results grid (case-insensitive)', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-search"]').click();
+
+  await active(page).locator('[data-testid="search-input"]').fill('ELEPHANT');
+  await expect(active(page).locator('[data-testid="search-results-grid"]')).toBeVisible();
+  await expect(active(page).locator('[data-testid="search-empty-state"]')).toBeHidden();
+  await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeVisible();
+});
+
+test('TC-SEARCH-004 — Query with no match shows empty state, not an empty grid', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-search"]').click();
+
+  await active(page).locator('[data-testid="search-input"]').fill('zzzznotarealtitle');
+  await expect(active(page).locator('[data-testid="search-empty-state"]')).toBeVisible();
+  await expect(active(page).locator('[data-testid="search-results-grid"]')).toBeHidden();
+});
+
+test('TC-SEARCH-005 — Clear X returns Search to default state', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-search"]').click();
+
+  await active(page).locator('[data-testid="search-input"]').fill('elephant');
+  await expect(active(page).locator('[data-testid="search-clear"]')).toBeVisible();
+
+  await active(page).locator('[data-testid="search-clear"]').click();
+  await expect(active(page).locator('[data-testid="search-input"]')).toHaveValue('');
+  await expect(active(page).locator('[data-testid="search-results-grid"]')).toBeHidden();
+  await expect(active(page).locator('[data-testid="search-empty-state"]')).toBeHidden();
+});
+
+test('TC-SEARCH-006 — Search result opens Coloring directly (resume-or-create)', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-search"]').click();
+
+  await active(page).locator('[data-testid="search-input"]').fill('Deer');
+  await active(page).locator('[data-testid="drawing-card-draw_animals_003"]').click();
+
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-CATEGORY-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+  const status = await page.evaluate(() => progressStore['draw_animals_003']);
+  expect(status).toBe('IN_PROGRESS'); // created fresh — no prior progress existed
+});
+
+test('TC-SEARCH-007 — Back preserves the previous Library filter', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-filter-manga"]').click();
+
+  await active(page).locator('[data-testid="library-search"]').click();
+  await expect(page.locator('[data-screen-id="SCR-SEARCH-001"]')).toHaveClass(/active/);
+
+  await active(page).locator('[data-testid="search-back"]').click();
+  await expect(page.locator('[data-screen-id="SCR-LIBRARY-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="library-filter-manga"]')).toHaveClass(/selected/);
+  await expect(page.locator('[data-testid="library-grid"]')).toHaveAttribute('data-active-filter', 'manga');
+});
+
+test('TC-SEARCH-008 — No-results Explore library opens Library with All active (not the prior filter)', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-filter-manga"]').click();
+
+  await active(page).locator('[data-testid="library-search"]').click();
+  await active(page).locator('[data-testid="search-input"]').fill('zzzznotarealtitle');
+  await active(page).locator('[data-testid="search-explore-library"]').click();
+
+  await expect(page.locator('[data-screen-id="SCR-LIBRARY-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="library-filter-all"]')).toHaveClass(/selected/);
+  await expect(page.locator('[data-testid="library-grid"]')).toHaveAttribute('data-active-filter', 'all');
+});
+
+test('TC-SEARCH-009 — Search has no bottom navigation', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await active(page).locator('[data-testid="library-search"]').click();
+  await expect(active(page).locator('.bottom-nav')).toHaveCount(0);
+});
+
 // Profile boots with two seeded progress records (draw_animals_001 =
 // IN_PROGRESS, draw_nature_001 = COMPLETED) so the default app state is
 // "populated." To exercise the empty state, tests clear progressStore via

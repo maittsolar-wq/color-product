@@ -218,6 +218,62 @@ Tap artwork card → `FS-DISCOVERY-RESOLVE-001` (§4.1).
 
 ---
 
+## 4.3 Search Functional Specification *(new — 2026-08-16, child of Library)*
+
+### FS-SEARCH-001 — Search Entry
+
+**Screen:** SCR-LIBRARY-001 → SCR-SEARCH-001  
+**Requirement:** REQ-LIB-007
+
+```text
+On Library Search icon tap:
+1. Capture current Library filter/state (for restore on Back — see FS-SEARCH-005).
+2. Open SCR-SEARCH-001 with query reset to empty (default state).
+```
+
+### FS-SEARCH-002 — Query Matching & State Resolution
+
+**Requirement:** REQ-LIB-008, REQ-LIB-009
+
+```text
+On query change:
+1. If query is empty:
+   → Default state (no grid, no empty state).
+2. Else, match query (case-insensitive, substring) against artwork title metadata
+   already available in the prototype (same table used by Library/Home/Profile):
+   - If ≥1 match: Results state — 2-column grid of matching artwork cards.
+   - If 0 match: No Results state — empty-state illustration, "No results found",
+     supporting copy, "Explore library" CTA.
+```
+
+No new search index/database entity is introduced — matching runs against the existing artwork metadata table (`data-model.md` unchanged). No trending/recommended content and no search-history persistence, per `REQ-LIB-008` Business Rule.
+
+### FS-SEARCH-003 — Clear Query
+
+**Requirement:** REQ-LIB-009 (AC-LIB-009-02)
+
+Tap clear (X) → query reset to empty → re-run `FS-SEARCH-002` → Default state.
+
+### FS-SEARCH-004 — Artwork Tap
+
+**Requirement:** REQ-LIB-012
+
+Tap a result artwork card → `FS-DISCOVERY-RESOLVE-001` (§4.1) — same shared resolver as Home/Library/Profile/Completion, no duplicate opening system.
+
+### FS-SEARCH-005 — Back
+
+**Requirement:** REQ-LIB-011
+
+Tap header Back → `SCR-LIBRARY-001`, restoring the exact filter/state captured in `FS-SEARCH-001` step 1.
+
+### FS-SEARCH-006 — Explore Library (No Results)
+
+**Requirement:** REQ-LIB-010
+
+Tap "Explore library" → `SCR-LIBRARY-001`, filter forced to "All" — does **not** use the captured filter from `FS-SEARCH-001`; this is a distinct exit from `FS-SEARCH-005`.
+
+---
+
 # 5. Category Functional Specification
 
 **Status: LEGACY — `SCR-CATEGORY-001` not routed from approved Home flow (2026-08-14). Preserved for traceability.**
@@ -796,6 +852,11 @@ No change from previous Step 7:
 | REQ-MON-002 | SCR-PAYWALL-001 | Paywall CTA | FS-MON-001 | Active |
 | REQ-LIB-001 | SCR-LIBRARY-001 | CMP-LIBRARY-GRID | FS-LIB-001 | Active — NEW |
 | REQ-LIB-002 | SCR-LIBRARY-001 | CMP-LIBRARY-FILTERS | FS-LIB-002 | Active — NEW |
+| REQ-LIB-007 | SCR-LIBRARY-001 / SCR-SEARCH-001 | CMP-SEARCH-HEADER | FS-SEARCH-001 | Active — NEW (2026-08-16) |
+| REQ-LIB-009 | SCR-SEARCH-001 | CMP-SEARCH-INPUT / RESULTS | FS-SEARCH-002 | Active — NEW (2026-08-16) |
+| REQ-LIB-010 | SCR-SEARCH-001 / SCR-LIBRARY-001 | CMP-SEARCH-EMPTY-STATE | FS-SEARCH-006 | Active — NEW (2026-08-16) |
+| REQ-LIB-011 | SCR-SEARCH-001 / SCR-LIBRARY-001 | CMP-SEARCH-HEADER | FS-SEARCH-005 | Active — NEW (2026-08-16) |
+| REQ-LIB-012 | SCR-SEARCH-001 / SCR-EDITOR-001 | CMP-SEARCH-RESULTS | FS-SEARCH-004 | Active — NEW (2026-08-16) |
 | REQ-PROFILE-001 | SCR-PROFILE-001 | CMP-PROFILE-SEGMENTED / GRID | FS-PROFILE-001 | Active — NEW |
 | REQ-PROFILE-002 | SCR-PROFILE-001 | CMP-PROFILE-EMPTY-STATE | FS-PROFILE-001 | Active — NEW |
 | REQ-PROFILE-007 | SCR-PROFILE-001 | CMP-PROFILE-GRID | FS-PROFILE-002 | Active — NEW |

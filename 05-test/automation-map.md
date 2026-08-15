@@ -41,6 +41,15 @@ library-screen
 library-filter-all
 library-filter-<categoryId>
 library-grid
+library-search
+
+search-screen
+search-back
+search-input
+search-clear
+search-results-grid
+search-empty-state
+search-explore-library
 
 profile-screen
 profile-empty-state
@@ -122,6 +131,7 @@ Important:
 | TC-CAT-001 → 003 | `maestro/discovery/category.yaml` | Legacy — not routed |
 | TC-PREVIEW-001 → 003 | `maestro/discovery/preview.yaml` | Legacy — not routed |
 | TC-LIB-001 → 005 | `maestro/discovery/library.yaml` *(planned)* | Planned — not yet implemented |
+| TC-SEARCH-001 → 009 | `maestro/discovery/search.yaml` *(planned)* | Planned — not yet implemented |
 | TC-PROFILE-001 → 006 | `maestro/profile/profile.yaml` *(planned)* | Planned — not yet implemented |
 | TC-EDITOR-016 → 018 | `maestro/editor/tool-rail.yaml` | Active |
 | TC-EDITOR-020 | `maestro/editor/palette.yaml` | Active |
@@ -162,6 +172,8 @@ File:
 These tests validate the Step 6 Hi‑Fi HTML, not the native APK.
 
 **Planned test additions (not yet implemented):** Home → Library (See all), Home → Editor direct (resume/create), Library filter + artwork tap, Profile segments + empty state + artwork tap, Completion "Recommended for you", Bottom Nav → Library/Profile.
+
+**2026-08-16 addition:** `TC-SEARCH-001 → 009` implemented in `prototype.spec.js` (Library Search icon → Search screen; default/results/no-results states; case-insensitive title matching; clear X; result → Editor direct; Back preserves prior Library filter; Explore library forces "All"; no bottom nav on Search).
 
 ---
 

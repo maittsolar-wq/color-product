@@ -1,13 +1,15 @@
 # MVP Scope & Feature Prioritization — Coloring App
 
 **Document ID:** MVP-COLOR-001  
-**Version:** 0.2  
-**Status:** Draft — Feature ID registry synchronized to Home/Library/Profile re-baseline (2026-08-14)  
+**Version:** 0.3  
+**Status:** Draft — Feature ID registry synchronized to Library Search promotion (2026-08-16)  
 **Related Documents:**  
 - `00-product/product-brief.md`
 - `00-product/competitor-analysis.md`
 
 **2026-08-14 sync note:** Feature IDs `FE-HOME-010/011`, `FE-LIB-001…004`, `FE-PROFILE-001…006` registered below to match `requirements.md`, `information-architecture-user-flow.md`, `ui-spec.md`, `functional-spec.md`, `test-cases.md`, and `automation-map.md` exactly. `FE-HOME-005/006/007` and `FE-WORK-002/003/004` marked Legacy/Superseded, preserved. The `FE-EDITOR-017` collision (see Module 5) is **resolved**: `FE-EDITOR-017` remains "Visual Tool Preview" unchanged; "Completion Recommended Artwork" now uses `FE-EDITOR-022` everywhere, including in `requirements.md` and `information-architecture-user-flow.md`.
+
+**2026-08-16 sync note:** Library Search promoted from Could-Have/V1.1 candidate (§20, V11-006) to **MVP MUST**, per explicit product decision. `FE-LIB-005…008` registered below (Module 9). New Screen ID `SCR-SEARCH-001` introduced in `information-architecture-user-flow.md`; see `design-decisions.md` DD-016.
 
 ---
 
@@ -538,6 +540,18 @@ Tap artwork trong Library mở Coloring Editor trực tiếp, áp dụng resume-
 ### FE-LIB-004 — Entry With Pre-Applied Filter
 Khi mở từ Home "See all", filter tương ứng active mặc định. Khi mở từ Bottom Nav, filter "All" active mặc định.
 
+### FE-LIB-005 — Search Screen *(new — 2026-08-16, promoted from Could-Have)*
+Library cung cấp Search icon mở một màn Search riêng (`SCR-SEARCH-001`), là child flow của Library. Library filter/state hiện tại phải được giữ nguyên khi vào Search.
+
+### FE-LIB-006 — Search Query Matching *(new — 2026-08-16)*
+User nhập query vào Search field; kết quả match theo artwork title (case-insensitive), dùng metadata artwork đã có sẵn trong prototype — không tạo search index/database mới.
+
+### FE-LIB-007 — Search Empty State *(new — 2026-08-16)*
+Nếu query không match artwork nào, hiển thị empty state kèm CTA "Explore library" → `SCR-LIBRARY-001` với filter "All".
+
+### FE-LIB-008 — Open Artwork From Search *(new — 2026-08-16)*
+Tap một artwork trong kết quả Search mở Coloring Editor trực tiếp, áp dụng resume-or-create rule giống `FE-HOME-010`.
+
 ---
 
 # 13b. Module 10 — Profile *(new — 2026-08-14 re-baseline)*
@@ -849,7 +863,7 @@ Không block MVP:
 - Events.
 - Seasonal content.
 - Favorites.
-- Search.
+- ~~Search.~~ **Promoted to MVP MUST 2026-08-16 — see Module 9, `FE-LIB-005…008`.**
 - More discovery sections.
 
 ---
@@ -895,7 +909,7 @@ More palettes.
 Favorites.
 
 ### V11-006
-Search/filter.
+~~Search/filter.~~ **Search promoted to MVP MUST 2026-08-16 — see Module 9, `FE-LIB-005…008`. Filter (non-search) remains a V1.1 candidate.**
 
 ### V11-007
 Content Packs.

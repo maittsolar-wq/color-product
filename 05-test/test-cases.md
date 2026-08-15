@@ -269,6 +269,110 @@ Expected:
 
 ---
 
+# 5a-ii. Search *(new — 2026-08-16, child of Library)*
+
+## TC-SEARCH-001 — Library Search Icon Opens Search
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-007
+
+Steps:
+1. Open Library.
+2. Tap Search icon.
+
+Expected:
+- SCR-SEARCH-001 opens; no bottom navigation present.
+
+## TC-SEARCH-002 — Search Default State
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-008
+
+Steps:
+1. Open Search.
+
+Expected:
+- input empty; no results grid; no "No results" state.
+
+## TC-SEARCH-003 — Query With Matching Artwork Shows Results
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-009
+
+Steps:
+1. Open Search.
+2. Type a query matching an existing artwork title (case-insensitive).
+
+Expected:
+- results grid visible with the matching artwork card(s); no "No results" state.
+
+## TC-SEARCH-004 — Query With No Match Shows Empty State
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-010
+
+Steps:
+1. Open Search.
+2. Type a query matching no artwork.
+
+Expected:
+- "No results found" empty state visible with "Explore library" CTA; no results grid rendered.
+
+## TC-SEARCH-005 — Clear X Returns To Default State
+**Priority:** P1  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-009 (AC-LIB-009-02)
+
+Steps:
+1. Open Search, type a query.
+2. Tap clear (X).
+
+Expected:
+- query resets to empty; Search returns to default state (TC-SEARCH-002).
+
+## TC-SEARCH-006 — Search Result Opens Coloring Direct
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-012
+
+Expected:
+- no Preview hop; resume-or-create rule applies (same resolver as TC-HOME-007/008, TC-LIB-003).
+
+## TC-SEARCH-007 — Back Preserves Previous Library Filter
+**Priority:** P0  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-011
+
+Steps:
+1. Open Library, select "Manga" filter.
+2. Open Search, then tap Back.
+
+Expected:
+- Library shows with "Manga" filter still active (not reset to "All").
+
+## TC-SEARCH-008 — No-Results Explore Library Opens Library All
+**Priority:** P1  
+**Automation:** Yes  
+**Requirement:** REQ-LIB-010
+
+Steps:
+1. Open Library, select "Manga" filter.
+2. Open Search, type a query matching no artwork.
+3. Tap "Explore library".
+
+Expected:
+- Library opens with "All" filter active (prior "Manga" filter NOT restored — distinct from TC-SEARCH-007).
+
+## TC-SEARCH-009 — Search Screen Has No Bottom Navigation
+**Priority:** P1  
+**Automation:** Yes  
+**Requirement:** FE-LIB-005 (design constraint, see `ui-spec.md` §11a)
+
+Expected:
+- Home/Library/Profile bottom nav is absent on SCR-SEARCH-001.
+
+---
+
 # 5b. Profile *(new — 2026-08-14)*
 
 ## TC-PROFILE-001 — Empty State Shows Explore Library CTA

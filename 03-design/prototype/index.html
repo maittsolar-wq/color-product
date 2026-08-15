@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260816-home-continue">
+<link rel="stylesheet" href="styles.css?v=20260816-library-search">
 </head>
 <body>
 <div class="prototype-shell">
@@ -41,7 +41,7 @@
             data-requirement="REQ-MON-002"
             data-testid="premium-home"
             onclick="showScreen('SCR-PAYWALL-001')">
-            <svg viewBox="0 0 24 24" width="13" height="13" fill="#F5A623" stroke="none" aria-hidden="true"><path d="M3 8l4 3 5-6 5 6 4-3-2 11H5L3 8Z"/></svg>
+            <img src="assets/icons/sub.png" alt="" class="pro-pill-icon">
             PRO
           </button>
         </header>
@@ -53,9 +53,9 @@
           onclick="continueCurrentArtwork()"
           hidden>
           <div class="continue-copy">
-            <h2 class="continue-title">Cozy Autumn</h2>
+            <h2 class="continue-title"></h2>
             <span class="continue-btn">
-              <svg viewBox="0 0 24 24" width="13" height="13" fill="currentColor" aria-hidden="true"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Z"/></svg>
+              <svg viewBox="0 0 24 24" width="13" height="13" fill="#fff" aria-hidden="true"><path d="M12 2l1.8 5.2L19 9l-5.2 1.8L12 16l-1.8-5.2L5 9l5.2-1.8L12 2Z"/></svg>
               Continue
             </span>
           </div>
@@ -71,17 +71,14 @@
             <button data-testid="home-see-all-manga" onclick="openLibrary('manga')">See all</button>
           </div>
           <div class="featured-row" data-testid="home-manga-row">
-            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_001" onclick="openArtwork('draw_manga_001')">
+            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_001" onclick="openArtwork('draw_manga_001')" aria-label="Moon Samurai">
               <div class="thumb thumb-lilac">☾</div>
-              <b>Moon Samurai</b><span>Manga</span>
             </button>
-            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_002" onclick="openArtwork('draw_manga_002')">
+            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_002" onclick="openArtwork('draw_manga_002')" aria-label="Star Racer">
               <div class="thumb thumb-blue">☆</div>
-              <b>Star Racer</b><span>Manga</span>
             </button>
-            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_003" onclick="openArtwork('draw_manga_003')">
+            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_003" onclick="openArtwork('draw_manga_003')" aria-label="Ink Fox">
               <div class="thumb thumb-pink">✎</div>
-              <b>Ink Fox</b><span>Manga</span>
             </button>
           </div>
         </section>
@@ -95,17 +92,14 @@
             <button data-testid="home-see-all-animal" onclick="openLibrary('animal')">See all</button>
           </div>
           <div class="featured-row" data-testid="home-animal-row">
-            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_001" onclick="openArtwork('draw_animals_001')">
+            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_001" onclick="openArtwork('draw_animals_001')" aria-label="Little Elephant">
               <div class="thumb thumb-pink"><img src="assets/elephant-lineart.svg"></div>
-              <b>Little Elephant</b><span>Animal</span>
             </button>
-            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_002" onclick="openArtwork('draw_animals_002')">
+            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_002" onclick="openArtwork('draw_animals_002')" aria-label="Penguin Family">
               <div class="thumb thumb-blue">☁</div>
-              <b>Penguin Family</b><span>Animal</span>
             </button>
-            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_003" onclick="openArtwork('draw_animals_003')">
+            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_003" onclick="openArtwork('draw_animals_003')" aria-label="Baby Deer">
               <div class="thumb thumb-green">♧</div>
-              <b>Baby Deer</b><span>Animal</span>
             </button>
           </div>
         </section>
@@ -119,25 +113,22 @@
             <button data-testid="home-see-all-nature" onclick="openLibrary('nature')">See all</button>
           </div>
           <div class="featured-row" data-testid="home-nature-row">
-            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_001" onclick="openArtwork('draw_nature_001')">
+            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_001" onclick="openArtwork('draw_nature_001')" aria-label="Moon Flowers">
               <div class="thumb thumb-lilac">✿</div>
-              <b>Moon Flowers</b><span>Nature</span>
             </button>
-            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_002" onclick="openArtwork('draw_nature_002')">
+            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_002" onclick="openArtwork('draw_nature_002')" aria-label="Flower Fairy">
               <div class="thumb thumb-pink">✾</div>
-              <b>Flower Fairy</b><span>Nature</span>
             </button>
-            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_003" onclick="openArtwork('draw_nature_003')">
+            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_003" onclick="openArtwork('draw_nature_003')" aria-label="Misty Forest">
               <div class="thumb thumb-green">♣</div>
-              <b>Misty Forest</b><span>Nature</span>
             </button>
           </div>
         </section>
       </div>
       <nav class="bottom-nav" data-component-id="CMP-GLOBAL-BOTTOM-NAV">
-        <button class="selected" data-testid="nav-home" onclick="showScreen('SCR-HOME-001')">⌂<span>Home</span></button>
-        <button data-testid="nav-library" onclick="openLibrary('all')">▦<span>Library</span></button>
-        <button data-testid="nav-profile" onclick="openProfile()">☺<span>Profile</span></button>
+        <button class="selected" data-testid="nav-home" onclick="showScreen('SCR-HOME-001')"><span class="nav-icon nav-icon-home" aria-hidden="true"></span><span>Home</span></button>
+        <button data-testid="nav-library" onclick="openLibrary('all')"><span class="nav-icon nav-icon-library" aria-hidden="true"></span><span>Library</span></button>
+        <button data-testid="nav-profile" onclick="openProfile()"><span class="nav-icon nav-icon-profile" aria-hidden="true"></span><span>Profile</span></button>
       </nav>
     </section>
 
@@ -211,7 +202,7 @@
           data-component-id="CMP-LIBRARY-HEADER"
           data-requirement="REQ-LIB-001">
           <h1>Library</h1>
-          <button class="icon-btn" data-testid="library-search" aria-label="Search">
+          <button class="icon-btn" data-testid="library-search" aria-label="Search" onclick="openSearch()">
             <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           </button>
         </header>
@@ -275,10 +266,57 @@
         </div>
       </div>
       <nav class="bottom-nav" data-component-id="CMP-GLOBAL-BOTTOM-NAV">
-        <button data-testid="nav-home" onclick="showScreen('SCR-HOME-001')">⌂<span>Home</span></button>
-        <button class="selected" data-testid="nav-library" onclick="openLibrary('all')">▦<span>Library</span></button>
-        <button data-testid="nav-profile" onclick="openProfile()">☺<span>Profile</span></button>
+        <button data-testid="nav-home" onclick="showScreen('SCR-HOME-001')"><span class="nav-icon nav-icon-home" aria-hidden="true"></span><span>Home</span></button>
+        <button class="selected" data-testid="nav-library" onclick="openLibrary('all')"><span class="nav-icon nav-icon-library" aria-hidden="true"></span><span>Library</span></button>
+        <button data-testid="nav-profile" onclick="openProfile()"><span class="nav-icon nav-icon-profile" aria-hidden="true"></span><span>Profile</span></button>
       </nav>
+    </section>
+
+    <!-- SEARCH -->
+    <section class="screen"
+      data-screen-id="SCR-SEARCH-001"
+      data-requirement="REQ-LIB-007"
+      data-testid="search-screen">
+      <div class="screen-scroll search-scroll">
+        <header class="search-header"
+          data-component-id="CMP-SEARCH-HEADER"
+          data-requirement="REQ-LIB-011">
+          <button class="icon-btn" data-testid="search-back" aria-label="Back" onclick="closeSearch()">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
+          </button>
+          <h1>Search</h1>
+          <span class="search-header-spacer" aria-hidden="true"></span>
+        </header>
+
+        <div class="search-field"
+          data-component-id="CMP-SEARCH-INPUT"
+          data-requirement="REQ-LIB-009">
+          <svg class="search-field-icon" viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="text" data-testid="search-input" placeholder="Search drawing" aria-label="Search drawing" oninput="onSearchInput(this.value)">
+          <button class="search-field-clear" data-testid="search-clear" aria-label="Clear search" onclick="clearSearch()" hidden>
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6 6 18"/><path d="M6 6l12 12"/></svg>
+          </button>
+        </div>
+
+        <div class="drawing-grid search-results"
+          data-component-id="CMP-SEARCH-RESULTS"
+          data-requirement="REQ-LIB-009"
+          data-testid="search-results-grid"
+          hidden></div>
+
+        <div class="empty-state search-empty-state"
+          data-component-id="CMP-SEARCH-EMPTY-STATE"
+          data-requirement="REQ-LIB-010"
+          data-testid="search-empty-state"
+          hidden>
+          <div class="empty-illustration" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          </div>
+          <h2>No results found</h2>
+          <p>We couldn't find any artwork matching your search.</p>
+          <button class="primary" data-testid="search-explore-library" data-component-id="CMP-SEARCH-EXPLORE-CTA" onclick="exploreLibraryFromSearch()">Explore library</button>
+        </div>
+      </div>
     </section>
 
     <!-- PROFILE -->
@@ -333,9 +371,9 @@
         </div>
       </div>
       <nav class="bottom-nav" data-component-id="CMP-GLOBAL-BOTTOM-NAV">
-        <button data-testid="nav-home" onclick="showScreen('SCR-HOME-001')">⌂<span>Home</span></button>
-        <button data-testid="nav-library" onclick="openLibrary('all')">▦<span>Library</span></button>
-        <button class="selected" data-testid="nav-profile" onclick="openProfile()">☺<span>Profile</span></button>
+        <button data-testid="nav-home" onclick="showScreen('SCR-HOME-001')"><span class="nav-icon nav-icon-home" aria-hidden="true"></span><span>Home</span></button>
+        <button data-testid="nav-library" onclick="openLibrary('all')"><span class="nav-icon nav-icon-library" aria-hidden="true"></span><span>Library</span></button>
+        <button class="selected" data-testid="nav-profile" onclick="openProfile()"><span class="nav-icon nav-icon-profile" aria-hidden="true"></span><span>Profile</span></button>
       </nav>
     </section>
 
@@ -357,11 +395,16 @@
           </button>
         </div>
         <div class="mini-tools" role="group" aria-label="Additional tools">
-          <button class="editor-icon-btn" aria-label="Eyedropper">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/></svg>
+          <button class="editor-icon-btn" aria-label="Tip">
+            <span class="editor-icon-mask icon-tip" aria-hidden="true"></span>
           </button>
-          <button class="editor-icon-btn" aria-label="Style options">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l7 9-7 9-7-9 7-9Z"/></svg>
+          <button class="editor-icon-btn"
+            data-testid="editor-lock-toggle"
+            aria-label="Coloring lock"
+            aria-pressed="true"
+            onclick="toggleColoringLock(this)">
+            <img src="assets/icons/lock.png" alt="" class="lock-icon lock-icon-locked">
+            <img src="assets/icons/unlock.png" alt="" class="lock-icon lock-icon-unlocked">
           </button>
           <button class="editor-icon-btn" aria-label="Canvas settings">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.8-1.6L13 2h-2l-.7 2.8a7 7 0 0 0-2.8 1.6l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .5.1 1.1.2 1.6l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.8 1.6L11 22h2l.7-2.8a7 7 0 0 0 2.8-1.6l2.3.9 2-3.4-2-1.5c.1-.5.2-1.1.2-1.6Z"/></svg>
@@ -400,24 +443,24 @@
           data-testid="editor-tool-state"
           data-active-tool="brush">
           <button class="selected" data-testid="tool-brush" aria-label="Brush tool" aria-pressed="true" onclick="selectTool(this,'brush')">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.5 3.5 20.5 9.5 10 20l-6 1 1-6L14.5 3.5Z"/><path d="M13 5l6 6"/></svg>
+            <span class="tool-icon tool-icon-brush" aria-hidden="true"></span>
             <span>Brush</span>
           </button>
           <button data-testid="tool-fill" aria-label="Fill tool" aria-pressed="false" onclick="selectTool(this,'fill')">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 10l8-6 8 6-8 6-8-6Z"/><path d="M6 12l2 7a2 2 0 0 0 2 1.5h4a2 2 0 0 0 2-1.5l2-7"/></svg>
+            <span class="tool-icon tool-icon-fill" aria-hidden="true"></span>
             <span>Fill</span>
           </button>
           <button data-testid="tool-erase" aria-label="Erase tool" aria-pressed="false" onclick="selectTool(this,'erase')">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 3l5 5-9 9H7l-3-3 9-9a2 2 0 0 1 3 0Z"/><path d="M7 21h10"/></svg>
+            <span class="tool-icon tool-icon-erase" aria-hidden="true"></span>
             <span>Erase</span>
           </button>
           <button class="plus" data-testid="tool-more" aria-label="More tools">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>
+            <img src="assets/icons/Add.png" alt="" class="tool-more-icon">
           </button>
         </div>
 
         <button class="workspace-settings" aria-label="Canvas display options">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><rect x="13" y="13" width="7" height="7" rx="1.5"/></svg>
+          <img src="assets/icons/settingbrush.png" alt="" class="icon-settingbrush">
         </button>
       </div>
 
@@ -448,7 +491,7 @@
         <div class="editor-quick"
           data-component-id="CMP-EDITOR-QUICK-ACTIONS">
           <button aria-label="Eyedropper">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 5l4 4-9.5 9.5a2 2 0 0 1-1 .5l-3 .5.5-3a2 2 0 0 1 .5-1L15 5Z"/><path d="M13.5 6.5l4 4"/></svg>
+            <span class="editor-icon-mask icon-color-picker" aria-hidden="true"></span>
           </button>
           <button aria-label="Previous style">
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"/></svg>
@@ -461,7 +504,8 @@
             <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
           </button>
           <button data-testid="editor-fit" aria-label="Fit to screen" aria-pressed="false" onclick="toggleZoom()">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3H3v6M15 3h6v6M9 21H3v-6M15 21h6v-6"/></svg>
+            <img src="assets/icons/maximize.png" alt="" class="fit-icon fit-icon-max">
+            <img src="assets/icons/minimize.png" alt="" class="fit-icon fit-icon-min">
           </button>
         </div>
 
@@ -646,6 +690,6 @@
     </section>
   </div>
 </div>
-<script src="app.js?v=20260816-home-continue"></script>
+<script src="app.js?v=20260816-library-search"></script>
 </body>
 </html>

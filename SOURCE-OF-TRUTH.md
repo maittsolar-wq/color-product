@@ -95,6 +95,14 @@ COLOR-PRODUCT-LATEST/
 
 **Not yet updated (explicitly deferred, pending a separate implementation pass):** `03-design/prototype/index.html`, `styles.css`, `app.js`, and `05-test/playwright/tests/prototype.spec.js`. Until that pass runs, the prototype reflects the pre-2026-08-14 flow (Home → Category/Preview, My Works/Settings bottom nav) and should not be treated as matching the current approved documentation baseline.
 
+## Library Search — New MVP Feature (2026-08-16)
+
+**Approved decision:** Library Search, previously a Could-Have/V1.1 candidate, is promoted to MVP MUST. New Screen ID `SCR-SEARCH-001` (child of Library, no bottom nav) — see `design-decisions.md` DD-016, `information-architecture-user-flow.md` §5.13/NAV-009/FLOW-LIBRARY-002, `requirements.md` REQ-LIB-007→012, `mvp-scope.md` FE-LIB-005→008.
+
+**Artifacts updated:** `mvp-scope.md`, `information-architecture-user-flow.md`, `requirements.md`, `ui-spec.md`, `design-decisions.md`, `functional-spec.md`, `selectors-contract.md`, `test-cases.md`, `automation-map.md`.
+
+**Implementation:** `03-design/prototype/index.html`/`styles.css`/`app.js` and `05-test/playwright/tests/prototype.spec.js` updated in the same pass (unlike the 2026-08-14 re-baseline, prototype sync was not deferred here).
+
 ## Claude Code Rule
 
 When opening this folder in Claude Code:

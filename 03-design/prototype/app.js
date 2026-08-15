@@ -256,6 +256,106 @@ function openLibrary(categoryId){
   filterLibrary(categoryId, btn);
 }
 
+// Library filter/state captured when Search opens, so Back can restore it —
+// distinct from "Explore library", which always forces "All" (REQ-LIB-010/011).
+let libraryReturnFilter = 'all';
+
+function openSearch(){
+  const libScope = document.querySelector('[data-screen-id="SCR-LIBRARY-001"]');
+  const grid = libScope && libScope.querySelector('[data-testid="library-grid"]');
+  libraryReturnFilter = (grid && grid.dataset.activeFilter) || 'all';
+
+  const input = document.querySelector('[data-testid="search-input"]');
+  if(input) input.value = '';
+  renderSearch('');
+
+  showScreen('SCR-SEARCH-001');
+}
+
+function onSearchInput(value){
+  renderSearch(value);
+}
+
+function clearSearch(){
+  const input = document.querySelector('[data-testid="search-input"]');
+  if(input){
+    input.value = '';
+    input.focus();
+  }
+  renderSearch('');
+}
+
+function renderSearch(query){
+  const scope = document.querySelector('[data-screen-id="SCR-SEARCH-001"]');
+  if(!scope) return;
+
+  const clearBtn = scope.querySelector('[data-testid="search-clear"]');
+  const grid = scope.querySelector('[data-testid="search-results-grid"]');
+  const emptyState = scope.querySelector('[data-testid="search-empty-state"]');
+  const trimmed = query.trim();
+
+  if(clearBtn) clearBtn.hidden = trimmed.length === 0;
+
+  if(trimmed.length === 0){
+    if(grid){ grid.hidden = true; grid.innerHTML = ''; }
+    if(emptyState) emptyState.hidden = true;
+    return;
+  }
+
+  // Matches against the same artwork title metadata already used by
+  // Library/Home/Profile — no separate search index/database (REQ-LIB-009).
+  const q = trimmed.toLowerCase();
+  const matches = Object.keys(ARTWORK_LIBRARY).filter(id =>
+    ARTWORK_LIBRARY[id].title.toLowerCase().includes(q)
+  );
+
+  if(matches.length === 0){
+    if(grid){ grid.hidden = true; grid.innerHTML = ''; }
+    if(emptyState) emptyState.hidden = false;
+    return;
+  }
+
+  if(emptyState) emptyState.hidden = true;
+  if(grid){
+    grid.hidden = false;
+    grid.innerHTML = '';
+    matches.forEach(id => {
+      const meta = ARTWORK_LIBRARY[id];
+      const btn = document.createElement('button');
+      btn.className = 'drawing-card';
+      btn.dataset.testid = `drawing-card-${id}`;
+      // Same shared resolver as Home/Library/Profile — no duplicate opening system.
+      btn.onclick = () => openArtwork(id);
+
+      const thumb = document.createElement('div');
+      thumb.className = `thumb ${meta.thumbClass}`;
+      if(meta.thumbImg){
+        const img = document.createElement('img');
+        img.src = meta.thumbImg;
+        thumb.appendChild(img);
+      } else {
+        thumb.textContent = meta.thumbContent;
+      }
+
+      const title = document.createElement('b');
+      title.textContent = meta.title;
+
+      btn.append(thumb, title);
+      grid.appendChild(btn);
+    });
+  }
+}
+
+function closeSearch(){
+  showScreen('SCR-LIBRARY-001');
+  const btn = document.querySelector(`[data-screen-id="SCR-LIBRARY-001"] [data-testid="library-filter-${libraryReturnFilter}"]`);
+  filterLibrary(libraryReturnFilter, btn);
+}
+
+function exploreLibraryFromSearch(){
+  openLibrary('all');
+}
+
 function openProfile(){
   showScreen('SCR-PROFILE-001');
   renderProfile();
@@ -433,6 +533,18 @@ function redoAction(){
   progressUpdatedAt[currentArtworkId] = Date.now();
   updateHistoryButtons();
   markSaving();
+}
+
+// Visual state only — no coloring-engine change. The prototype's actual
+// fillRegion() already only ever fills the exact closed SVG shape tapped
+// (never spills), so "locked" is the icon shown by default, matching real
+// behavior honestly. Toggling to "unlocked" swaps the icon only; there is
+// no free/spill-painting engine behind it yet (see report).
+let coloringLocked = true;
+
+function toggleColoringLock(btn){
+  coloringLocked = !coloringLocked;
+  btn.setAttribute('aria-pressed', String(coloringLocked));
 }
 
 function toggleZoom(){

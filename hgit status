@@ -1,0 +1,17 @@
+warning: in the working copy of '03-design/prototype/styles.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of '05-test/playwright/tests/prototype.spec.js', LF will be replaced by CRLF the next time Git touches it
+ 00-product/mvp-scope.md                            |  22 [32m+++[m[31m-[m
+ .../information-architecture-user-flow.md          |  92 [32m+++++++++++++[m[31m-[m
+ 02-requirements/requirements.md                    | 133 [32m+++++++++++++++++++++[m
+ 03-design/design-decisions.md                      |   3 [32m+[m
+ 03-design/prototype/app.js                         | 112 [32m+++++++++++++++++[m
+ 03-design/prototype/index.html                     | 132 [32m+++++++++++++[m[31m-------[m
+ 03-design/prototype/styles.css                     |  69 [32m+++++++++[m[31m--[m
+ 03-design/ui-spec.md                               |  33 [32m+++++[m
+ 04-spec/functional-spec.md                         |  61 [32m++++++++++[m
+ 05-test/automation-map.md                          |  12 [32m++[m
+ 05-test/playwright/tests/prototype.spec.js         | 104 [32m++++++++++++++++[m
+ 05-test/selectors-contract.md                      |  13 [32m++[m
+ 05-test/test-cases.md                              | 104 [32m++++++++++++++++[m
+ SOURCE-OF-TRUTH.md                                 |   8 [32m++[m
+ 14 files changed, 834 insertions(+), 64 deletions(-)
