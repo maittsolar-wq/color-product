@@ -126,18 +126,91 @@ test('TC-LIB-003 — Library artwork opens Coloring directly (no Preview/Categor
   await expect(page.locator('[data-testid="coloring-canvas"]')).toBeVisible();
 });
 
-test('TC-PROFILE-002 — Profile segmented view filters correctly', async ({ page }) => {
+// Profile boots with two seeded progress records (draw_animals_001 =
+// IN_PROGRESS, draw_nature_001 = COMPLETED) so the default app state is
+// "populated." To exercise the empty state, tests clear progressStore via
+// the app's own global (its single source of truth for progress) and call
+// the existing openProfile()/renderProfile() to re-render — no test-only
+// hook or second data store is introduced.
+async function clearProgress(page) {
+  await page.evaluate(() => {
+    Object.keys(progressStore).forEach(id => delete progressStore[id]);
+  });
+}
+
+test('TC-PROFILE-001 — Empty Profile shows the empty state, not the grid', async ({ page }) => {
+  await openHome(page);
+  await clearProgress(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+
+  await expect(page.locator('[data-testid="profile-empty-state"]')).toBeVisible();
+  await expect(page.locator('[data-testid="profile-segmented"]')).toBeHidden();
+  await expect(page.locator('[data-testid="profile-grid"]')).toBeHidden();
+});
+
+test('TC-PROFILE-001b — Explore library from empty Profile opens Library with All active', async ({ page }) => {
+  await openHome(page);
+  await clearProgress(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+
+  await page.locator('[data-testid="profile-explore-library"]').click();
+  await expect(page.locator('[data-screen-id="SCR-LIBRARY-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="library-filter-all"]')).toHaveClass(/selected/);
+});
+
+test('TC-PROFILE-002 — Populated Profile defaults to All (both statuses)', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="nav-profile"]').click();
-  await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).toHaveClass(/active/);
+
+  await expect(page.locator('[data-testid="profile-empty-state"]')).toBeHidden();
+  await expect(page.locator('[data-testid="profile-segment-all"]')).toHaveClass(/selected/);
+  await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeVisible();
+  await expect(active(page).locator('[data-testid="drawing-card-draw_nature_001"]')).toBeVisible();
+});
+
+test('TC-PROFILE-003 — Completed segment shows only COMPLETED artwork', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
 
   await page.locator('[data-testid="profile-segment-completed"]').click();
   await expect(active(page).locator('[data-testid="drawing-card-draw_nature_001"]')).toBeVisible();
   await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeHidden();
+});
+
+test('TC-PROFILE-004 — In Progress segment shows only IN_PROGRESS artwork', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
 
   await page.locator('[data-testid="profile-segment-in-progress"]').click();
   await expect(active(page).locator('[data-testid="drawing-card-draw_animals_001"]')).toBeVisible();
   await expect(active(page).locator('[data-testid="drawing-card-draw_nature_001"]')).toBeHidden();
+});
+
+test('TC-PROFILE-004b — Switching segments does not change artwork status', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+
+  await page.locator('[data-testid="profile-segment-in-progress"]').click();
+  await page.locator('[data-testid="profile-segment-all"]').click();
+
+  const stillCorrect = await page.evaluate(() => ({
+    animal: progressStore['draw_animals_001'],
+    nature: progressStore['draw_nature_001'],
+  }));
+  expect(stillCorrect).toEqual({ animal: 'IN_PROGRESS', nature: 'COMPLETED' });
+});
+
+test('TC-PROFILE-005 — Profile artwork opens Coloring directly and resumes existing progress', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+
+  await active(page).locator('[data-testid="drawing-card-draw_nature_001"]').click();
+  await expect(page.locator('[data-screen-id="SCR-PREVIEW-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-CATEGORY-001"]')).not.toHaveClass(/active/);
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+
+  const status = await page.evaluate(() => progressStore['draw_nature_001']);
+  expect(status).toBe('COMPLETED'); // resumed, not reset to a fresh session
 });
 
 test('TC-PROFILE-006 — Settings icon opens Settings', async ({ page }) => {
@@ -145,6 +218,19 @@ test('TC-PROFILE-006 — Settings icon opens Settings', async ({ page }) => {
   await active(page).locator('[data-testid="nav-profile"]').click();
   await page.locator('[data-testid="profile-settings-icon"]').click();
   await expect(page.locator('[data-screen-id="SCR-SETTINGS-001"]')).toHaveClass(/active/);
+});
+
+test('TC-PROFILE-007 — Profile bottom nav routes to Home and Library', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-profile"]').click();
+
+  await active(page).locator('[data-testid="nav-library"]').click();
+  await expect(page.locator('[data-screen-id="SCR-LIBRARY-001"]')).toHaveClass(/active/);
+  await expect(page.locator('[data-testid="library-filter-all"]')).toHaveClass(/selected/);
+
+  await active(page).locator('[data-testid="nav-profile"]').click();
+  await active(page).locator('[data-testid="nav-home"]').click();
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
 });
 
 test('TC-EDITOR-016/017/018 — Tool rail selection', async ({ page }) => {

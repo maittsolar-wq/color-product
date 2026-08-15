@@ -13,7 +13,7 @@
     <p>Step 6 · Hi‑Fi UI</p>
     <button onclick="showScreen('SCR-HOME-001')">Home</button>
     <button onclick="openLibrary('all')">Library</button>
-    <button onclick="showScreen('SCR-PROFILE-001')">Profile</button>
+    <button onclick="openProfile()">Profile</button>
     <button onclick="showScreen('SCR-EDITOR-001')">Editor</button>
     <button onclick="showScreen('SCR-COMPLETE-001')">Completion</button>
     <button onclick="showScreen('SCR-PAYWALL-001')">Paywall</button>
@@ -118,7 +118,7 @@
       <nav class="bottom-nav" data-component-id="CMP-GLOBAL-BOTTOM-NAV">
         <button class="selected" data-testid="nav-home" onclick="showScreen('SCR-HOME-001')">⌂<span>Home</span></button>
         <button data-testid="nav-library" onclick="openLibrary('all')">▦<span>Library</span></button>
-        <button data-testid="nav-profile" onclick="showScreen('SCR-PROFILE-001')">☺<span>Profile</span></button>
+        <button data-testid="nav-profile" onclick="openProfile()">☺<span>Profile</span></button>
       </nav>
     </section>
 
@@ -258,7 +258,7 @@
       <nav class="bottom-nav" data-component-id="CMP-GLOBAL-BOTTOM-NAV">
         <button data-testid="nav-home" onclick="showScreen('SCR-HOME-001')">⌂<span>Home</span></button>
         <button class="selected" data-testid="nav-library" onclick="openLibrary('all')">▦<span>Library</span></button>
-        <button data-testid="nav-profile" onclick="showScreen('SCR-PROFILE-001')">☺<span>Profile</span></button>
+        <button data-testid="nav-profile" onclick="openProfile()">☺<span>Profile</span></button>
       </nav>
     </section>
 
@@ -267,45 +267,56 @@
       data-screen-id="SCR-PROFILE-001"
       data-requirement="REQ-PROFILE-001"
       data-testid="profile-screen">
-      <div class="screen-scroll">
-        <header class="app-header">
-          <div><span class="eyebrow">You</span><h1>Profile</h1></div>
-          <button class="icon-btn" data-testid="profile-settings-icon" onclick="showScreen('SCR-SETTINGS-001')">⚙</button>
+      <div class="screen-scroll profile-scroll">
+        <header class="library-header"
+          data-component-id="CMP-PROFILE-HEADER"
+          data-requirement="REQ-PROFILE-001">
+          <h1>Profile</h1>
+          <button class="icon-btn"
+            data-component-id="CMP-PROFILE-SETTINGS-ICON"
+            data-testid="profile-settings-icon"
+            aria-label="Settings"
+            onclick="showScreen('SCR-SETTINGS-001')">
+            <svg viewBox="0 0 24 24" width="19" height="19" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.2-1.6l2-1.5-2-3.4-2.3.9a7 7 0 0 0-2.8-1.6L13 2h-2l-.7 2.8a7 7 0 0 0-2.8 1.6l-2.3-.9-2 3.4 2 1.5A7 7 0 0 0 5 12c0 .5.1 1.1.2 1.6l-2 1.5 2 3.4 2.3-.9a7 7 0 0 0 2.8 1.6L11 22h2l.7-2.8a7 7 0 0 0 2.8-1.6l2.3.9 2-3.4-2-1.5c.1-.5.2-1.1.2-1.6Z"/></svg>
+          </button>
         </header>
 
         <div class="profile-segmented"
           data-component-id="CMP-PROFILE-SEGMENTED"
-          data-requirement="REQ-PROFILE-003">
-          <button class="selected" data-testid="profile-segment-all" onclick="filterProfile('all', this)">All</button>
-          <button data-testid="profile-segment-in-progress" onclick="filterProfile('in_progress', this)">In Progress</button>
-          <button data-testid="profile-segment-completed" onclick="filterProfile('completed', this)">Completed</button>
+          data-requirement="REQ-PROFILE-003"
+          data-testid="profile-segmented">
+          <button class="selected" data-segment="all" data-testid="profile-segment-all" onclick="filterProfile('all', this)">All</button>
+          <button data-segment="completed" data-testid="profile-segment-completed" onclick="filterProfile('completed', this)">Completed</button>
+          <button data-segment="in_progress" data-testid="profile-segment-in-progress" onclick="filterProfile('in_progress', this)">In Progress</button>
         </div>
 
         <div class="drawing-grid"
           data-component-id="CMP-PROFILE-GRID"
           data-requirement="REQ-PROFILE-004"
-          data-testid="profile-grid">
-          <button class="drawing-card" data-status="in_progress" data-testid="drawing-card-draw_animals_001" onclick="openArtwork('draw_animals_001')">
-            <div class="thumb thumb-green"><img src="assets/elephant-lineart.svg"></div><b>Little Elephant</b><span>In Progress</span>
-          </button>
-          <button class="drawing-card" data-status="completed" data-testid="drawing-card-draw_nature_001" onclick="openArtwork('draw_nature_001')">
-            <div class="thumb thumb-lilac">✿</div><b>Moon Flowers</b><span>Completed</span>
-          </button>
-        </div>
+          data-testid="profile-grid"></div>
 
-        <div class="empty-state"
+        <p class="segment-empty" data-testid="profile-segment-empty" hidden>Nothing in this view yet.</p>
+
+        <div class="empty-state profile-empty-state"
           data-component-id="CMP-PROFILE-EMPTY-STATE"
           data-requirement="REQ-PROFILE-002"
           data-testid="profile-empty-state"
           hidden>
-          <p>No artwork yet.</p>
-          <button class="primary small" data-testid="profile-explore-library" onclick="openLibrary('all')">Explore Library</button>
+          <div class="empty-illustration" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="34" height="34" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="15" rx="3"/><circle cx="8.5" cy="9.5" r="1.5"/><path d="M21 15l-5.5-5.5a1.5 1.5 0 0 0-2 0L4 19"/></svg>
+          </div>
+          <h2>Your gallery is empty</h2>
+          <p>You haven't colored any artwork yet.<br>Let's bring some color to your world!</p>
+          <button class="primary"
+            data-component-id="CMP-PROFILE-EXPLORE-CTA"
+            data-testid="profile-explore-library"
+            onclick="openLibrary('all')">Explore library</button>
         </div>
       </div>
       <nav class="bottom-nav" data-component-id="CMP-GLOBAL-BOTTOM-NAV">
         <button data-testid="nav-home" onclick="showScreen('SCR-HOME-001')">⌂<span>Home</span></button>
         <button data-testid="nav-library" onclick="openLibrary('all')">▦<span>Library</span></button>
-        <button class="selected" data-testid="nav-profile" onclick="showScreen('SCR-PROFILE-001')">☺<span>Profile</span></button>
+        <button class="selected" data-testid="nav-profile" onclick="openProfile()">☺<span>Profile</span></button>
       </nav>
     </section>
 
