@@ -55,6 +55,24 @@
 [data-testid="profile-grid"] .drawing-card{border:1px solid #ECECEE;box-shadow:none}
 [data-testid="profile-grid"] .drawing-card b{font-size:13px;font-weight:700}
 .segment-empty{text-align:center;color:#8A8A8E;font-size:13px;padding:36px 12px}
+/* Profile Artwork Detail Popup — a modal OVER SCR-PROFILE-001, not a new
+   screen. Profile remains visible (dimmed) behind it. Same
+   position:absolute;inset:0 overlay pattern as .color-picker-overlay/
+   .editor-settings-overlay on SCR-EDITOR-001, just centered instead of a
+   bottom sheet. */
+.profile-popup-overlay{position:absolute;inset:0;background:rgba(20,18,22,.42);z-index:50;display:flex;align-items:center;justify-content:center;padding:24px}
+.profile-popup-overlay[hidden]{display:none}
+.profile-popup-card{position:relative;width:100%;max-width:300px;background:#fff;border-radius:28px;padding:20px;box-shadow:0 16px 40px rgba(0,0,0,.20);display:flex;flex-direction:column;align-items:stretch}
+.profile-popup-close{position:absolute;left:14px;top:14px;width:38px;height:38px;border:0;border-radius:50%;background:#F5F5F6;display:grid;place-items:center;cursor:pointer;z-index:1}
+.profile-popup-artwork-wrap{width:100%;aspect-ratio:1;border-radius:20px;background:#F4F4F5;overflow:hidden;margin:28px 0 14px;display:grid;place-items:center}
+.profile-popup-artwork{width:100%;height:100%;object-fit:contain}
+.profile-popup-title{font-size:17px;font-weight:800;margin:0 0 16px;text-align:center;color:#151515}
+.profile-popup-actions{display:flex;gap:10px;width:100%}
+.profile-popup-actions button{flex:1;border-radius:14px;padding:13px;font-weight:700;cursor:pointer;text-align:center}
+.profile-popup-restart{border:1.5px solid var(--accent);background:#fff;color:var(--accent)}
+.profile-popup-restart:hover{background:var(--accent-soft)}
+.profile-popup-color{border:0;background:var(--accent);color:#fff}
+.profile-popup-color:hover{background:#6C3FF0}
 .profile-empty-state{padding-top:18px}
 .profile-empty-state .empty-illustration{width:84px;height:84px;border-radius:50%;background:var(--accent-soft);color:var(--accent);display:grid;place-items:center;margin:0 auto 20px}
 .profile-empty-state h2{font-size:21px;font-weight:800;margin:0 0 10px;color:#101010}
@@ -74,12 +92,19 @@
 .undo-box,.mini-tools{height:48px;background:#F6F6F7;border-radius:16px;display:flex;align-items:center;padding:0 3px;gap:2px}
 .undo-box .editor-icon-btn,.mini-tools .editor-icon-btn{width:40px;height:40px}
 .editor-workspace{position:absolute;left:0;right:0;top:64px;bottom:196px;background:var(--editor-workspace);overflow:hidden;display:grid;place-items:center;padding-right:76px;box-sizing:border-box}
-.artboard{width:76%;max-width:420px;aspect-ratio:1;background:var(--editor-artboard);border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 20px rgba(0,0,0,.05);display:grid;place-items:center;transition:width .22s ease,max-width .22s ease}
-.artboard canvas{grid-area:1/1;width:92%;height:92%;touch-action:none}
+.artboard{width:76%;max-width:420px;aspect-ratio:1;background:var(--editor-artboard);border-radius:6px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 8px 20px rgba(0,0,0,.05);display:grid;place-items:center;overflow:hidden;transition:width .22s ease,max-width .22s ease}
+/* Zoom/pan target — see applyEditorTransform() in app.js. Fills 100% of
+   .artboard (no inset) so the real 800×800 artwork edges land exactly on the
+   visible card edges; .artboard's own overflow:hidden clips both the square
+   canvas corners to the card's border-radius and any panned/zoomed content
+   that would otherwise escape the card. */
+.artboard-viewport{grid-area:1/1;position:relative;width:100%;height:100%;transform-origin:0 0;touch-action:none}
+.artboard-viewport canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none}
 #lineArtCanvas{pointer-events:none}
 #fillCanvas{z-index:1}
 #brushCanvas{z-index:2}
 #lineArtCanvas{z-index:3}
+.artboard-viewport.panning,.artboard-viewport.panning canvas{cursor:grabbing}
 .tool-rail{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:#fff;border-radius:20px;padding:8px 4px;box-shadow:0 6px 18px rgba(0,0,0,.08);display:flex;flex-direction:column;gap:4px}
 .tool-rail button{width:56px;min-height:52px;border:0;background:transparent;color:#5B5B5E;padding:8px 2px;border-radius:14px;display:grid;place-items:center;gap:2px;cursor:pointer;transition:background-color .15s ease,color .15s ease}
 .tool-rail button svg{display:block}

@@ -81,7 +81,7 @@ function createLessonThumb(lesson){
   const thumb = document.createElement('div');
   thumb.className = 'thumb';
   const img = document.createElement('img');
-  img.src = lesson ? lesson.thumbnail : '';
+  img.src = lessonPreviewSrc(lesson);
   img.alt = '';
   thumb.appendChild(img);
   return thumb;
@@ -133,9 +133,23 @@ function showScreen(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   const target = document.querySelector(`[data-screen-id="${id}"]`);
   if(target) target.classList.add('active');
-  // Re-evaluate every time Home becomes active (not just cold start) so the
-  // card reflects the latest state after returning from Editor/Completion/etc.
-  if(id === 'SCR-HOME-001') renderHomeContinue();
+  // Re-render every time one of these becomes active (not just cold start),
+  // covering EVERY path that reaches them (bottom nav, Home "See all", the
+  // Editor Back button, Search's Explore-library/Back, etc. all funnel
+  // through this one function) so dynamic progress-thumbnails/newly-started
+  // lessons are never stale — never just the direct-tap entry points.
+  if(id === 'SCR-HOME-001'){
+    renderHomeCategorySections();
+    renderHomeContinue();
+  } else if(id === 'SCR-LIBRARY-001'){
+    const grid = document.querySelector('[data-screen-id="SCR-LIBRARY-001"] [data-testid="library-grid"]');
+    const activeFilter = (grid && grid.dataset.activeFilter) || 'all';
+    renderLibraryGrid();
+    const btn = document.querySelector(`[data-screen-id="SCR-LIBRARY-001"] [data-testid="library-filter-${activeFilter}"]`);
+    filterLibrary(activeFilter, btn);
+  } else if(id === 'SCR-PROFILE-001'){
+    renderProfile();
+  }
 }
 
 function openArtwork(lessonId){
@@ -166,12 +180,14 @@ function exitEditor(){
   // Autosave is already continuous (Fill/Brush/undo/redo flip the Saving/
   // Saved indicator immediately); this just returns to wherever the user
   // actually came from — never a hardcoded Preview/Category hop.
+  updateLessonPreview(currentArtworkId); // belt-and-suspenders freshness on the way out
   showScreen(editorOrigin);
 }
 
 function completeArtwork(){
   progressStore[currentArtworkId] = 'COMPLETED';
   progressUpdatedAt[currentArtworkId] = Date.now();
+  updateLessonPreview(currentArtworkId);
   renderCompletion();
   showScreen('SCR-COMPLETE-001');
 }
@@ -205,7 +221,7 @@ function renderHomeContinue(){
     art.innerHTML = '';
     art.className = 'continue-art';
     const img = document.createElement('img');
-    img.src = lesson.thumbnail;
+    img.src = lessonPreviewSrc(lesson);
     art.appendChild(img);
   }
 }
@@ -458,10 +474,11 @@ function renderProfileGrid(){
     card.className = 'drawing-card';
     card.dataset.testid = `drawing-card-${drawingId}`;
     card.dataset.status = status === 'IN_PROGRESS' ? 'in_progress' : 'completed';
-    // Profile only ever lists IDs already in progressStore, so this always
-    // resumes existing progress — the create branch in openArtwork() never
-    // fires from here. No separate Profile-only opening path is created.
-    card.onclick = () => openArtwork(drawingId);
+    // Profile is the ONE place an artwork tap does NOT go straight to the
+    // Editor — it opens the Artwork Detail Popup instead (Restart/Color).
+    // Home/Library/Search/Completion are unchanged (still openArtwork()
+    // directly) — this popup is Profile-only, per this pass's explicit scope.
+    card.onclick = () => openProfilePopup(drawingId);
 
     const title = document.createElement('b');
     title.textContent = lesson.title;
@@ -474,6 +491,71 @@ function renderProfileGrid(){
   });
 
   if(segmentEmpty) segmentEmpty.hidden = visibleCount > 0;
+}
+
+// --- Profile Artwork Detail Popup (Profile-only; see openProfilePopup) ----
+// A modal OVER SCR-PROFILE-001, not a new Screen ID. Home/Library/Search/
+// Completion artwork taps are unchanged — direct to Editor.
+let profilePopupLessonId = null;
+
+function openProfilePopup(lessonId){
+  profilePopupLessonId = lessonId;
+  const overlay = document.querySelector('[data-testid="profile-artwork-popup"]');
+  if(!overlay) return;
+  const lesson = LESSONS_BY_ID[lessonId];
+  const img = overlay.querySelector('[data-testid="profile-popup-artwork"]');
+  if(img) img.src = lessonPreviewSrc(lesson);
+  const title = overlay.querySelector('[data-testid="profile-popup-title"]');
+  if(title) title.textContent = lesson ? lesson.title : '';
+  overlay.hidden = false;
+}
+
+function closeProfilePopup(){
+  profilePopupLessonId = null;
+  const overlay = document.querySelector('[data-testid="profile-artwork-popup"]');
+  if(overlay) overlay.hidden = true;
+}
+
+// Color: close popup, open Editor, resume the lesson's EXISTING saved
+// progress — openArtwork()/loadLessonArtwork() already do this by default,
+// so no separate "resume" path is needed here.
+function profilePopupColor(){
+  const id = profilePopupLessonId;
+  closeProfilePopup();
+  if(id) openArtwork(id);
+}
+
+// Restart: wipe THIS lesson's saved coloring state only, then open a clean
+// Editor session for it. Other lessons' lessonDrawingState/progressStore
+// entries are untouched.
+function profilePopupRestart(){
+  const id = profilePopupLessonId;
+  closeProfilePopup();
+  if(!id) return;
+  restartLesson(id);
+  openArtwork(id);
+}
+
+function restartLesson(lessonId){
+  delete lessonDrawingState[lessonId]; // no saved fill/strokes -> loadLessonArtwork() renders a clean lesson
+  delete lessonPreviewCache[lessonId]; // no dynamic preview -> falls back to the original static thumbnail
+  // Removing the progressStore/progressUpdatedAt entries entirely (rather
+  // than setting some new status) means openArtwork()'s existing
+  // `if(!progressStore[lessonId])` seed logic naturally creates a fresh
+  // IN_PROGRESS record when Editor opens next — this is how a restarted
+  // COMPLETED lesson stops being COMPLETED, with no new status value needed.
+  delete progressStore[lessonId];
+  delete progressUpdatedAt[lessonId];
+  if(currentArtworkId === lessonId){
+    // Lesson happens to already be the open one — clear the live canvases
+    // immediately too, since loadLessonArtwork() won't be reloaded from
+    // scratch by openArtwork() until its own async rasterize step finishes.
+    undoStack = []; redoStack = []; strokesList = [];
+    updateHistoryButtons();
+    const fillCanvas = document.getElementById('fillCanvas');
+    if(fillCanvas) fillCanvas.getContext('2d').clearRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+    redrawBrushCanvas();
+  }
 }
 
 // Shared across Profile Settings (SCR-SETTINGS-001) and the Editor Settings
@@ -589,6 +671,11 @@ function syncFocusIndicators(){
 
 function markSaving(){
   saveCurrentLessonState();
+  // One shared hook point for every commit (stroke pointerup, Fill, Undo,
+  // Redo — everywhere markSaving() is already called) keeps the dynamic
+  // progress-thumbnail cache fresh without scattering update calls across
+  // every tool — see updateLessonPreview()/PREVIEW-SIZE above.
+  updateLessonPreview(currentArtworkId);
   const status = document.getElementById('saveStatus');
   if(!status) return;
   status.textContent = 'Saving...';
@@ -729,6 +816,7 @@ function restoreLessonDrawingState(lessonId){
 function loadLessonArtwork(lessonId){
   barrierMaskReady = false;
   barrierMask = null;
+  resetEditorView(); // fresh 1x/centered view for every (re)opened lesson
 
   const lineArtCanvas = document.getElementById('lineArtCanvas');
   const fillCanvas = document.getElementById('fillCanvas');
@@ -849,25 +937,54 @@ function rgbToHex(r, g, b){
 }
 
 // Composites fillCanvas + brushCanvas + lineArtCanvas into one flat image
-// (for the Completion preview). All three source layers are already
+// (for the Completion preview and for dynamic progress-thumbnail previews —
+// see updateLessonPreview() below). All three source layers are already
 // canvases, so — unlike the prior SVG-based line art — this needs no async
 // image-load step; callback is invoked synchronously, kept as a callback
-// only so callers don't need to change.
-function renderArtboardToDataURL(callback){
+// only so callers don't need to change. `size` defaults to the full
+// ARTWORK_SIZE (Completion's large preview); pass PREVIEW_SIZE for the small
+// 250×250 progress-thumbnail case.
+function renderArtboardToDataURL(callback, size){
+  const s = size || ARTWORK_SIZE;
   const composite = document.createElement('canvas');
-  composite.width = ARTWORK_SIZE; composite.height = ARTWORK_SIZE;
+  composite.width = s; composite.height = s;
   const ctx = composite.getContext('2d');
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+  ctx.fillRect(0, 0, s, s);
 
   const fillCanvas = document.getElementById('fillCanvas');
   const brushCanvasEl = document.getElementById('brushCanvas');
   const lineArtCanvasEl = document.getElementById('lineArtCanvas');
-  if(fillCanvas) ctx.drawImage(fillCanvas, 0, 0);
-  if(brushCanvasEl) ctx.drawImage(brushCanvasEl, 0, 0);
-  if(lineArtCanvasEl) ctx.drawImage(lineArtCanvasEl, 0, 0);
+  if(fillCanvas) ctx.drawImage(fillCanvas, 0, 0, s, s);
+  if(brushCanvasEl) ctx.drawImage(brushCanvasEl, 0, 0, s, s);
+  if(lineArtCanvasEl) ctx.drawImage(lineArtCanvasEl, 0, 0, s, s);
 
   callback(composite.toDataURL('image/png'));
+}
+
+// --- Dynamic progress thumbnails --------------------------------------
+// Home/Library/Search/Profile/Completion-recommendations must show the
+// CURRENT coloring state of a lesson, not always the static original
+// thumbnail. One cache, one source of truth: lessonPreviewCache[lessonId] is
+// a 250×250 data URL composited from the SAME live canvases Editor itself
+// draws (via renderArtboardToDataURL above) — never a separately-tracked
+// fake color state. Regenerated only at meaningful lifecycle points (stroke/
+// fill/undo/redo commit via markSaving(), Editor exit, Done), not on every
+// pointermove — see updateLessonPreview() call sites.
+const PREVIEW_SIZE = 250;
+let lessonPreviewCache = {}; // lessonId -> data URL, present only once a lesson has real progress
+
+function updateLessonPreview(lessonId){
+  if(!lessonId) return;
+  renderArtboardToDataURL(dataUrl => { lessonPreviewCache[lessonId] = dataUrl; }, PREVIEW_SIZE);
+}
+
+// Every screen's thumbnail resolves through this one helper: dynamic preview
+// if the lesson has progress, else the original static asset — never a
+// second/fake thumbnail state.
+function lessonPreviewSrc(lesson){
+  if(!lesson) return '';
+  return lessonPreviewCache[lesson.id] || lesson.thumbnail;
 }
 
 // ---------------------------------------------------------------------------
@@ -1137,6 +1254,173 @@ function onArtboardPointerCancel(){
   redrawBrushCanvas();
 }
 
+// --- Gesture routing layer (pinch-zoom / two-finger pan / desktop pan) ----
+// Sits in front of onArtboardPointerDown/Move/Up/Cancel above (which are
+// UNCHANGED — still the exact single-pointer paint/fill/eyedropper logic).
+// A single active pointer always falls straight through to those, so normal
+// mouse/single-touch coloring behaves identically to before. A SECOND
+// simultaneous pointer switches into a pinch/pan gesture instead — any
+// in-progress stroke is cancelled first, per spec: a two-finger gesture must
+// never be interpreted as Brush drawing.
+let activePointers = new Map(); // pointerId -> {x, y} in client (screen) coords
+let gestureActive = false;
+let gesturePrevDist = null;
+let gesturePrevMid = null;
+let gestureUpdateScheduled = false; // see scheduleGestureUpdate()
+
+function pointerDistance(a, b){ return Math.hypot(a.x - b.x, a.y - b.y); }
+function pointerMidpoint(a, b){ return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }; }
+
+// The two fingers of a pinch/pan gesture are independent event streams —
+// their pointermove events do not arrive perfectly interleaved, so reading
+// activePointers synchronously inside a single finger's own pointermove can
+// see the OTHER finger's now-stale last-known position, producing a
+// momentarily wrong distance/midpoint (and therefore visible scale jitter,
+// even during a pure two-finger drag where the real distance never
+// changes). Batching the actual recompute into one rAF per frame lets BOTH
+// fingers' latest positions land in the Map first, so the gesture is always
+// evaluated from a consistent snapshot.
+function runGestureUpdate(){
+  gestureUpdateScheduled = false;
+  if(!gestureActive || activePointers.size < 2) return;
+  const pts = Array.from(activePointers.values()).slice(0, 2);
+  const dist = pointerDistance(pts[0], pts[1]);
+  const mid = pointerMidpoint(pts[0], pts[1]);
+  if(gesturePrevDist && gesturePrevMid){
+    const nextScale = editorViewState.scale * (dist / gesturePrevDist);
+    panZoomEditorTo(gesturePrevMid, mid, nextScale);
+  }
+  gesturePrevDist = dist;
+  gesturePrevMid = mid;
+}
+
+function scheduleGestureUpdate(){
+  if(gestureUpdateScheduled) return;
+  gestureUpdateScheduled = true;
+  requestAnimationFrame(runGestureUpdate);
+}
+
+function cancelInProgressStroke(){
+  if(eyedropperDragging){ cancelEyedropperSample(); }
+  if(!activeStroke) return;
+  const idx = strokesList.indexOf(activeStroke);
+  if(idx !== -1) strokesList.splice(idx, 1);
+  activeStroke = null;
+  redrawBrushCanvas();
+}
+
+// Desktop pan (mouse): middle-mouse-button drag, or holding Space + left-
+// drag — neither collides with any existing left-click tool behavior, so
+// painting/Fill/Eyedropper are unaffected when panning isn't in use.
+let spacePanning = false;
+let mousePanning = false;
+let mousePanLast = null;
+
+function onViewportPointerDown(e){
+  if(e.pointerType === 'mouse' && (e.button === 1 || (e.button === 0 && spacePanning))){
+    cancelInProgressStroke();
+    mousePanning = true;
+    mousePanLast = { x: e.clientX, y: e.clientY };
+    const viewport = document.getElementById('artboardViewport');
+    if(viewport){
+      viewport.classList.add('panning');
+      if(viewport.setPointerCapture && e.pointerId != null){
+        try { viewport.setPointerCapture(e.pointerId); } catch(err) { /* not critical for the prototype */ }
+      }
+    }
+    e.preventDefault();
+    return;
+  }
+
+  activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if(activePointers.size === 2){
+    cancelInProgressStroke();
+    gestureActive = true;
+    const pts = Array.from(activePointers.values());
+    gesturePrevDist = pointerDistance(pts[0], pts[1]);
+    gesturePrevMid = pointerMidpoint(pts[0], pts[1]);
+    e.preventDefault();
+    return;
+  }
+
+  if(activePointers.size === 1 && !gestureActive){
+    onArtboardPointerDown(e);
+  }
+}
+
+function onViewportPointerMove(e){
+  if(mousePanning){
+    panEditorBy(e.clientX - mousePanLast.x, e.clientY - mousePanLast.y);
+    mousePanLast = { x: e.clientX, y: e.clientY };
+    e.preventDefault();
+    return;
+  }
+
+  if(activePointers.has(e.pointerId)) activePointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+
+  if(gestureActive && activePointers.size >= 2){
+    // Record this finger's latest position now; the actual pinch/pan math
+    // runs once per animation frame from BOTH fingers' latest positions —
+    // see scheduleGestureUpdate() above.
+    scheduleGestureUpdate();
+    e.preventDefault();
+    return;
+  }
+
+  if(!gestureActive){
+    onArtboardPointerMove(e);
+  }
+}
+
+function endViewportGesturePointer(e){
+  // Flush any pending rAF-batched gesture update FIRST, while this pointer's
+  // final position is still in activePointers — otherwise the last bit of
+  // movement between the previous frame and this lift could be silently
+  // dropped (the rAF callback would later see gestureActive already false /
+  // the pointer already removed, and bail out doing nothing).
+  if(gestureUpdateScheduled) runGestureUpdate();
+  activePointers.delete(e.pointerId);
+  if(mousePanning){
+    mousePanning = false;
+    mousePanLast = null;
+    const viewport = document.getElementById('artboardViewport');
+    if(viewport) viewport.classList.remove('panning');
+    return true;
+  }
+  if(gestureActive){
+    if(activePointers.size < 2){
+      gestureActive = false;
+      gesturePrevDist = null;
+      gesturePrevMid = null;
+      // A single finger still down after a pinch/two-finger-pan ends does
+      // NOT resume painting mid-gesture — the user must lift and start a
+      // fresh single-finger touch, per spec.
+    }
+    return true;
+  }
+  return false;
+}
+
+function onViewportPointerUp(e){
+  if(endViewportGesturePointer(e)) return;
+  onArtboardPointerUp(e);
+}
+
+function onViewportPointerCancel(e){
+  if(endViewportGesturePointer(e)) return;
+  onArtboardPointerCancel(e);
+}
+
+// Desktop zoom: Ctrl+wheel (browsers also report trackpad pinch as a wheel
+// event with ctrlKey:true — the same standard convention Chrome/Firefox/
+// Safari use) or a plain wheel anywhere over the artwork both zoom, per spec.
+function onArtboardWheel(e){
+  e.preventDefault();
+  const factor = Math.exp(-e.deltaY * 0.0018);
+  zoomEditorAt(e.clientX, e.clientY, editorViewState.scale * factor);
+}
+
 // #artboard.zoomed is now the single source of truth for Focus/Expanded
 // mode — styles.css keys all of the tool-rail/slider/palette hide + compact
 // controls + larger artwork off it via :has(), so entering/exiting never
@@ -1149,6 +1433,106 @@ function toggleZoom(){
   const fitBtn = document.querySelector('[data-testid="editor-fit"]');
   if(fitBtn) fitBtn.setAttribute('aria-pressed', String(zoomed));
   syncFocusIndicators();
+  // Normal <-> Expanded must PRESERVE the current zoom/pan state (never
+  // reset artwork coloring or scale/position) — editorViewState itself is
+  // untouched here. .artboard's own box size changes between modes though
+  // (76% vs 94% width, see styles.css), so pan needs re-clamping against the
+  // new container rect; applyEditorTransform() does that. A transitionend
+  // listener (module init, below) reapplies it once more after the CSS
+  // width transition finishes, since getBoundingClientRect() here still
+  // reflects the pre-toggle frame.
+  applyEditorTransform();
+}
+
+// ===========================================================================
+// EDITOR ZOOM / PAN — an interaction state of SCR-EDITOR-001 itself (both
+// Normal and Expanded/Focus mode), not a new screen or a second artwork.
+//
+// #artboardViewport (wrapping fillCanvas/brushCanvas/lineArtCanvas — see
+// index.html) is the ONLY thing that ever gets a CSS transform; .artboard
+// itself never moves and clips via overflow:hidden, so pan/zoom can never
+// visually escape the card. Because the transform lives on an ANCESTOR of
+// the canvases, canvasPointFromEvent()'s existing
+// getBoundingClientRect()-based math (unchanged, see below) already resolves
+// screen coordinates through the current pan/zoom automatically — the
+// browser's own transform-aware layout geometry does the "subtract origin /
+// undo pan / divide by scale" work for us, so Brush/Locked Brush/Fill/Erase/
+// Eyedropper all continue to use correct 800×800 source coordinates with no
+// changes to their own code.
+// ===========================================================================
+let editorViewState = { scale: 1, translateX: 0, translateY: 0 };
+const EDITOR_ZOOM_MIN = 1, EDITOR_ZOOM_MAX = 4;
+
+// transform-origin:0 0 on #artboardViewport (see styles.css) makes
+// translateX/Y the screen offset of the viewport's own top-left corner, and
+// clampEditorView()'s bounds fall out of one rule: the scaled content's
+// edges may never leave a gap inside the (static) .artboard box. At scale 1
+// that forces translate back to exactly (0,0) — "restore centered artwork".
+function clampEditorView(){
+  editorViewState.scale = Math.max(EDITOR_ZOOM_MIN, Math.min(EDITOR_ZOOM_MAX, editorViewState.scale));
+  const artboardEl = document.getElementById('artboard');
+  if(!artboardEl) return;
+  const rect = artboardEl.getBoundingClientRect();
+  const s = editorViewState.scale;
+  const minTx = rect.width * (1 - s), minTy = rect.height * (1 - s);
+  editorViewState.translateX = Math.max(minTx, Math.min(0, editorViewState.translateX));
+  editorViewState.translateY = Math.max(minTy, Math.min(0, editorViewState.translateY));
+}
+
+function applyEditorTransform(){
+  clampEditorView();
+  const viewport = document.getElementById('artboardViewport');
+  if(viewport) viewport.style.transform = `translate(${editorViewState.translateX}px, ${editorViewState.translateY}px) scale(${editorViewState.scale})`;
+  const artboardEl = document.getElementById('artboard');
+  if(artboardEl) artboardEl.dataset.zoomScale = editorViewState.scale.toFixed(2); // optional test hook, mirrors data-state
+}
+
+// Called whenever a lesson's artwork is (re)loaded — zoom/pan is a per-
+// viewing-session convenience, not part of the lesson's saved progress, so a
+// freshly opened (or re-opened) lesson always starts at a clean 1x/centered
+// view. Switching Normal<->Expanded for the SAME open lesson is the only
+// case that preserves it — see toggleZoom() above.
+function resetEditorView(){
+  editorViewState = { scale: 1, translateX: 0, translateY: 0 };
+  applyEditorTransform();
+}
+
+// Zooms so that whatever artwork content is currently under the given
+// SCREEN point (e.g. the cursor, or a pinch gesture's midpoint) stays
+// visually fixed at that same screen point after the scale change — the
+// gesture's focal point stays put while everything around it magnifies.
+// Whatever artwork content was under `fromClient` (a screen point) BEFORE
+// this call ends up under `toClient` AFTER it, as scale changes to
+// newScale. This is the one real primitive: a pure zoom is fromClient ===
+// toClient (the focal point stays put while scale changes); a pure
+// two-finger drag pan is fromClient !== toClient with newScale left equal
+// to the current scale (the content follows the finger delta exactly); a
+// real pinch gesture combines both by passing the gesture's PREVIOUS
+// midpoint as fromClient and its CURRENT midpoint as toClient every move.
+function panZoomEditorTo(fromClient, toClient, newScale){
+  const artboardEl = document.getElementById('artboard');
+  if(!artboardEl) return;
+  const rect = artboardEl.getBoundingClientRect();
+  const s = editorViewState.scale;
+  const contentX = (fromClient.x - rect.left - editorViewState.translateX) / s;
+  const contentY = (fromClient.y - rect.top - editorViewState.translateY) / s;
+  const sNew = Math.max(EDITOR_ZOOM_MIN, Math.min(EDITOR_ZOOM_MAX, newScale));
+  editorViewState.translateX = toClient.x - rect.left - contentX * sNew;
+  editorViewState.translateY = toClient.y - rect.top - contentY * sNew;
+  editorViewState.scale = sNew;
+  applyEditorTransform();
+}
+
+// Pure zoom around a fixed screen point (wheel zoom) — the focal point
+// itself never moves, so from === to.
+function zoomEditorAt(clientX, clientY, newScale){
+  panZoomEditorTo({ x: clientX, y: clientY }, { x: clientX, y: clientY }, newScale);
+}
+
+function panEditorBy(dx, dy){
+  editorViewState.translateX += dx;
+  editorViewState.translateY += dy;
+  applyEditorTransform();
 }
 
 // --- Color Picker (bottom sheet over SCR-EDITOR-001) ---------------------
@@ -1275,11 +1659,26 @@ if(slider){
 
 const brushCanvasEl = document.getElementById('brushCanvas');
 if(brushCanvasEl){
-  brushCanvasEl.addEventListener('pointerdown', onArtboardPointerDown);
-  brushCanvasEl.addEventListener('pointermove', onArtboardPointerMove);
-  brushCanvasEl.addEventListener('pointerup', onArtboardPointerUp);
-  brushCanvasEl.addEventListener('pointercancel', onArtboardPointerCancel);
+  // Routed through the gesture layer (pinch-zoom / two-finger pan / desktop
+  // pan) first — a single pointer always falls straight through to the
+  // original paint/fill/eyedropper handlers unchanged. See "Gesture routing
+  // layer" above.
+  brushCanvasEl.addEventListener('pointerdown', onViewportPointerDown);
+  brushCanvasEl.addEventListener('pointermove', onViewportPointerMove);
+  brushCanvasEl.addEventListener('pointerup', onViewportPointerUp);
+  brushCanvasEl.addEventListener('pointercancel', onViewportPointerCancel);
 }
+
+const artboardEl = document.getElementById('artboard');
+if(artboardEl){
+  artboardEl.addEventListener('wheel', onArtboardWheel, { passive: false });
+  // Re-clamp/reapply pan once the Normal<->Expanded width transition
+  // finishes — toggleZoom()'s own applyEditorTransform() call already
+  // clamps against the pre-toggle frame; this catches the settled frame too.
+  artboardEl.addEventListener('transitionend', (e) => { if(e.propertyName === 'width') applyEditorTransform(); });
+}
+window.addEventListener('keydown', (e) => { if(e.code === 'Space') spacePanning = true; });
+window.addEventListener('keyup', (e) => { if(e.code === 'Space') spacePanning = false; });
 
 const hueRingWrap = document.getElementById('hueRingWrap');
 if(hueRingWrap){

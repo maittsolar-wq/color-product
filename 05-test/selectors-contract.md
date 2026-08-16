@@ -68,6 +68,15 @@ Result artwork cards reuse the shared `drawing-card-<drawingId>` pattern (see Dr
 - `profile-grid`
 - `profile-settings-icon`
 
+## Profile Artwork Detail Popup *(new — 2026-08-16, final prototype functional pass)*
+A modal OVER `SCR-PROFILE-001` — not a new Screen ID. Profile-only: Home/Library/Search/Completion artwork taps are unchanged (still direct to `SCR-EDITOR-001`).
+- `profile-artwork-popup` (overlay/modal container)
+- `profile-popup-close`
+- `profile-popup-artwork` (dynamic-preview `<img>`, same source as the Drawing Card pattern)
+- `profile-popup-title`
+- `profile-popup-restart`
+- `profile-popup-color`
+
 ## Category *(legacy — SCR-CATEGORY-001 not routed)*
 - `drawing-grid`
 - `drawing-card-<drawingId>`
@@ -131,7 +140,7 @@ Lock/Unlock applies per Brush stroke, not to a persistent session-wide region. S
 - `editor-save-state`
 - `editor-active-color`
 - `editor-tool-state`
-- `editor-zoom-state`
+- `editor-zoom-state` — the same `[data-testid="editor-zoom-state"]` element (`#artboard`) also now carries `data-zoom-scale` *(new — 2026-08-16)*, a numeric string (e.g. `"2.40"`) reflecting `editorViewState.scale`; `data-state` (`default`/`zoomed`) is unchanged and still means Normal vs Expanded, a separate concern from the numeric zoom level.
 - `region-state-<regionId>-<colorKey>`
 
 ## Works *(legacy — SCR-WORKS-001 not routed; superseded by Profile selectors above)*
