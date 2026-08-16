@@ -1,0 +1,227 @@
+[
+  {
+    "id": "manga_spikyhero",
+    "title": "SpikyHero",
+    "categoryId": "manga",
+    "artwork": "assets/lessons/manga/spikyhero.png",
+    "thumbnail": "assets/thumbnails/manga/spikyhero.png",
+    "isPremium": false,
+    "sortOrder": 1
+  },
+  {
+    "id": "manga_foxwarrior",
+    "title": "FoxWarrior",
+    "categoryId": "manga",
+    "artwork": "assets/lessons/manga/foxwarrior.png",
+    "thumbnail": "assets/thumbnails/manga/foxwarrior.png",
+    "isPremium": false,
+    "sortOrder": 2
+  },
+  {
+    "id": "manga_happybraids",
+    "title": "HappyBraids",
+    "categoryId": "manga",
+    "artwork": "assets/lessons/manga/happybraids.png",
+    "thumbnail": "assets/thumbnails/manga/happybraids.png",
+    "isPremium": false,
+    "sortOrder": 3
+  },
+  {
+    "id": "manga_coolblindfold",
+    "title": "CoolBlindfold",
+    "categoryId": "manga",
+    "artwork": "assets/lessons/manga/coolblindfold.png",
+    "thumbnail": "assets/thumbnails/manga/coolblindfold.png",
+    "isPremium": false,
+    "sortOrder": 4
+  },
+  {
+    "id": "manga_sweetgirl",
+    "title": "SweetGirl",
+    "categoryId": "manga",
+    "artwork": "assets/lessons/manga/sweetgirl.png",
+    "thumbnail": "assets/thumbnails/manga/sweetgirl.png",
+    "isPremium": false,
+    "sortOrder": 5
+  },
+  {
+    "id": "nature_mountainlake",
+    "title": "MountainLake",
+    "categoryId": "nature",
+    "artwork": "assets/lessons/nature/mountainlake.png",
+    "thumbnail": "assets/thumbnails/nature/mountainlake.png",
+    "isPremium": false,
+    "sortOrder": 1
+  },
+  {
+    "id": "nature_forestpath",
+    "title": "ForestPath",
+    "categoryId": "nature",
+    "artwork": "assets/lessons/nature/forestpath.png",
+    "thumbnail": "assets/thumbnails/nature/forestpath.png",
+    "isPremium": false,
+    "sortOrder": 2
+  },
+  {
+    "id": "nature_waterfallcliff",
+    "title": "WaterfallCliff",
+    "categoryId": "nature",
+    "artwork": "assets/lessons/nature/waterfallcliff.png",
+    "thumbnail": "assets/thumbnails/nature/waterfallcliff.png",
+    "isPremium": false,
+    "sortOrder": 3
+  },
+  {
+    "id": "nature_tropicalwaterfall",
+    "title": "TropicalWaterfall",
+    "categoryId": "nature",
+    "artwork": "assets/lessons/nature/tropicalwaterfall.png",
+    "thumbnail": "assets/thumbnails/nature/tropicalwaterfall.png",
+    "isPremium": false,
+    "sortOrder": 4
+  },
+  {
+    "id": "nature_pineforest",
+    "title": "PineForest",
+    "categoryId": "nature",
+    "artwork": "assets/lessons/nature/pineforest.png",
+    "thumbnail": "assets/thumbnails/nature/pineforest.png",
+    "isPremium": false,
+    "sortOrder": 5
+  },
+  {
+    "id": "food_berrycupcake",
+    "title": "BerryCupcake",
+    "categoryId": "food",
+    "artwork": "assets/lessons/food/berrycupcake.png",
+    "thumbnail": "assets/thumbnails/food/berrycupcake.png",
+    "isPremium": false,
+    "sortOrder": 1
+  },
+  {
+    "id": "food_croissantbreakfast",
+    "title": "CroissantBreakfast",
+    "categoryId": "food",
+    "artwork": "assets/lessons/food/croissantbreakfast.png",
+    "thumbnail": "assets/thumbnails/food/croissantbreakfast.png",
+    "isPremium": false,
+    "sortOrder": 2
+  },
+  {
+    "id": "food_cutetaco",
+    "title": "CuteTaco",
+    "categoryId": "food",
+    "artwork": "assets/lessons/food/cutetaco.png",
+    "thumbnail": "assets/thumbnails/food/cutetaco.png",
+    "isPremium": false,
+    "sortOrder": 3
+  },
+  {
+    "id": "food_happydonuts",
+    "title": "HappyDonuts",
+    "categoryId": "food",
+    "artwork": "assets/lessons/food/happydonuts.png",
+    "thumbnail": "assets/thumbnails/food/happydonuts.png",
+    "isPremium": false,
+    "sortOrder": 4
+  },
+  {
+    "id": "food_strawberrypancakes",
+    "title": "StrawberryPancakes",
+    "categoryId": "food",
+    "artwork": "assets/lessons/food/strawberrypancakes.png",
+    "thumbnail": "assets/thumbnails/food/strawberrypancakes.png",
+    "isPremium": false,
+    "sortOrder": 5
+  },
+  {
+    "id": "animal_babydeer",
+    "title": "BabyDeer",
+    "categoryId": "animal",
+    "artwork": "assets/lessons/animal/babydeer.png",
+    "thumbnail": "assets/thumbnails/animal/babydeer.png",
+    "isPremium": false,
+    "sortOrder": 1
+  },
+  {
+    "id": "animal_babydino",
+    "title": "BabyDino",
+    "categoryId": "animal",
+    "artwork": "assets/lessons/animal/babydino.png",
+    "thumbnail": "assets/thumbnails/animal/babydino.png",
+    "isPremium": false,
+    "sortOrder": 2
+  },
+  {
+    "id": "animal_crystalcat",
+    "title": "CrystalCat",
+    "categoryId": "animal",
+    "artwork": "assets/lessons/animal/crystalcat.png",
+    "thumbnail": "assets/thumbnails/animal/crystalcat.png",
+    "isPremium": false,
+    "sortOrder": 3
+  },
+  {
+    "id": "animal_lovelybunny",
+    "title": "LovelyBunny",
+    "categoryId": "animal",
+    "artwork": "assets/lessons/animal/lovelybunny.png",
+    "thumbnail": "assets/thumbnails/animal/lovelybunny.png",
+    "isPremium": false,
+    "sortOrder": 4
+  },
+  {
+    "id": "animal_raccoonrocket",
+    "title": "RaccoonRocket",
+    "categoryId": "animal",
+    "artwork": "assets/lessons/animal/raccoonrocket.png",
+    "thumbnail": "assets/thumbnails/animal/raccoonrocket.png",
+    "isPremium": false,
+    "sortOrder": 5
+  },
+  {
+    "id": "dumpling_dimsumbowl",
+    "title": "DimSumBowl",
+    "categoryId": "dumpling",
+    "artwork": "assets/lessons/dumpling/dimsumbowl.png",
+    "thumbnail": "assets/thumbnails/dumpling/dimsumbowl.png",
+    "isPremium": false,
+    "sortOrder": 1
+  },
+  {
+    "id": "dumpling_dumplingbaskets",
+    "title": "DumplingBaskets",
+    "categoryId": "dumpling",
+    "artwork": "assets/lessons/dumpling/dumplingbaskets.png",
+    "thumbnail": "assets/thumbnails/dumpling/dumplingbaskets.png",
+    "isPremium": false,
+    "sortOrder": 2
+  },
+  {
+    "id": "dumpling_steameddumplings",
+    "title": "SteamedDumplings",
+    "categoryId": "dumpling",
+    "artwork": "assets/lessons/dumpling/steameddumplings.png",
+    "thumbnail": "assets/thumbnails/dumpling/steameddumplings.png",
+    "isPremium": false,
+    "sortOrder": 3
+  },
+  {
+    "id": "dumpling_dumplingtea",
+    "title": "DumplingTea",
+    "categoryId": "dumpling",
+    "artwork": "assets/lessons/dumpling/dumplingtea.png",
+    "thumbnail": "assets/thumbnails/dumpling/dumplingtea.png",
+    "isPremium": false,
+    "sortOrder": 4
+  },
+  {
+    "id": "dumpling_dumplingparty",
+    "title": "DumplingParty",
+    "categoryId": "dumpling",
+    "artwork": "assets/lessons/dumpling/dumplingparty.png",
+    "thumbnail": "assets/thumbnails/dumpling/dumplingparty.png",
+    "isPremium": false,
+    "sortOrder": 5
+  }
+]

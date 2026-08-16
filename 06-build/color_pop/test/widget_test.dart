@@ -1,9 +1,6 @@
-// This is a basic Flutter widget test.
-//
-// To perform an interaction with a widget in your test, use the WidgetTester
-// utility in the flutter_test package. For example, you can send tap and scroll
-// gestures. You can also use WidgetTester to find child widgets in the widget
-// tree, read text, and verify that the values of widget properties are correct.
+// Basic smoke test: the app boots, loads real lesson content, and shows
+// the Home screen with bottom navigation — replaces the stock counter demo
+// test now that the counter demo itself has been replaced.
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -11,20 +8,18 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:color_pop/main.dart';
 
 void main() {
-  testWidgets('Counter increments smoke test', (WidgetTester tester) async {
-    // Build our app and trigger a frame.
-    await tester.pumpWidget(const MyApp());
+  testWidgets('App boots and shows Home with bottom navigation', (WidgetTester tester) async {
+    await tester.pumpWidget(const ColorPopApp());
 
-    // Verify that our counter starts at 0.
-    expect(find.text('0'), findsOneWidget);
-    expect(find.text('1'), findsNothing);
+    // Initial frame: bootstrap loading indicator.
+    expect(find.byType(CircularProgressIndicator), findsOneWidget);
 
-    // Tap the '+' icon and trigger a frame.
-    await tester.tap(find.byIcon(Icons.add));
-    await tester.pump();
+    // Let the asset load (rootBundle.loadString) complete.
+    await tester.pumpAndSettle();
 
-    // Verify that our counter has incremented.
-    expect(find.text('0'), findsNothing);
-    expect(find.text('1'), findsOneWidget);
+    expect(find.text('Manga'), findsOneWidget);
+    expect(find.text('Animal'), findsOneWidget);
+    expect(find.text('Nature'), findsOneWidget);
+    expect(find.byType(NavigationBar), findsOneWidget);
   });
 }

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "manga",
+    "title": "Manga",
+    "sortOrder": 1
+  },
+  {
+    "id": "animal",
+    "title": "Animals",
+    "sortOrder": 2
+  },
+  {
+    "id": "nature",
+    "title": "Nature",
+    "sortOrder": 3
+  },
+  {
+    "id": "food",
+    "title": "Food",
+    "sortOrder": 4
+  },
+  {
+    "id": "dumpling",
+    "title": "Dumpling",
+    "sortOrder": 5
+  }
+]
