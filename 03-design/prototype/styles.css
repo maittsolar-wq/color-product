@@ -40,11 +40,12 @@
 .continue-art{display:flex;align-items:center;justify-content:center;min-width:0;padding:12px 16px 12px 4px}
 .continue-art img{width:100%;height:100%;max-width:130px;max-height:130px;object-fit:contain}
 .continue-art .thumb{width:112px;height:112px;font-size:54px;border-radius:16px}
-.home-category-section{margin-bottom:6px}.section-title{display:flex;justify-content:space-between;align-items:center;margin:27px 0 13px}.section-title h2{font-size:19px;margin:0}.section-title button{border:0;background:transparent;color:var(--accent);font-weight:600;font-size:15px}.featured-row{display:flex;gap:12px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-bottom:2px}.featured-row::-webkit-scrollbar{display:none}.art-card{min-width:112px;width:112px;flex:0 0 auto;border:1px solid #EDEDEF;background:#fff;border-radius:16px;padding:0;text-align:left;overflow:hidden;cursor:pointer}.art-card span,.drawing-card span{font-size:12px;color:#888}.thumb{aspect-ratio:1;border-radius:14px;display:grid;place-items:center;font-size:56px}.thumb img{width:92%;height:92%;object-fit:contain}.thumb-pink{background:#FFE8EE}.thumb-lilac{background:#EFEAFF}.thumb-blue{background:#E7F0FF}.thumb-green{background:#E8F5EA}.category-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.category-grid button{border:0;background:#F8F8F9;border-radius:16px;padding:12px;text-align:left}.cat-ball{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;margin-bottom:8px;font-size:21px}.cat-ball.pink{background:#FFE8EE}.cat-ball.green{background:#E8F5EA}.cat-ball.lilac{background:#EFEAFF}.cat-ball.yellow{background:#FFF1CF}.daily-card{margin-top:22px;background:#F7F7F8;border-radius:22px;padding:16px;display:grid;grid-template-columns:1fr 96px;gap:12px;align-items:center}.daily-card h3{margin:4px 0}.daily-card p{font-size:13px;color:#777;margin:0 0 12px}.daily-illustration{width:96px;height:96px;border-radius:20px;background:#E8F5EA;display:grid;place-items:center;font-size:50px}.primary{width:100%;border:0;background:#151515;color:#fff;border-radius:15px;padding:14px;font-weight:700}.primary.small{width:auto;padding:10px 14px}.secondary{width:100%;border:0;background:#F1F1F3;border-radius:15px;padding:14px;font-weight:700}.bottom-nav{position:absolute;left:0;right:0;bottom:0;min-height:72px;background:#fff;border-top:1px solid #E9E9EA;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:7px 14px max(12px,env(safe-area-inset-bottom))}.bottom-nav button{border:0;background:transparent;color:#3A3A3C;width:100%;min-height:44px;padding:5px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}.bottom-nav button span{display:block;font-size:10px;line-height:1.1}.bottom-nav .selected{color:var(--accent);font-weight:700}.compact-header{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;margin-bottom:16px}.icon-btn{width:38px;height:38px;border:0;background:#F5F5F6;border-radius:50%;font-size:23px;display:grid;place-items:center;cursor:pointer}.filter-chips{display:flex;gap:8px;margin-bottom:14px}.filter-chips button{border:0;background:#F1F1F3;border-radius:999px;padding:9px 14px}.filter-chips .selected{background:#151515;color:white}
+.home-category-section{margin-bottom:6px}.section-title{display:flex;justify-content:space-between;align-items:center;margin:27px 0 13px}.section-title h2{font-size:19px;margin:0}.section-title button{border:0;background:transparent;color:var(--accent);font-weight:600;font-size:15px}.featured-row{display:flex;flex-wrap:nowrap;gap:12px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:none;padding-bottom:2px;padding-right:18px;cursor:grab}.featured-row::-webkit-scrollbar{display:none}.art-card{min-width:112px;width:112px;flex:0 0 auto;border:1px solid #EDEDEF;background:#fff;border-radius:16px;padding:0;text-align:left;overflow:hidden;cursor:pointer}.art-card span,.drawing-card span{font-size:12px;color:#888}.thumb{aspect-ratio:1;border-radius:14px;display:grid;place-items:center;font-size:56px}.thumb img{width:92%;height:92%;object-fit:contain}.thumb-pink{background:#FFE8EE}.thumb-lilac{background:#EFEAFF}.thumb-blue{background:#E7F0FF}.thumb-green{background:#E8F5EA}.category-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.category-grid button{border:0;background:#F8F8F9;border-radius:16px;padding:12px;text-align:left}.cat-ball{width:44px;height:44px;border-radius:14px;display:grid;place-items:center;margin-bottom:8px;font-size:21px}.cat-ball.pink{background:#FFE8EE}.cat-ball.green{background:#E8F5EA}.cat-ball.lilac{background:#EFEAFF}.cat-ball.yellow{background:#FFF1CF}.daily-card{margin-top:22px;background:#F7F7F8;border-radius:22px;padding:16px;display:grid;grid-template-columns:1fr 96px;gap:12px;align-items:center}.daily-card h3{margin:4px 0}.daily-card p{font-size:13px;color:#777;margin:0 0 12px}.daily-illustration{width:96px;height:96px;border-radius:20px;background:#E8F5EA;display:grid;place-items:center;font-size:50px}.primary{width:100%;border:0;background:#151515;color:#fff;border-radius:15px;padding:14px;font-weight:700}.primary.small{width:auto;padding:10px 14px}.secondary{width:100%;border:0;background:#F1F1F3;border-radius:15px;padding:14px;font-weight:700}.bottom-nav{position:absolute;left:0;right:0;bottom:0;min-height:72px;background:#fff;border-top:1px solid #E9E9EA;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:7px 14px max(12px,env(safe-area-inset-bottom))}.bottom-nav button{border:0;background:transparent;color:#3A3A3C;width:100%;min-height:44px;padding:5px 0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:4px}.bottom-nav button span{display:block;font-size:10px;line-height:1.1}.bottom-nav .selected{color:var(--accent);font-weight:700}.compact-header{display:grid;grid-template-columns:42px 1fr 42px;align-items:center;margin-bottom:16px}.icon-btn{width:38px;height:38px;border:0;background:#F5F5F6;border-radius:50%;font-size:23px;display:grid;place-items:center;cursor:pointer}.filter-chips{display:flex;gap:8px;margin-bottom:14px}.filter-chips button{border:0;background:#F1F1F3;border-radius:999px;padding:9px 14px}.filter-chips .selected{background:#151515;color:white}
 .library-scroll{padding-left:20px;padding-right:20px}
 .library-header{display:flex;align-items:center;justify-content:space-between;margin:6px 0 20px}
 .library-header h1{font-size:28px;font-weight:800;letter-spacing:-.01em;margin:0;color:#101010}
-.library-filters{flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:18px;padding-bottom:2px}
+.library-filters{flex-wrap:nowrap;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;overscroll-behavior-x:contain;touch-action:pan-x;scrollbar-width:none;margin-bottom:18px;padding-bottom:2px;padding-right:18px;cursor:grab}
+.filter-chips button{flex:0 0 auto}
 .library-filters::-webkit-scrollbar{display:none}
 .library-filters button{flex:0 0 auto;min-height:44px;padding:11px 18px;font-size:14px;font-weight:600;color:#3A3A3C;background:#F1F1F3;transition:background-color .15s ease,color .15s ease}
 .library-filters .selected{background:var(--accent);color:#fff}
@@ -167,19 +168,33 @@
 [data-testid="completion-recommended"] .drawing-card b{font-size:13px;font-weight:700}@media(max-width:720px){.prototype-shell{padding:0}.prototype-nav{display:none}.phone-frame{width:100%;max-width:430px;height:100vh}.screen{top:28px}.status-bar{position:sticky;top:0}}
 
 /* --- Focus / Expanded mode: driven entirely by #artboard.zoomed (same
-   control/testid as before), scoped via :has() so no second class is needed. --- */
-.focus-compact-controls{display:none;position:absolute;left:9px;bottom:9px;align-items:center;gap:8px}
-.focus-tool-indicator{width:38px;height:38px;border-radius:50%;background:#fff;display:grid;place-items:center;color:#5B5B5E;box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.focus-tool-indicator .tool-icon{width:18px;height:18px}
-.focus-color-indicator{width:28px;height:28px;border-radius:50%;background:var(--c,#168B2D);border:2px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.18)}
-.editor-screen:has(#artboard.zoomed) .editor-workspace{bottom:64px;padding-right:0}
+   control/testid as before), scoped via :has() so no second class is needed.
+   The left group (.focus-compact-controls: active tool + active color) and
+   the right control (.editor-fit, inside .editor-quick/.editor-bottom) are
+   two different DOM subtrees — .editor-fit must stay physically inside
+   .editor-quick because that's also its normal-mode home in the bottom
+   quick-actions row — so they can't be one literal container without
+   duplicating the minimize button. Both .focus-compact-controls and
+   .editor-bottom are instead direct children of .editor-screen (siblings),
+   so position:absolute on each resolves against the SAME containing block
+   regardless of viewport width or whether the desktop multi-device shell
+   chrome is showing — unlike position:fixed, which only happens to line up
+   within the mobile media-query breakpoint where the phone-frame fills the
+   real viewport. Same left/right inset (20px) and bottom offset (24px) on
+   both puts every circle's vertical center on the exact same line. */
+.focus-compact-controls{display:none;position:absolute;left:20px;bottom:24px;height:44px;align-items:center;gap:12px}
+.focus-tool-indicator{width:44px;height:44px;border-radius:50%;background:#fff;display:grid;place-items:center;color:#5B5B5E;box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.focus-tool-indicator .tool-icon{width:20px;height:20px}
+.focus-color-indicator{width:44px;height:44px;border-radius:50%;background:var(--c,#168B2D);border:3px solid #fff;box-shadow:0 2px 8px rgba(0,0,0,.15)}
+.editor-screen:has(#artboard.zoomed) .editor-workspace{bottom:80px;padding-right:0}
 .editor-screen:has(#artboard.zoomed) .artboard{width:94%;max-width:560px}
 .editor-screen:has(#artboard.zoomed) .tool-rail{display:none}
 .editor-screen:has(#artboard.zoomed) .focus-compact-controls{display:flex}
-.editor-screen:has(#artboard.zoomed) .editor-bottom{height:60px;padding-top:6px}
+.editor-screen:has(#artboard.zoomed) .editor-bottom{height:80px;padding-top:0;display:flex;align-items:center}
 .editor-screen:has(#artboard.zoomed) .slider-wrap{display:none}
 .editor-screen:has(#artboard.zoomed) .palette{display:none}
-.editor-screen:has(#artboard.zoomed) .editor-quick{position:absolute;right:18px;bottom:18px;left:auto;grid-template-columns:none;padding:0}
+.editor-screen:has(#artboard.zoomed) .save-status{display:none}
+.editor-screen:has(#artboard.zoomed) .editor-quick{position:absolute;right:20px;bottom:24px;height:44px;left:auto;grid-template-columns:none;padding:0;display:flex;align-items:center}
 .editor-screen:has(#artboard.zoomed) .editor-quick>*{display:none}
 .editor-screen:has(#artboard.zoomed) .editor-quick>[data-testid="editor-fit"]{display:grid;width:44px;height:44px;border-radius:50%;background:#fff;box-shadow:0 4px 14px rgba(0,0,0,.14);border:0}
 
@@ -195,8 +210,13 @@
 .hue-center-preview{position:absolute;left:50%;top:50%;width:42%;height:42%;border-radius:50%;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);background:#168B2D;pointer-events:none}
 .hue-handle{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25);transform:translate(-50%,-50%);cursor:pointer;padding:0}
 
-/* Eyedropper "armed" affordance — next artboard tap will sample, not draw/fill. */
-.editor-icon-btn.armed{background:var(--accent-soft);color:var(--accent)}
+/* Eyedropper "armed"/sampling affordance — next artboard tap/drag samples,
+   not draw/fill. Covers both the topbar (.editor-icon-btn) and the bottom
+   quick-action (.editor-quick button) styling contexts the Eyedropper
+   control can appear in, so the purple selected state always applies
+   regardless of which button variant is used. */
+.editor-icon-btn.armed,
+.editor-quick button.armed{background:var(--accent-soft);color:var(--accent);border-color:var(--accent-soft)}
 
 /* --- Editor Settings sheet (over SCR-EDITOR-001, distinct from SCR-SETTINGS-001) --- */
 .editor-settings-overlay{position:absolute;inset:0;background:rgba(20,18,22,.42);z-index:50;display:flex;align-items:flex-end}

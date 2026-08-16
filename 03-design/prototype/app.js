@@ -497,6 +497,15 @@ function focusPaletteSwatch(btn){
     c.classList.toggle('selected', isMatch);
     c.setAttribute('aria-pressed', String(isMatch));
   });
+  // The palette row scrolls horizontally and the custom slot sits at the far
+  // right — without this, Playful Save/Eyedropper correctly update the DOM
+  // (selected class, --c, data-color) but the swatch can land scrolled out
+  // of view, so the user visually sees no change at all. One shared call
+  // site (every color-commit path routes through here) keeps whichever
+  // swatch is actually active visible, not just technically "selected".
+  if(btn && btn.scrollIntoView){
+    btn.scrollIntoView({ behavior: 'smooth', inline: 'nearest', block: 'nearest' });
+  }
 }
 
 function selectColor(btn){
@@ -849,7 +858,13 @@ function strokePath(ctx, stroke){
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
   ctx.lineWidth = stroke.width;
-  ctx.strokeStyle = stroke.color;
+  // Erase is true transparent removal (destination-out clears pixels back to
+  // alpha 0, revealing whatever sits below — fillCanvas color, or the raw
+  // white artboard) — never a painted color, so it can never cover the
+  // immutable line-art with an opaque patch. strokeStyle's color is
+  // irrelevant for destination-out; only the stroked shape/alpha matters.
+  ctx.globalCompositeOperation = stroke.tool === 'erase' ? 'destination-out' : 'source-over';
+  ctx.strokeStyle = stroke.tool === 'erase' ? 'rgba(0,0,0,1)' : stroke.color;
   ctx.beginPath();
   stroke.points.forEach((p, i) => { if(i === 0) ctx.moveTo(p.x, p.y); else ctx.lineTo(p.x, p.y); });
   if(stroke.points.length === 1){
@@ -857,6 +872,7 @@ function strokePath(ctx, stroke){
     ctx.lineTo(stroke.points[0].x + 0.01, stroke.points[0].y);
   }
   ctx.stroke();
+  ctx.globalCompositeOperation = 'source-over'; // reset for whatever draws on this context next
 }
 
 function drawStroke(ctx, stroke){
@@ -998,7 +1014,8 @@ function onArtboardPointerDown(e){
 
   activeStroke = {
     points: [p],
-    color: activeTool === 'erase' ? '#FFFFFF' : activeColor,
+    tool: activeTool, // 'brush' or 'erase' — strokePath() uses this to pick paint vs. true removal
+    color: activeTool === 'erase' ? null : activeColor, // irrelevant for erase (destination-out)
     width: brushStrokeWidth(),
     maskCanvas
   };
@@ -1207,6 +1224,57 @@ if(hueRingWrap){
 }
 
 syncFocusIndicators(); // match the seeded default activeTool/activeColor
+
+// --- Horizontal drag-to-scroll (Home category rows, Library filter chips) --
+// overflow-x:auto already gives real touch devices native swipe scrolling
+// for free; this adds POINTER-drag scrolling (mouse, and mobile-emulation
+// pointer events) on top, since a plain mouse click-drag does not scroll an
+// overflow container on its own. A small movement threshold distinguishes a
+// genuine drag from a tap, and a real drag suppresses the click that would
+// otherwise follow — so dragging the row never accidentally opens an
+// artwork or changes the selected filter.
+function enableDragScroll(container){
+  if(!container) return;
+  let dragging = false;
+  let moved = false;
+  let startX = 0;
+  let startScrollLeft = 0;
+  const THRESHOLD = 6;
+
+  container.addEventListener('pointerdown', (e) => {
+    dragging = true;
+    moved = false;
+    startX = e.clientX;
+    startScrollLeft = container.scrollLeft;
+  });
+  container.addEventListener('pointermove', (e) => {
+    if(!dragging) return;
+    const dx = e.clientX - startX;
+    if(!moved && Math.abs(dx) > THRESHOLD) moved = true;
+    if(moved){
+      container.scrollLeft = startScrollLeft - dx;
+      e.preventDefault();
+    }
+  });
+  const endDrag = () => {
+    if(!dragging) return;
+    dragging = false;
+    if(moved){
+      container.dataset.justDragged = 'true';
+      setTimeout(() => { delete container.dataset.justDragged; }, 0);
+    }
+  };
+  container.addEventListener('pointerup', endDrag);
+  container.addEventListener('pointercancel', endDrag);
+  container.addEventListener('click', (e) => {
+    if(container.dataset.justDragged === 'true'){
+      e.stopPropagation();
+      e.preventDefault();
+    }
+  }, true);
+}
+
+document.querySelectorAll('.featured-row, .library-filters').forEach(enableDragScroll);
 
 // Home is the initially-active screen in static markup — showScreen() is
 // never called for that first render, so the Continue card needs one

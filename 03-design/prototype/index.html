@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260816-region-engine">
+<link rel="stylesheet" href="styles.css?v=20260816-focus-baseline-fix">
 </head>
 <body>
 <div class="prototype-shell">
@@ -466,13 +466,6 @@
           </button>
         </div>
 
-        <div class="focus-compact-controls" data-testid="editor-focus-controls">
-          <span class="focus-tool-indicator" data-testid="focus-active-tool" aria-label="Current tool: Brush">
-            <span class="tool-icon tool-icon-brush" data-testid="focus-active-tool-icon" aria-hidden="true"></span>
-          </span>
-          <span class="focus-color-indicator" data-testid="focus-active-color" aria-label="Current color" style="--c:#168B2D"></span>
-        </div>
-
         <div class="eyedropper-magnifier" data-testid="eyedropper-magnifier" aria-hidden="true" hidden></div>
       </div>
 
@@ -523,6 +516,24 @@
         </div>
 
         <div class="save-status" id="saveStatus" data-testid="editor-save-state">Saved</div>
+      </div>
+
+      <!-- Focus/Expanded mode's left-hand compact controls (active tool +
+           active color). A direct child of .editor-screen — like
+           .editor-bottom, which .editor-quick's minimize button lives
+           inside — so both groups resolve their position:absolute against
+           the SAME containing block (.editor-screen) and share one exact
+           bottom offset, regardless of viewport width or whether the
+           desktop multi-device shell chrome is showing. Previously nested
+           inside .editor-workspace (a positioned ancestor with its own
+           inset) and later hacked to position:fixed, which only happened to
+           line up within the mobile media-query breakpoint — this DOM move
+           removes that dependency entirely. -->
+      <div class="focus-compact-controls" data-testid="editor-focus-controls">
+        <span class="focus-tool-indicator" data-testid="focus-active-tool" aria-label="Current tool: Brush">
+          <span class="tool-icon tool-icon-brush" data-testid="focus-active-tool-icon" aria-hidden="true"></span>
+        </span>
+        <span class="focus-color-indicator" data-testid="focus-active-color" aria-label="Current color" style="--c:#168B2D"></span>
       </div>
 
       <!-- Color Picker: a bottom sheet OVER SCR-EDITOR-001, not a new screen. -->
@@ -787,6 +798,6 @@
     </section>
   </div>
 </div>
-<script src="app.js?v=20260816-region-engine"></script>
+<script src="app.js?v=20260816-focus-baseline-fix"></script>
 </body>
 </html>

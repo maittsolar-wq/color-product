@@ -197,6 +197,68 @@ for (const category of ['animal', 'food', 'manga', 'nature']) {
   });
 }
 
+// Drags a horizontal row from its right edge toward its left edge with real
+// Pointer Events (not a programmatic scrollLeft assignment), matching how a
+// user actually drags/swipes — exercises the app's own drag-scroll handler.
+async function dragRowLeft(page, testid) {
+  const box = await page.locator(`[data-testid="${testid}"]`).boundingBox();
+  await page.mouse.move(box.x + box.width - 20, box.y + box.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 20, box.y + box.height / 2, { steps: 10 });
+  await page.mouse.up();
+}
+
+test('TC-HOME-010 — Manga row can be horizontally drag-scrolled to fully reveal the third artwork', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 }); // narrower than the suite default (430) — this is exactly where the row overflows and the bug was reported
+  await openHome(page);
+  const row = page.locator('[data-testid="home-manga-row"]');
+  const overflow = await row.evaluate(el => el.scrollWidth - el.clientWidth);
+  expect(overflow).toBeGreaterThan(0); // confirms the row genuinely overflows in this viewport
+
+  await dragRowLeft(page, 'home-manga-row');
+  const scrollLeftAfter = await row.evaluate(el => el.scrollLeft);
+  expect(scrollLeftAfter).toBeGreaterThan(0);
+
+  const thirdCard = row.locator('[data-testid="drawing-card-draw_manga_003"]');
+  const rowBox = await row.boundingBox();
+  const cardBox = await thirdCard.boundingBox();
+  expect(cardBox.x).toBeGreaterThanOrEqual(rowBox.x - 1);
+  expect(cardBox.x + cardBox.width).toBeLessThanOrEqual(rowBox.x + rowBox.width + 1); // fully within the visible row, not clipped
+
+  // A drag must not have been misread as a tap that opens the artwork.
+  await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
+
+  // A real tap still opens it normally.
+  await thirdCard.click();
+  await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
+});
+
+test('TC-LIB-006 — Library filter row can be horizontally drag-scrolled to fully reveal Nature, and filtering still works', async ({ page }) => {
+  await page.setViewportSize({ width: 375, height: 812 }); // narrower than the suite default (430) — this is exactly where the row overflows and the bug was reported
+  await openHome(page);
+  await active(page).locator('[data-testid="nav-library"]').click();
+
+  const row = page.locator('[data-testid="library-filters"]');
+  const overflow = await row.evaluate(el => el.scrollWidth - el.clientWidth);
+  expect(overflow).toBeGreaterThan(0);
+
+  await dragRowLeft(page, 'library-filters');
+  const scrollLeftAfter = await row.evaluate(el => el.scrollLeft);
+  expect(scrollLeftAfter).toBeGreaterThan(0);
+
+  const natureChip = page.locator('[data-testid="library-filter-nature"]');
+  const rowBox = await row.boundingBox();
+  const chipBox = await natureChip.boundingBox();
+  expect(chipBox.x + chipBox.width).toBeLessThanOrEqual(rowBox.x + rowBox.width + 1); // fully visible, not clipped
+
+  // The drag must not have been misread as selecting a filter mid-drag.
+  await expect(page.locator('[data-testid="library-filter-all"]')).toHaveClass(/selected/);
+
+  await natureChip.click();
+  await expect(natureChip).toHaveClass(/selected/);
+  await expect(page.locator('[data-testid="library-grid"]')).toHaveAttribute('data-active-filter', 'nature');
+});
+
 test('TC-LIB-002b — Library "All" filter shows every category again', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="nav-library"]').click();
@@ -623,6 +685,28 @@ test('TC-EDITOR-COLORPICKER-007 — Save always replaces + focuses the right-mos
   expect(selectedCount).toBe(1); // exactly one focused swatch at a time
 });
 
+test('TC-EDITOR-COLORPICKER-008 — Save scrolls the custom slot into view, not just marks it selected off-screen', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+
+  const paletteOverflow = await page.locator('.palette').evaluate(el => el.scrollWidth - el.clientWidth);
+  expect(paletteOverflow).toBeGreaterThan(0); // confirms the palette genuinely scrolls in this viewport
+
+  await page.locator('.playful').click();
+  await pickHueAtRightEdge(page);
+  await page.locator('[data-testid="color-picker-save"]').click();
+  await page.waitForTimeout(400); // smooth scrollIntoView
+
+  const inView = await page.evaluate(() => {
+    const row = document.querySelector('.palette');
+    const custom = document.querySelector('[data-testid="palette-color-custom"]');
+    const rowRect = row.getBoundingClientRect();
+    const customRect = custom.getBoundingClientRect();
+    return customRect.left >= rowRect.left - 1 && customRect.right <= rowRect.right + 1;
+  });
+  expect(inView).toBe(true);
+});
+
 test('TC-EDITOR-PLAYFUL-BACK-001 — Back discards the draft without touching the custom slot or activeColor', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
@@ -710,6 +794,30 @@ test('TC-EDITOR-EYEDROPPER-002 — Release commits the sample to the right-most 
   await expect(customBtn).toHaveClass(/selected/);
   await expect(page.locator('[data-testid="eyedropper-magnifier"]')).toBeHidden();
   await expect(page.locator('[data-testid="tool-fill"]')).toHaveClass(/selected/); // previous tool restored
+});
+
+test('TC-EDITOR-EYEDROPPER-004 — Eyedropper button turns purple (theme-selected) while armed, and restores when done', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
+
+  const eyedropper = page.locator('[data-testid="editor-eyedropper"]');
+  const defaultColor = await eyedropper.evaluate(el => getComputedStyle(el).color);
+
+  await eyedropper.click(); // arm
+  await expect(eyedropper).toHaveClass(/armed/);
+  const armedColor = await eyedropper.evaluate(el => getComputedStyle(el).color);
+  expect(armedColor).not.toBe(defaultColor);
+  expect(armedColor).toBe('rgb(124, 77, 255)'); // the same theme purple used by other selected Editor tools
+
+  const p = await artPoint(page, ...FACE);
+  await page.mouse.move(p.sx, p.sy);
+  await page.mouse.down();
+  await page.mouse.up(); // completes sampling
+
+  await expect(eyedropper).not.toHaveClass(/armed/);
+  const restoredColor = await eyedropper.evaluate(el => getComputedStyle(el).color);
+  expect(restoredColor).toBe(defaultColor);
 });
 
 test('TC-EDITOR-EYEDROPPER-003 — Cancelling (pointercancel) keeps the previous color and does not touch the custom slot', async ({ page }) => {
@@ -867,25 +975,31 @@ test('TC-EDITOR-SLIDER-001 — Brush size slider changes new stroke width', asyn
   expect(widthAfter).toBeGreaterThan(widthBefore);
 });
 
-test('TC-EDITOR-ERASE-002 — Erase removes a user stroke without touching the original line art', async ({ page }) => {
+test('TC-EDITOR-ERASE-002 — Erase removes a user stroke via true transparent removal, not white paint', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
   await waitForBarrierMask(page);
 
   const lineArtBefore = await page.locator('.editor-screen .lineart').first().innerHTML();
 
+  await page.locator('[data-testid="palette-color-purple"]').click();
   await dragOnArtboard(page, { dx: 50, dy: 20 });
-  expect((await page.evaluate(() => strokesList[0].color)).toUpperCase()).toBe('#168B2D');
+  expect((await page.evaluate(() => strokesList[0].color)).toUpperCase()).toBe('#C34AD8');
+
+  const paintedPixel = await readCanvasPixel(page, 'editor-brush-layer', ...FACE);
+  expect(paintedPixel.a).toBeGreaterThan(0); // the purple stroke is opaque here
 
   await page.locator('[data-testid="tool-erase"]').click();
-  await dragOnArtboard(page, { dx: 50, dy: 20 });
+  await dragOnArtboard(page, { dx: 50, dy: 20 }); // erase over the same path
 
-  const strokes = await page.evaluate(() => strokesList.map(s => s.color.toUpperCase()));
-  expect(strokes).toHaveLength(2);
-  expect(strokes[1]).toBe('#FFFFFF'); // erased visually via a white overlay stroke, not deleted geometry
+  const tools = await page.evaluate(() => strokesList.map(s => s.tool));
+  expect(tools).toEqual(['brush', 'erase']);
+
+  const erasedPixel = await readCanvasPixel(page, 'editor-brush-layer', ...FACE);
+  expect(erasedPixel.a).toBe(0); // truly transparent (destination-out) — never repainted white
 
   const lineArtAfter = await page.locator('.editor-screen .lineart').first().innerHTML();
-  expect(lineArtAfter).toBe(lineArtBefore); // original line art group is byte-for-byte unchanged
+  expect(lineArtAfter).toBe(lineArtBefore); // original line art group is byte-for-byte unchanged — untouched underneath
 });
 
 test('TC-EDITOR-UNDO-001 — Undo/Redo reflect real history, never a faked enabled state', async ({ page }) => {
@@ -937,101 +1051,115 @@ test('TC-EDITOR-UNDO-002 — Undo removes the latest Brush stroke; Redo restores
   expect(await page.evaluate(() => strokesList.length)).toBe(1);
 });
 
-// Drags a stroke between two points given in the artboard's own 0..360
-// viewBox coordinate space, converting to real screen coordinates from
-// #artboardSvg's current bounding box — used by the Lock region tests, which
-// need to land inside specific approximate hit-regions (face/ear/body), not
-// just "somewhere on the canvas" like dragOnArtboard's fixed offset does.
-async function dragInArtwork(page, x1, y1, x2, y2) {
-  const box = await page.locator('#artboardSvg').boundingBox();
-  const toScreen = (x, y) => ({ sx: box.x + (x / 360) * box.width, sy: box.y + (y / 360) * box.height });
-  const a = toScreen(x1, y1), b = toScreen(x2, y2);
-  await page.mouse.move(a.sx, a.sy);
-  await page.mouse.down();
-  await page.mouse.move((a.sx + b.sx) / 2, (a.sy + b.sy) / 2, { steps: 4 });
-  await page.mouse.move(b.sx, b.sy, { steps: 4 });
-  await page.mouse.up();
-}
-
 test('TC-EDITOR-LOCK-002 — Each locked stroke detects its own region independently; both remain visible', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
   await expect(page.locator('[data-testid="editor-lock-toggle"]')).toHaveAttribute('aria-pressed', 'true'); // LOCKED by default
 
-  await dragInArtwork(page, 150, 140, 210, 140); // starts in the face
-  await dragInArtwork(page, 70, 110, 95, 120); // starts in the left ear
+  await tapInArtwork(page, ...FACE);
+  await tapInArtwork(page, ...LEFT_EAR);
 
-  const clips = await page.locator('#brushLayer .user-stroke').evaluateAll(els => els.map(el => el.getAttribute('clip-path')));
-  expect(clips).toHaveLength(2);
-  expect(clips[0]).toMatch(/^url\(#stroke-clip-\d+\)$/);
-  expect(clips[1]).toMatch(/^url\(#stroke-clip-\d+\)$/);
-  expect(clips[0]).not.toBe(clips[1]); // independent clips — the session was never "locked to the first region"
-  await expect(page.locator('#brushLayer .user-stroke')).toHaveCount(2); // both strokes still present
+  const info = await page.evaluate(() => ({
+    count: strokesList.length,
+    bothMasked: strokesList.length === 2 && strokesList.every(s => !!s.maskCanvas),
+    distinctMasks: strokesList.length === 2 && strokesList[0].maskCanvas !== strokesList[1].maskCanvas,
+  }));
+  expect(info.count).toBe(2); // both strokes still present
+  expect(info.bothMasked).toBe(true);
+  expect(info.distinctMasks).toBe(true); // independent masks — the session was never "locked to the first region"
 });
 
 test('TC-EDITOR-LOCK-003 — Unlock removes containment for new strokes without touching prior locked strokes', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
 
-  await dragInArtwork(page, 150, 140, 210, 140); // locked stroke in the face
-  const firstClip = await page.locator('#brushLayer .user-stroke').first().getAttribute('clip-path');
+  await tapInArtwork(page, ...FACE); // locked stroke
+  expect(await page.evaluate(() => !!strokesList[0].maskCanvas)).toBe(true);
 
   await page.locator('[data-testid="editor-lock-toggle"]').click(); // UNLOCK
-  await dragInArtwork(page, 150, 140, 300, 300); // crosses freely out of the face region
+  await tapInArtwork(page, ...FACE); // free stroke, same start point
 
-  const strokes = page.locator('#brushLayer .user-stroke');
-  await expect(strokes).toHaveCount(2);
-  await expect(strokes.first()).toHaveAttribute('clip-path', firstClip); // untouched by the later Unlock
-  await expect(strokes.last()).not.toHaveAttribute('clip-path', /.+/); // free stroke — no clip at all
+  const info = await page.evaluate(() => ({
+    count: strokesList.length,
+    firstStillMasked: !!strokesList[0].maskCanvas,
+    secondMasked: !!strokesList[1].maskCanvas,
+  }));
+  expect(info.count).toBe(2);
+  expect(info.firstStillMasked).toBe(true); // untouched by the later Unlock
+  expect(info.secondMasked).toBe(false); // free stroke — no mask at all
 });
 
 test('TC-EDITOR-LOCK-004 — Switching back to Lock clips the next stroke to a NEW region, not the first one', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
 
-  await dragInArtwork(page, 150, 140, 210, 140); // locked stroke #1, face
-  const firstClip = await page.locator('#brushLayer .user-stroke').first().getAttribute('clip-path');
+  await tapInArtwork(page, ...FACE); // locked stroke #1
 
   await page.locator('[data-testid="editor-lock-toggle"]').click(); // unlock
-  await dragInArtwork(page, 150, 140, 300, 300); // free stroke
+  await tapInArtwork(page, ...FACE); // free stroke
 
   await page.locator('[data-testid="editor-lock-toggle"]').click(); // lock again
-  await dragInArtwork(page, 180, 290, 200, 300); // starts in the body region
+  await tapInArtwork(page, ...RIGHT_EAR); // locked stroke #3, a different region
 
-  const strokes = page.locator('#brushLayer .user-stroke');
-  await expect(strokes).toHaveCount(3);
-  const thirdClip = await strokes.last().getAttribute('clip-path');
-  expect(thirdClip).toMatch(/^url\(#stroke-clip-\d+\)$/);
-  expect(thirdClip).not.toBe(firstClip); // a fresh region detection, not a reused/first-region clip
+  const info = await page.evaluate(() => ({
+    count: strokesList.length,
+    thirdMasked: !!strokesList[2] && !!strokesList[2].maskCanvas,
+    firstAndThirdDistinct: strokesList.length === 3 && strokesList[0].maskCanvas !== strokesList[2].maskCanvas,
+  }));
+  expect(info.count).toBe(3);
+  expect(info.thirdMasked).toBe(true);
+  expect(info.firstAndThirdDistinct).toBe(true); // a fresh region detection, not a reused/first-region mask
+});
+
+test('TC-EDITOR-LOCK-006 — Locked Brush can paint the white background surrounding the subject, bounded by it', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
+  await expect(page.locator('[data-testid="editor-lock-toggle"]')).toHaveAttribute('aria-pressed', 'true');
+
+  await tapInArtwork(page, ...BG_ABOVE); // starts in the background above the head
+  const info = await page.evaluate(() => ({
+    count: strokesList.length,
+    masked: strokesList.length === 1 && !!strokesList[0].maskCanvas,
+  }));
+  expect(info.count).toBe(1); // it was NOT rejected as "no valid region" — this is the fix under test
+  expect(info.masked).toBe(true); // still contained to the background's own connected region
 });
 
 test('TC-EDITOR-LOCK-005 — Erase is never affected by Lock/Unlock', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
   await expect(page.locator('[data-testid="editor-lock-toggle"]')).toHaveAttribute('aria-pressed', 'true');
 
   await page.locator('[data-testid="tool-erase"]').click();
-  await dragInArtwork(page, 150, 140, 300, 300); // a long drag that would be clipped if Erase were subject to Lock
+  await tapInArtwork(page, ...FACE);
 
-  await expect(page.locator('#brushLayer .user-stroke')).not.toHaveAttribute('clip-path', /.+/);
+  const masked = await page.evaluate(() => !!strokesList[0].maskCanvas);
+  expect(masked).toBe(false);
 });
 
 test('TC-EDITOR-PROGRESS-001 — Back then reopen preserves the drawn Brush stroke', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
   await dragOnArtboard(page);
-  await expect(page.locator('#brushLayer .user-stroke')).toHaveCount(1);
+  expect(await page.evaluate(() => strokesList.length)).toBe(1);
 
   await active(page).locator('[aria-label="Back"]').click();
   await expect(page.locator('[data-screen-id="SCR-HOME-001"]')).toHaveClass(/active/);
 
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
-  await expect(page.locator('#brushLayer .user-stroke')).toHaveCount(1); // same DOM stroke, not recreated or lost
+  expect(await page.evaluate(() => strokesList.length)).toBe(1); // same in-memory stroke, not recreated or lost
 });
 
 test('TC-EDITOR-PROGRESS-002 — Completion header Back preserves the Brush stroke and COMPLETED status', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
   await dragOnArtboard(page);
 
   await active(page).locator('[data-testid="editor-done"]').click();
@@ -1039,7 +1167,7 @@ test('TC-EDITOR-PROGRESS-002 — Completion header Back preserves the Brush stro
 
   await active(page).locator('[data-testid="completion-back"]').click();
   await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
-  await expect(page.locator('#brushLayer .user-stroke')).toHaveCount(1);
+  expect(await page.evaluate(() => strokesList.length)).toBe(1);
 
   const status = await page.evaluate(() => progressStore['draw_animals_001']);
   expect(status).toBe('COMPLETED'); // header Back never reverts completed status
@@ -1072,9 +1200,10 @@ test('TC-EDITOR-BACK-003 — Back returns to Profile when Editor was entered fro
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
   await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
 
+  await waitForBarrierMask(page);
   await page.locator('[data-testid="tool-fill"]').click();
-  await page.locator('#region_001').click();
-  const filledColor = await page.locator('#region_001').getAttribute('fill');
+  await tapInArtwork(page, ...MOUTH);
+  const filledColor = await readCanvasPixel(page, 'editor-fill-canvas', ...MOUTH);
 
   await page.locator('.editor-topbar .editor-circle').click();
   await expect(page.locator('[data-screen-id="SCR-PROFILE-001"]')).toHaveClass(/active/);
@@ -1082,7 +1211,7 @@ test('TC-EDITOR-BACK-003 — Back returns to Profile when Editor was entered fro
 
   // Reopening the same artwork must show the state exactly as left, not reset.
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
-  await expect(page.locator('#region_001')).toHaveAttribute('fill', filledColor);
+  expect(await readCanvasPixel(page, 'editor-fill-canvas', ...MOUTH)).toEqual(filledColor);
 
   const status = await page.evaluate(() => progressStore['draw_animals_001']);
   expect(status).toBe('IN_PROGRESS'); // resumed, not reset — status untouched by Back
@@ -1097,18 +1226,17 @@ test('TC-EDITOR-025 — Editor has no bottom navigation', async ({ page }) => {
 test('TC-SMOKE-004 — Prototype fill changes one region', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
 
-  // Select Fill
   await page.locator('[data-testid="tool-fill"]').click();
 
-  const target = page.locator('#region_001');
-  const neighbor = page.locator('#region_002');
+  const neighborBefore = await readCanvasPixel(page, 'editor-fill-canvas', ...NOSE);
+  await tapInArtwork(page, ...MOUTH);
 
-  const beforeNeighbor = await neighbor.getAttribute('fill');
-  await target.click();
-
-  await expect(target).not.toHaveAttribute('fill', '#fff');
-  await expect(neighbor).toHaveAttribute('fill', beforeNeighbor);
+  const target = await readCanvasPixel(page, 'editor-fill-canvas', ...MOUTH);
+  const neighborAfter = await readCanvasPixel(page, 'editor-fill-canvas', ...NOSE);
+  expect(target.a).toBeGreaterThan(0); // filled — no longer transparent
+  expect(neighborAfter).toEqual(neighborBefore); // adjacent region untouched
 });
 
 test('TC-EDITOR-023/FOCUS-001 — Maximize enters Focus mode; minimize exits it', async ({ page }) => {
@@ -1183,22 +1311,91 @@ test('TC-EDITOR-FOCUS-005 — Artwork becomes larger in Focus mode', async ({ pa
   expect(after.width).toBeGreaterThan(before.width);
 });
 
+test('TC-EDITOR-FOCUS-007 — Active-tool, active-color, and minimize controls share one baseline; Saved text is hidden', async ({ page }) => {
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-fit"]').click();
+  await page.waitForTimeout(300);
+
+  await expect(page.locator('[data-testid="editor-save-state"]')).toBeHidden();
+
+  const centers = await page.evaluate(() => {
+    const centerY = sel => {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return r.top + r.height / 2;
+    };
+    return {
+      tool: centerY('[data-testid="focus-active-tool"]'),
+      color: centerY('[data-testid="focus-active-color"]'),
+      minimize: centerY('[data-testid="editor-fit"]'),
+    };
+  });
+  expect(centers.tool).toBe(centers.color);
+  expect(centers.tool).toBe(centers.minimize); // all three on exactly the same vertical line
+
+  await expect(page.locator('[data-testid="focus-active-tool"]')).toBeVisible();
+  await expect(page.locator('[data-testid="focus-active-color"]')).toBeVisible();
+});
+
+test('TC-EDITOR-FOCUS-008 — Bottom controls stay aligned and visible even outside the mobile breakpoint (desktop shell width)', async ({ page }) => {
+  // Regression guard: an earlier fix used position:fixed for the left group,
+  // which only happened to line up with the minimize button because the
+  // phone-frame fills the real viewport under the ≤720px mobile media query
+  // (the width every other test in this suite runs at). At a wider viewport
+  // the desktop multi-device shell chrome appears and the phone-frame no
+  // longer fills the viewport, so position:fixed would send the left group
+  // to the real window's edge — outside the visible mockup entirely.
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openHome(page);
+  await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await page.locator('[data-testid="editor-fit"]').click();
+  await page.waitForTimeout(300);
+
+  await expect(page.locator('[data-testid="focus-active-tool"]')).toBeVisible();
+  await expect(page.locator('[data-testid="focus-active-color"]')).toBeVisible();
+  await expect(page.locator('[data-testid="editor-fit"]')).toBeVisible();
+
+  const centers = await page.evaluate(() => {
+    const centerY = sel => {
+      const r = document.querySelector(sel).getBoundingClientRect();
+      return r.top + r.height / 2;
+    };
+    return {
+      tool: centerY('[data-testid="focus-active-tool"]'),
+      color: centerY('[data-testid="focus-active-color"]'),
+      minimize: centerY('[data-testid="editor-fit"]'),
+    };
+  });
+  expect(centers.tool).toBe(centers.color);
+  expect(centers.tool).toBe(centers.minimize);
+
+  // Also confirm the left group is actually inside the phone-frame's own
+  // bounds, not off in the surrounding shell chrome.
+  const withinFrame = await page.evaluate(() => {
+    const frame = document.querySelector('.phone-frame').getBoundingClientRect();
+    const tool = document.querySelector('[data-testid="focus-active-tool"]').getBoundingClientRect();
+    return tool.left >= frame.left && tool.right <= frame.right && tool.top >= frame.top && tool.bottom <= frame.bottom;
+  });
+  expect(withinFrame).toBe(true);
+});
+
 test('TC-EDITOR-FOCUS-006 — Drawing works in Focus mode and survives exit; tool/color/lock/history are unchanged', async ({ page }) => {
   await openHome(page);
   await active(page).locator('[data-testid="drawing-card-draw_animals_001"]').click();
+  await waitForBarrierMask(page);
   await page.locator('[data-testid="palette-color-purple"]').click();
   await page.locator('[data-testid="editor-lock-toggle"]').click(); // now UNLOCKED — confirms the state, not just the default
 
   await page.locator('[data-testid="editor-fit"]').click(); // enter Focus mode (Brush is still active by default)
-  await dragOnArtboard(page); // the drawing engine listens on #artboardSvg regardless of the hidden rail/palette
-  await expect(page.locator('#brushLayer .user-stroke')).toHaveAttribute('stroke', '#C34AD8');
+  await dragOnArtboard(page); // the drawing engine listens on #brushCanvas regardless of the hidden rail/palette
+  expect((await page.evaluate(() => strokesList[0].color)).toUpperCase()).toBe('#C34AD8');
   const undoEnabledInFocus = await page.locator('[data-testid="undo"]').isEnabled();
 
   await page.locator('[data-testid="editor-fit"]').click(); // exit Focus mode
   await expect(page.locator('.tool-rail')).toBeVisible();
   await expect(page.locator('.slider-wrap')).toBeVisible();
   await expect(page.locator('.palette')).toBeVisible();
-  await expect(page.locator('#brushLayer .user-stroke')).toHaveCount(1); // the stroke drawn in Focus mode is still there
+  expect(await page.evaluate(() => strokesList.length)).toBe(1); // the stroke drawn in Focus mode is still there
 
   const finalState = await page.evaluate(() => ({ activeTool, activeColor, coloringLocked }));
   expect(undoEnabledInFocus).toBe(true);
@@ -1247,10 +1444,11 @@ test('TC-COMPLETE-003/TC-COMPLETE-007 — Header Back reopens the SAME completed
   await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
 
   // Color a region so there's real state to verify is preserved.
+  await waitForBarrierMask(page);
   await page.locator('[data-testid="tool-fill"]').click();
-  await page.locator('#region_001').click();
-  const filledColor = await page.locator('#region_001').getAttribute('fill');
-  expect(filledColor).not.toBe('#fff');
+  await tapInArtwork(page, ...MOUTH);
+  const filledColor = await readCanvasPixel(page, 'editor-fill-canvas', ...MOUTH);
+  expect(filledColor.a).toBeGreaterThan(0);
 
   // 2. Complete it
   await page.locator('[data-testid="editor-done"]').click();
@@ -1270,7 +1468,7 @@ test('TC-COMPLETE-003/TC-COMPLETE-007 — Header Back reopens the SAME completed
   expect(reopenedId).toBe('draw_animals_001');
 
   // 7. Existing artwork state/progress is preserved (not a fresh blank session)
-  await expect(page.locator('#region_001')).toHaveAttribute('fill', filledColor);
+  expect(await readCanvasPixel(page, 'editor-fill-canvas', ...MOUTH)).toEqual(filledColor);
 
   // 8. Progress status remains COMPLETED (not reverted to IN_PROGRESS)
   let status = await page.evaluate(() => progressStore['draw_animals_001']);
