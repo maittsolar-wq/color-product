@@ -1,7 +1,10 @@
 let activeColor = '#168B2D';
 let activeTool = 'brush';
 let zoomed = false;
-let currentArtworkId = 'draw_animals_001';
+// No lesson is open until the user actually taps one — Home is the initial
+// screen, so there is no meaningful "default" artwork anymore now that
+// content is real, per-lesson data instead of one hardcoded drawing.
+let currentArtworkId = null;
 // The screen Editor was entered from, captured fresh each time openArtwork()
 // runs. Editor's own Back button returns here — per NAV-008 this must be
 // "the actual previous screen" (Home/Library/Profile/Completion), never the
@@ -21,36 +24,110 @@ const HISTORY_LIMIT = 40; // modest capped history — prototype only, not an un
 // and drawing functions further below.
 let activeStroke = null;
 
+// Seeded with real lesson IDs from the approved 25-lesson dataset (see
+// data/lessons.json) so Profile/Home-Continue have real demo content from
+// first load — the same "one in progress, one completed" pattern as before,
+// just pointed at real content instead of the old placeholder IDs.
 const progressStore = {
-  draw_animals_001: 'IN_PROGRESS',
-  draw_nature_001: 'COMPLETED'
+  animal_babydeer: 'IN_PROGRESS',
+  nature_mountainlake: 'COMPLETED'
 };
 
 // Recency signal only, for the Continue card's "most recently updated wins"
 // rule (data-model.md already documents Progress.updatedAt — this is that
 // field for the prototype's flat progressStore, not a second status store).
 const progressUpdatedAt = {
-  draw_animals_001: Date.now()
+  animal_babydeer: Date.now()
 };
 
-// Display metadata for artwork already introduced on Home/Library. Profile
-// renders purely from progressStore (the single source of truth for which
-// artworks have progress); this table only supplies title/thumbnail for
-// whatever IDs happen to be in progressStore — it is not a second store.
-const ARTWORK_LIBRARY = {
-  draw_manga_001: { title: 'Moon Samurai', thumbClass: 'thumb-lilac', thumbContent: '☾' },
-  draw_manga_002: { title: 'Star Racer', thumbClass: 'thumb-blue', thumbContent: '☆' },
-  draw_manga_003: { title: 'Ink Fox', thumbClass: 'thumb-pink', thumbContent: '✎' },
-  draw_animals_001: { title: 'Little Elephant', thumbClass: 'thumb-pink', thumbImg: 'assets/elephant-lineart.svg' },
-  draw_animals_002: { title: 'Penguin Family', thumbClass: 'thumb-blue', thumbContent: '☁' },
-  draw_animals_003: { title: 'Baby Deer', thumbClass: 'thumb-green', thumbContent: '♧' },
-  draw_food_001: { title: 'Donut Stack', thumbClass: 'thumb-blue', thumbContent: '◍' },
-  draw_food_002: { title: 'Cupcake Swirl', thumbClass: 'thumb-pink', thumbContent: '✤' },
-  draw_food_003: { title: 'Berry Bowl', thumbClass: 'thumb-green', thumbContent: '✧' },
-  draw_nature_001: { title: 'Moon Flowers', thumbClass: 'thumb-lilac', thumbContent: '✿' },
-  draw_nature_002: { title: 'Flower Fairy', thumbClass: 'thumb-pink', thumbContent: '✾' },
-  draw_nature_003: { title: 'Misty Forest', thumbClass: 'thumb-green', thumbContent: '♣' }
-};
+// --- Real lesson content (data/lessons.json + data/categories.json) -------
+// The single source of truth for lesson data — Home/Library/Search/Profile/
+// Completion all read from `lessons`/`LESSONS_BY_ID`, never a second
+// hardcoded copy. Populated asynchronously by loadContent() at the bottom of
+// this file; empty until then (the fetch is same-origin/local and resolves
+// well before a user could interact with Home/Library in practice).
+let lessons = [];
+let categories = [];
+let LESSONS_BY_ID = {};
+
+async function loadContent(){
+  try {
+    const [lessonsRes, categoriesRes] = await Promise.all([
+      fetch('data/lessons.json'),
+      fetch('data/categories.json')
+    ]);
+    lessons = await lessonsRes.json();
+    categories = await categoriesRes.json();
+  } catch(err) {
+    lessons = [];
+    categories = [];
+  }
+  LESSONS_BY_ID = {};
+  lessons.forEach(l => { LESSONS_BY_ID[l.id] = l; });
+
+  renderHomeCategorySections();
+  renderLibraryGrid();
+  // Home is the initially-active screen in static markup — showScreen() is
+  // never called for that first render, so the Continue card needs one
+  // explicit render once real lesson data (and the seeded progress above)
+  // is actually available to look up titles/thumbnails from.
+  renderHomeContinue();
+}
+
+// One shared thumbnail builder — Home, Library, Search, Profile, and
+// Completion's "Recommended for you" all render the identical 250×250
+// lesson.thumbnail the same one way, never a second thumbnail code path.
+function createLessonThumb(lesson){
+  const thumb = document.createElement('div');
+  thumb.className = 'thumb';
+  const img = document.createElement('img');
+  img.src = lesson ? lesson.thumbnail : '';
+  img.alt = '';
+  thumb.appendChild(img);
+  return thumb;
+}
+
+function renderHomeCategorySections(){
+  // Home shows only these three sections (approved structure, unchanged) —
+  // Dumpling is intentionally NOT added here; it's discoverable via
+  // Library/Search only, per this pass's explicit scope.
+  ['manga', 'animal', 'nature'].forEach(categoryId => {
+    const row = document.querySelector(`[data-testid="home-${categoryId}-row"]`);
+    if(!row) return;
+    row.innerHTML = '';
+    lessons
+      .filter(l => l.categoryId === categoryId)
+      .sort((a, b) => a.sortOrder - b.sortOrder)
+      .forEach(lesson => {
+        const btn = document.createElement('button');
+        btn.className = 'art-card';
+        btn.dataset.category = lesson.categoryId;
+        btn.dataset.testid = `drawing-card-${lesson.id}`;
+        btn.setAttribute('aria-label', lesson.title);
+        btn.onclick = () => openArtwork(lesson.id);
+        btn.appendChild(createLessonThumb(lesson));
+        row.appendChild(btn);
+      });
+  });
+}
+
+function renderLibraryGrid(){
+  const grid = document.querySelector('[data-testid="library-grid"]');
+  if(!grid) return;
+  grid.innerHTML = '';
+  lessons.forEach(lesson => {
+    const btn = document.createElement('button');
+    btn.className = 'drawing-card';
+    btn.dataset.componentId = 'CMP-LIBRARY-DRAWING-CARD';
+    btn.dataset.category = lesson.categoryId;
+    btn.dataset.testid = `drawing-card-${lesson.id}`;
+    btn.onclick = () => openArtwork(lesson.id);
+    const title = document.createElement('b');
+    title.textContent = lesson.title;
+    btn.append(createLessonThumb(lesson), title);
+    grid.appendChild(btn);
+  });
+}
 
 function showScreen(id){
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
@@ -61,15 +138,20 @@ function showScreen(id){
   if(id === 'SCR-HOME-001') renderHomeContinue();
 }
 
-function openArtwork(drawingId){
+function openArtwork(lessonId){
   const activeScreen = document.querySelector('.screen.active');
   if(activeScreen) editorOrigin = activeScreen.dataset.screenId;
 
-  currentArtworkId = drawingId;
-  if(!progressStore[drawingId]){
-    progressStore[drawingId] = 'IN_PROGRESS';
+  // Persist whatever is currently on-canvas under the PREVIOUS lesson's ID
+  // before switching — otherwise opening a different lesson would silently
+  // carry over (or discard) the wrong drawing state.
+  saveCurrentLessonState();
+
+  currentArtworkId = lessonId;
+  if(!progressStore[lessonId]){
+    progressStore[lessonId] = 'IN_PROGRESS';
   }
-  progressUpdatedAt[drawingId] = Date.now();
+  progressUpdatedAt[lessonId] = Date.now();
 
   undoStack = [];
   redoStack = [];
@@ -77,6 +159,7 @@ function openArtwork(drawingId){
   updateHistoryButtons();
 
   showScreen('SCR-EDITOR-001');
+  loadLessonArtwork(lessonId); // async — rebuilds the region-mask/line-art for THIS lesson, then restores its saved drawing (if any)
 }
 
 function exitEditor(){
@@ -109,27 +192,21 @@ function renderHomeContinue(){
     return;
   }
 
-  const meta = ARTWORK_LIBRARY[id] || { title: id, thumbClass: 'thumb-blue', thumbContent: '★' };
+  const lesson = LESSONS_BY_ID[id];
+  if(!lesson){ card.hidden = true; return; } // defensive: id not (yet) in loaded content
   card.hidden = false;
   card.dataset.artworkId = id;
 
   const title = card.querySelector('.continue-title');
-  if(title) title.textContent = meta.title;
+  if(title) title.textContent = lesson.title;
 
   const art = card.querySelector('.continue-art');
   if(art){
     art.innerHTML = '';
     art.className = 'continue-art';
-    if(meta.thumbImg){
-      const img = document.createElement('img');
-      img.src = meta.thumbImg;
-      art.appendChild(img);
-    } else {
-      const symbol = document.createElement('div');
-      symbol.className = `thumb ${meta.thumbClass}`;
-      symbol.textContent = meta.thumbContent;
-      art.appendChild(symbol);
-    }
+    const img = document.createElement('img');
+    img.src = lesson.thumbnail;
+    art.appendChild(img);
   }
 }
 
@@ -138,14 +215,6 @@ function continueCurrentArtwork(){
   if(!id) return; // card should be hidden already if this is null
   openArtwork(id);
 }
-
-// Candidate pool for "Recommended for you" — filtered to exclude whatever was
-// just completed. Not a second artwork store: titles/thumbs still come from
-// ARTWORK_LIBRARY, and opening still goes through the shared openArtwork().
-const RECOMMENDED_POOL = [
-  'draw_manga_001', 'draw_animals_002', 'draw_nature_002', 'draw_food_001',
-  'draw_manga_002', 'draw_animals_003', 'draw_nature_003', 'draw_food_002'
-];
 
 function renderCompletion(){
   const scope = document.querySelector('[data-screen-id="SCR-COMPLETE-001"]');
@@ -156,58 +225,38 @@ function renderCompletion(){
   if(shareStatus) shareStatus.hidden = true;
   if(saveStatus) saveStatus.hidden = true;
 
-  const meta = ARTWORK_LIBRARY[currentArtworkId] || { thumbClass: 'thumb-blue', thumbContent: '★' };
+  const lesson = LESSONS_BY_ID[currentArtworkId];
   const card = scope.querySelector('[data-testid="completion-artwork"]');
   if(card){
     card.className = 'completion-artwork-card';
     card.innerHTML = '';
-    // For the one artwork with real interactive state, composite the live
-    // Fill/Brush canvases + line art into a static image rather than falling
-    // back to the flat thumbnail — "the most faithful available way" the
-    // prototype can show it. Async (canvas/SVG rasterization) — the flat
-    // thumbnail (if any) shows immediately and is swapped once ready.
-    if(currentArtworkId === 'draw_animals_001'){
-      const img = document.createElement('img');
-      img.alt = meta.title || '';
-      card.appendChild(img);
-      renderArtboardToDataURL(dataUrl => { img.src = dataUrl; });
-    } else if(meta.thumbImg){
-      const img = document.createElement('img');
-      img.src = meta.thumbImg;
-      card.appendChild(img);
-    } else {
-      card.classList.add(meta.thumbClass);
-      card.textContent = meta.thumbContent;
-    }
+    // Composite the live Fill/Brush/line-art canvases into a static image
+    // rather than the flat thumbnail — "the most faithful available way"
+    // the prototype can show the just-completed, actually-colored lesson.
+    const img = document.createElement('img');
+    img.alt = lesson ? lesson.title : '';
+    card.appendChild(img);
+    renderArtboardToDataURL(dataUrl => { img.src = dataUrl; });
   }
 
   const grid = scope.querySelector('[data-testid="completion-recommended"]');
   if(grid){
     grid.innerHTML = '';
-    RECOMMENDED_POOL
-      .filter(id => id !== currentArtworkId)
+    // Recommendations come from the same real 25-lesson dataset, excluding
+    // whatever was just completed — no separate/second recommendation pool.
+    lessons
+      .filter(l => l.id !== currentArtworkId)
       .slice(0, 4)
-      .forEach(id => {
-        const cardMeta = ARTWORK_LIBRARY[id] || { title: id, thumbClass: 'thumb-blue', thumbContent: '★' };
+      .forEach(l => {
         const btn = document.createElement('button');
         btn.className = 'drawing-card';
-        btn.dataset.testid = `drawing-card-${id}`;
-        btn.onclick = () => openArtwork(id);
-
-        const thumb = document.createElement('div');
-        thumb.className = `thumb ${cardMeta.thumbClass}`;
-        if(cardMeta.thumbImg){
-          const img = document.createElement('img');
-          img.src = cardMeta.thumbImg;
-          thumb.appendChild(img);
-        } else {
-          thumb.textContent = cardMeta.thumbContent;
-        }
+        btn.dataset.testid = `drawing-card-${l.id}`;
+        btn.onclick = () => openArtwork(l.id);
 
         const title = document.createElement('b');
-        title.textContent = cardMeta.title;
+        title.textContent = l.title;
 
-        btn.append(thumb, title);
+        btn.append(createLessonThumb(l), title);
         grid.appendChild(btn);
       });
   }
@@ -305,12 +354,10 @@ function renderSearch(query){
     return;
   }
 
-  // Matches against the same artwork title metadata already used by
-  // Library/Home/Profile — no separate search index/database (REQ-LIB-009).
+  // Matches against the same real lesson titles used by Library/Home/Profile
+  // — no separate search index/database (REQ-LIB-009).
   const q = trimmed.toLowerCase();
-  const matches = Object.keys(ARTWORK_LIBRARY).filter(id =>
-    ARTWORK_LIBRARY[id].title.toLowerCase().includes(q)
-  );
+  const matches = lessons.filter(l => l.title.toLowerCase().includes(q));
 
   if(matches.length === 0){
     if(grid){ grid.hidden = true; grid.innerHTML = ''; }
@@ -322,28 +369,17 @@ function renderSearch(query){
   if(grid){
     grid.hidden = false;
     grid.innerHTML = '';
-    matches.forEach(id => {
-      const meta = ARTWORK_LIBRARY[id];
+    matches.forEach(lesson => {
       const btn = document.createElement('button');
       btn.className = 'drawing-card';
-      btn.dataset.testid = `drawing-card-${id}`;
+      btn.dataset.testid = `drawing-card-${lesson.id}`;
       // Same shared resolver as Home/Library/Profile — no duplicate opening system.
-      btn.onclick = () => openArtwork(id);
-
-      const thumb = document.createElement('div');
-      thumb.className = `thumb ${meta.thumbClass}`;
-      if(meta.thumbImg){
-        const img = document.createElement('img');
-        img.src = meta.thumbImg;
-        thumb.appendChild(img);
-      } else {
-        thumb.textContent = meta.thumbContent;
-      }
+      btn.onclick = () => openArtwork(lesson.id);
 
       const title = document.createElement('b');
-      title.textContent = meta.title;
+      title.textContent = lesson.title;
 
-      btn.append(thumb, title);
+      btn.append(createLessonThumb(lesson), title);
       grid.appendChild(btn);
     });
   }
@@ -416,7 +452,7 @@ function renderProfileGrid(){
     if(!matches) return;
 
     visibleCount++;
-    const meta = ARTWORK_LIBRARY[drawingId] || { title: drawingId, thumbClass: 'thumb-blue', thumbContent: '★' };
+    const lesson = LESSONS_BY_ID[drawingId] || { title: drawingId, thumbnail: '' };
 
     const card = document.createElement('button');
     card.className = 'drawing-card';
@@ -427,23 +463,13 @@ function renderProfileGrid(){
     // fires from here. No separate Profile-only opening path is created.
     card.onclick = () => openArtwork(drawingId);
 
-    const thumb = document.createElement('div');
-    thumb.className = `thumb ${meta.thumbClass}`;
-    if(meta.thumbImg){
-      const img = document.createElement('img');
-      img.src = meta.thumbImg;
-      thumb.appendChild(img);
-    } else {
-      thumb.textContent = meta.thumbContent;
-    }
-
     const title = document.createElement('b');
-    title.textContent = meta.title;
+    title.textContent = lesson.title;
 
     const statusLabel = document.createElement('span');
     statusLabel.textContent = status === 'IN_PROGRESS' ? 'In Progress' : 'Completed';
 
-    card.append(thumb, title, statusLabel);
+    card.append(createLessonThumb(lesson), title, statusLabel);
     grid.appendChild(card);
   });
 
@@ -562,6 +588,7 @@ function syncFocusIndicators(){
 }
 
 function markSaving(){
+  saveCurrentLessonState();
   const status = document.getElementById('saveStatus');
   if(!status) return;
   status.textContent = 'Saving...';
@@ -642,10 +669,10 @@ function toggleColoringLock(btn){
 // ===========================================================================
 // SHARED CLOSED-REGION ENGINE — used by BOTH Locked Brush and Fill.
 //
-// The immutable line art is rasterized once (off the visible DOM, from a
-// clone of the .lineart/.fill-region geometry — the original is never
-// touched) into a barrier bitmap: sufficiently dark/opaque pixels are
-// BARRIERS, one pixel of dilation is added so anti-aliased line edges don't
+// Each lesson's artwork PNG is rasterized once, per lesson, off the visible
+// DOM (the source PNG file itself is never modified) into a barrier bitmap:
+// sufficiently dark/opaque pixels are BARRIERS, one pixel of dilation is
+// added so anti-aliased line edges don't
 // leak between regions, and the raster's own edges are implicit barriers
 // (the artwork rectangle boundary). floodFillMaskFrom() then does a 4-
 // directional flood fill from a start point across non-barrier pixels,
@@ -655,52 +682,101 @@ function toggleColoringLock(btn){
 // pixels reachable from the start point" to this engine.
 // ===========================================================================
 
-const RASTER_SIZE = 360; // matches the artwork's own viewBox — 1 raster px per SVG unit
-let barrierMask = null; // Uint8Array, RASTER_SIZE*RASTER_SIZE, 1 = barrier
+const ARTWORK_SIZE = 800; // matches every lesson artwork's real pixel dimensions (see data/lessons.json)
+let barrierMask = null; // Uint8Array, ARTWORK_SIZE*ARTWORK_SIZE, 1 = barrier
 let barrierMaskReady = false;
+const artworkImageCache = {}; // lessonId -> loaded Image, avoids re-fetching the PNG on reopen
 
-function buildBarrierMask(){
-  const svgRoot = document.getElementById('artboardSvg');
-  if(!svgRoot) return;
-  const svgNS = 'http://www.w3.org/2000/svg';
-  const tempSvg = document.createElementNS(svgNS, 'svg');
-  tempSvg.setAttribute('viewBox', '0 0 360 360');
-  tempSvg.setAttribute('width', String(RASTER_SIZE));
-  tempSvg.setAttribute('height', String(RASTER_SIZE));
+// Per-lesson drawing state, isolated by lesson.id — switching lessons must
+// never carry over (or discard) the wrong artwork's pixels. Saved
+// continuously via saveCurrentLessonState() (called from markSaving(), and
+// once more explicitly in openArtwork() right before switching lessons) and
+// restored by restoreLessonDrawingState() once the new lesson's barrier
+// mask/line-art is ready.
+let lessonDrawingState = {}; // lessonId -> { fillImageData, strokes }
 
-  // Immutable line art, unmodified.
-  svgRoot.querySelectorAll('.lineart').forEach(g => tempSvg.appendChild(g.cloneNode(true)));
-  // The mouth/nose outlines also act as barriers (their own enclosed area is
-  // a distinct region from the surrounding face) — only the outline stroke
-  // matters here, never a filled block, regardless of what fill-region.
-  svgRoot.querySelectorAll('.fill-region').forEach(shape => {
-    const clone = shape.cloneNode(true);
-    clone.setAttribute('fill', 'none');
-    tempSvg.appendChild(clone);
-  });
+function saveCurrentLessonState(){
+  if(!currentArtworkId) return;
+  const fillCanvas = document.getElementById('fillCanvas');
+  if(!fillCanvas) return;
+  const fillImageData = fillCanvas.getContext('2d').getImageData(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+  lessonDrawingState[currentArtworkId] = { fillImageData, strokes: strokesList.slice() };
+}
 
-  const svgStr = new XMLSerializer().serializeToString(tempSvg);
-  const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const img = new Image();
-  img.onload = () => {
-    const canvas = document.createElement('canvas');
-    canvas.width = RASTER_SIZE; canvas.height = RASTER_SIZE;
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    ctx.drawImage(img, 0, 0, RASTER_SIZE, RASTER_SIZE);
-    const data = ctx.getImageData(0, 0, RASTER_SIZE, RASTER_SIZE).data;
-    const mask = new Uint8Array(RASTER_SIZE * RASTER_SIZE);
-    for(let i = 0; i < RASTER_SIZE * RASTER_SIZE; i++){
+function restoreLessonDrawingState(lessonId){
+  const fillCanvas = document.getElementById('fillCanvas');
+  if(!fillCanvas) return;
+  const saved = lessonDrawingState[lessonId];
+  const fillCtx = fillCanvas.getContext('2d');
+  fillCtx.clearRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+  if(saved){
+    fillCtx.putImageData(saved.fillImageData, 0, 0);
+    strokesList = saved.strokes.slice();
+  } else {
+    strokesList = [];
+  }
+  redrawBrushCanvas();
+}
+
+// Loads the given lesson's 800×800 artwork PNG and rasterizes it, once, into
+// BOTH the flood-fill barrier mask AND the visible line-art overlay — a
+// simpler single-pass version of the prior SVG-serialization approach, since
+// the artwork is already a raster image (no Blob-URL/XML-serialize step
+// needed). Dark pixels become opaque black in the overlay (so it stays
+// crisp/undilated for display) while a separately DILATED clone of the same
+// darkness test becomes the barrier mask (so region-detection stays tolerant
+// of anti-aliased edges without visually thickening the displayed ink).
+function loadLessonArtwork(lessonId){
+  barrierMaskReady = false;
+  barrierMask = null;
+
+  const lineArtCanvas = document.getElementById('lineArtCanvas');
+  const fillCanvas = document.getElementById('fillCanvas');
+  const brushCanvas = document.getElementById('brushCanvas');
+  if(lineArtCanvas) lineArtCanvas.getContext('2d').clearRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+  if(fillCanvas) fillCanvas.getContext('2d').clearRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+  if(brushCanvas) brushCanvas.getContext('2d').clearRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+  strokesList = [];
+
+  const lesson = LESSONS_BY_ID[lessonId];
+  if(!lesson || !lineArtCanvas) return;
+
+  const rasterize = (img) => {
+    const off = document.createElement('canvas');
+    off.width = ARTWORK_SIZE; off.height = ARTWORK_SIZE;
+    const octx = off.getContext('2d', { willReadFrequently: true });
+    octx.drawImage(img, 0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+    const data = octx.getImageData(0, 0, ARTWORK_SIZE, ARTWORK_SIZE).data;
+
+    const mask = new Uint8Array(ARTWORK_SIZE * ARTWORK_SIZE);
+    const overlay = lineArtCanvas.getContext('2d').createImageData(ARTWORK_SIZE, ARTWORK_SIZE);
+    for(let i = 0; i < ARTWORK_SIZE * ARTWORK_SIZE; i++){
       const a = data[i * 4 + 3];
       const darkness = 255 - (data[i * 4] + data[i * 4 + 1] + data[i * 4 + 2]) / 3;
-      mask[i] = (a > 40 && darkness > 90) ? 1 : 0; // threshold tolerant of anti-aliased edges
+      const isDark = a > 40 && darkness > 90; // threshold tolerant of anti-aliased edges
+      if(isDark){
+        mask[i] = 1;
+        overlay.data[i * 4 + 3] = 255; // opaque black ink; RGB already zeroed by createImageData
+      }
     }
-    dilateBarrierMask(mask, RASTER_SIZE, RASTER_SIZE, 1);
+    lineArtCanvas.getContext('2d').putImageData(overlay, 0, 0);
+
+    dilateBarrierMask(mask, ARTWORK_SIZE, ARTWORK_SIZE, 1);
     barrierMask = mask;
     barrierMaskReady = true;
-    URL.revokeObjectURL(url);
+
+    restoreLessonDrawingState(lessonId);
   };
-  img.src = url;
+
+  const cached = artworkImageCache[lessonId];
+  if(cached && cached.complete){
+    rasterize(cached);
+    return;
+  }
+
+  const img = new Image();
+  img.onload = () => { artworkImageCache[lessonId] = img; rasterize(img); };
+  img.src = lesson.artwork;
 }
 
 function dilateBarrierMask(mask, w, h, radius){
@@ -728,7 +804,7 @@ function dilateBarrierMask(mask, w, h, radius){
 // naturally bounded by it exactly like any internal enclosed area.
 function floodFillMaskFrom(px, py){
   if(!barrierMaskReady || !barrierMask) return null;
-  const w = RASTER_SIZE, h = RASTER_SIZE;
+  const w = ARTWORK_SIZE, h = ARTWORK_SIZE;
   const sx = Math.max(0, Math.min(w - 1, Math.round(px)));
   const sy = Math.max(0, Math.min(h - 1, Math.round(py)));
   if(barrierMask[sy * w + sx]) return null;
@@ -753,9 +829,9 @@ function floodFillMaskFrom(px, py){
 
 function maskToCanvas(mask){
   const c = document.createElement('canvas');
-  c.width = RASTER_SIZE; c.height = RASTER_SIZE;
+  c.width = ARTWORK_SIZE; c.height = ARTWORK_SIZE;
   const ctx = c.getContext('2d');
-  const imgData = ctx.createImageData(RASTER_SIZE, RASTER_SIZE);
+  const imgData = ctx.createImageData(ARTWORK_SIZE, ARTWORK_SIZE);
   for(let i = 0; i < mask.length; i++){
     if(mask[i]) imgData.data[i * 4 + 3] = 255; // opaque alpha marks "inside the region"
   }
@@ -772,41 +848,32 @@ function rgbToHex(r, g, b){
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
-// Composites fillCanvas + brushCanvas + the immutable line art SVG into one
-// flat image (for the Completion preview) — reuses the same SVG-to-canvas
-// rasterization technique as buildBarrierMask(), just at full visual fidelity
-// instead of as a barrier bitmap. Async; calls back with a PNG data URL.
+// Composites fillCanvas + brushCanvas + lineArtCanvas into one flat image
+// (for the Completion preview). All three source layers are already
+// canvases, so — unlike the prior SVG-based line art — this needs no async
+// image-load step; callback is invoked synchronously, kept as a callback
+// only so callers don't need to change.
 function renderArtboardToDataURL(callback){
   const composite = document.createElement('canvas');
-  composite.width = RASTER_SIZE; composite.height = RASTER_SIZE;
+  composite.width = ARTWORK_SIZE; composite.height = ARTWORK_SIZE;
   const ctx = composite.getContext('2d');
   ctx.fillStyle = '#ffffff';
-  ctx.fillRect(0, 0, RASTER_SIZE, RASTER_SIZE);
+  ctx.fillRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
 
   const fillCanvas = document.getElementById('fillCanvas');
   const brushCanvasEl = document.getElementById('brushCanvas');
+  const lineArtCanvasEl = document.getElementById('lineArtCanvas');
   if(fillCanvas) ctx.drawImage(fillCanvas, 0, 0);
   if(brushCanvasEl) ctx.drawImage(brushCanvasEl, 0, 0);
+  if(lineArtCanvasEl) ctx.drawImage(lineArtCanvasEl, 0, 0);
 
-  const svg = document.getElementById('artboardSvg');
-  if(!svg){ callback(composite.toDataURL('image/png')); return; }
-  const svgStr = new XMLSerializer().serializeToString(svg);
-  const blob = new Blob([svgStr], { type: 'image/svg+xml;charset=utf-8' });
-  const url = URL.createObjectURL(blob);
-  const img = new Image();
-  img.onload = () => {
-    ctx.drawImage(img, 0, 0, RASTER_SIZE, RASTER_SIZE);
-    URL.revokeObjectURL(url);
-    callback(composite.toDataURL('image/png'));
-  };
-  img.onerror = () => callback(composite.toDataURL('image/png')); // still show fill/brush even if the line-art layer fails to rasterize
-  img.src = url;
+  callback(composite.toDataURL('image/png'));
 }
 
 // ---------------------------------------------------------------------------
 // FILL — flood fill using the exact same region-mask engine as Locked Brush.
 // Renders onto #fillCanvas (the bottom-most visual layer — see index.html),
-// never touching the immutable line art SVG or #brushCanvas above it.
+// never touching the immutable #lineArtCanvas or #brushCanvas above it.
 // ---------------------------------------------------------------------------
 function performFillAt(px, py){
   if(!barrierMaskReady) return;
@@ -815,8 +882,8 @@ function performFillAt(px, py){
 
   const canvas = document.getElementById('fillCanvas');
   const ctx = canvas.getContext('2d');
-  const before = ctx.getImageData(0, 0, RASTER_SIZE, RASTER_SIZE);
-  const after = ctx.createImageData(RASTER_SIZE, RASTER_SIZE);
+  const before = ctx.getImageData(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
+  const after = ctx.createImageData(ARTWORK_SIZE, ARTWORK_SIZE);
   after.data.set(before.data);
   const [r, g, b] = hexToRgbArr(activeColor);
   for(let i = 0; i < mask.length; i++){
@@ -881,7 +948,7 @@ function drawStroke(ctx, stroke){
     return;
   }
   const temp = document.createElement('canvas');
-  temp.width = RASTER_SIZE; temp.height = RASTER_SIZE;
+  temp.width = ARTWORK_SIZE; temp.height = ARTWORK_SIZE;
   const tctx = temp.getContext('2d');
   strokePath(tctx, stroke);
   tctx.globalCompositeOperation = 'destination-in';
@@ -893,7 +960,7 @@ function redrawBrushCanvas(){
   const canvas = document.getElementById('brushCanvas');
   if(!canvas) return;
   const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, RASTER_SIZE, RASTER_SIZE);
+  ctx.clearRect(0, 0, ARTWORK_SIZE, ARTWORK_SIZE);
   strokesList.forEach(stroke => drawStroke(ctx, stroke));
 }
 
@@ -921,9 +988,9 @@ function armEyedropper(){
 // Layered sampling, topmost-visible-layer-wins — matches the actual visual
 // stack (line art above Brush above Fill above background white).
 function sampleColorAt(px, py){
-  const x = Math.max(0, Math.min(RASTER_SIZE - 1, Math.round(px)));
-  const y = Math.max(0, Math.min(RASTER_SIZE - 1, Math.round(py)));
-  if(barrierMaskReady && barrierMask && barrierMask[y * RASTER_SIZE + x]) return '#111111';
+  const x = Math.max(0, Math.min(ARTWORK_SIZE - 1, Math.round(px)));
+  const y = Math.max(0, Math.min(ARTWORK_SIZE - 1, Math.round(py)));
+  if(barrierMaskReady && barrierMask && barrierMask[y * ARTWORK_SIZE + x]) return '#111111';
   const brushPixel = document.getElementById('brushCanvas').getContext('2d').getImageData(x, y, 1, 1).data;
   if(brushPixel[3] > 0) return rgbToHex(brushPixel[0], brushPixel[1], brushPixel[2]);
   const fillPixel = document.getElementById('fillCanvas').getContext('2d').getImageData(x, y, 1, 1).data;
@@ -1213,7 +1280,6 @@ if(brushCanvasEl){
   brushCanvasEl.addEventListener('pointerup', onArtboardPointerUp);
   brushCanvasEl.addEventListener('pointercancel', onArtboardPointerCancel);
 }
-buildBarrierMask(); // async — see barrierMaskReady; only one real artwork in this prototype, so once is enough
 
 const hueRingWrap = document.getElementById('hueRingWrap');
 if(hueRingWrap){
@@ -1276,7 +1342,7 @@ function enableDragScroll(container){
 
 document.querySelectorAll('.featured-row, .library-filters').forEach(enableDragScroll);
 
-// Home is the initially-active screen in static markup — showScreen() is
-// never called for that first render, so the Continue card needs one
-// explicit initial render to match the seeded progressStore state.
-renderHomeContinue();
+// Kicks off the real content load — Home category sections, the Library
+// grid, and the Continue card (which needs both LESSONS_BY_ID and the seeded
+// progressStore) all render once this resolves. See loadContent() above.
+loadContent();

@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260816-focus-baseline-fix">
+<link rel="stylesheet" href="styles.css?v=20260816-real-content-pass">
 </head>
 <body>
 <div class="prototype-shell">
@@ -70,17 +70,7 @@
             <h2>Manga</h2>
             <button data-testid="home-see-all-manga" onclick="openLibrary('manga')">See all</button>
           </div>
-          <div class="featured-row" data-testid="home-manga-row">
-            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_001" onclick="openArtwork('draw_manga_001')" aria-label="Moon Samurai">
-              <div class="thumb thumb-lilac">☾</div>
-            </button>
-            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_002" onclick="openArtwork('draw_manga_002')" aria-label="Star Racer">
-              <div class="thumb thumb-blue">☆</div>
-            </button>
-            <button class="art-card" data-category="manga" data-testid="drawing-card-draw_manga_003" onclick="openArtwork('draw_manga_003')" aria-label="Ink Fox">
-              <div class="thumb thumb-pink">✎</div>
-            </button>
-          </div>
+          <div class="featured-row" data-testid="home-manga-row"></div>
         </section>
 
         <section class="home-category-section"
@@ -91,17 +81,7 @@
             <h2>Animal</h2>
             <button data-testid="home-see-all-animal" onclick="openLibrary('animal')">See all</button>
           </div>
-          <div class="featured-row" data-testid="home-animal-row">
-            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_001" onclick="openArtwork('draw_animals_001')" aria-label="Little Elephant">
-              <div class="thumb thumb-pink"><img src="assets/elephant-lineart.svg"></div>
-            </button>
-            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_002" onclick="openArtwork('draw_animals_002')" aria-label="Penguin Family">
-              <div class="thumb thumb-blue">☁</div>
-            </button>
-            <button class="art-card" data-category="animal" data-testid="drawing-card-draw_animals_003" onclick="openArtwork('draw_animals_003')" aria-label="Baby Deer">
-              <div class="thumb thumb-green">♧</div>
-            </button>
-          </div>
+          <div class="featured-row" data-testid="home-animal-row"></div>
         </section>
 
         <section class="home-category-section"
@@ -112,17 +92,7 @@
             <h2>Nature</h2>
             <button data-testid="home-see-all-nature" onclick="openLibrary('nature')">See all</button>
           </div>
-          <div class="featured-row" data-testid="home-nature-row">
-            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_001" onclick="openArtwork('draw_nature_001')" aria-label="Moon Flowers">
-              <div class="thumb thumb-lilac">✿</div>
-            </button>
-            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_002" onclick="openArtwork('draw_nature_002')" aria-label="Flower Fairy">
-              <div class="thumb thumb-pink">✾</div>
-            </button>
-            <button class="art-card" data-category="nature" data-testid="drawing-card-draw_nature_003" onclick="openArtwork('draw_nature_003')" aria-label="Misty Forest">
-              <div class="thumb thumb-green">♣</div>
-            </button>
-          </div>
+          <div class="featured-row" data-testid="home-nature-row"></div>
         </section>
       </div>
       <nav class="bottom-nav" data-component-id="CMP-GLOBAL-BOTTOM-NAV">
@@ -216,50 +186,14 @@
           <button data-testid="library-filter-food" onclick="filterLibrary('food', this)">Food</button>
           <button data-testid="library-filter-manga" onclick="filterLibrary('manga', this)">Manga</button>
           <button data-testid="library-filter-nature" onclick="filterLibrary('nature', this)">Nature</button>
+          <button data-testid="library-filter-dumpling" onclick="filterLibrary('dumpling', this)">Dumpling</button>
         </div>
 
         <div class="drawing-grid"
           data-component-id="CMP-LIBRARY-GRID"
           data-requirement="REQ-LIB-001"
           data-testid="library-grid"
-          data-active-filter="all">
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="animal" data-testid="drawing-card-draw_animals_001" onclick="openArtwork('draw_animals_001')">
-            <div class="thumb thumb-pink"><img src="assets/elephant-lineart.svg"></div><b>Little Elephant</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="animal" data-testid="drawing-card-draw_animals_002" onclick="openArtwork('draw_animals_002')">
-            <div class="thumb thumb-blue">☁</div><b>Penguin Family</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="animal" data-testid="drawing-card-draw_animals_003" onclick="openArtwork('draw_animals_003')">
-            <div class="thumb thumb-green">♧</div><b>Baby Deer</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="food" data-testid="drawing-card-draw_food_001" onclick="openArtwork('draw_food_001')">
-            <div class="thumb thumb-blue">◍</div><b>Donut Stack</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="food" data-testid="drawing-card-draw_food_002" onclick="openArtwork('draw_food_002')">
-            <div class="thumb thumb-pink">✤</div><b>Cupcake Swirl</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="food" data-testid="drawing-card-draw_food_003" onclick="openArtwork('draw_food_003')">
-            <div class="thumb thumb-green">✧</div><b>Berry Bowl</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="manga" data-testid="drawing-card-draw_manga_001" onclick="openArtwork('draw_manga_001')">
-            <div class="thumb thumb-lilac">☾</div><b>Moon Samurai</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="manga" data-testid="drawing-card-draw_manga_002" onclick="openArtwork('draw_manga_002')">
-            <div class="thumb thumb-blue">☆</div><b>Star Racer</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="manga" data-testid="drawing-card-draw_manga_003" onclick="openArtwork('draw_manga_003')">
-            <div class="thumb thumb-pink">✎</div><b>Ink Fox</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="nature" data-testid="drawing-card-draw_nature_001" onclick="openArtwork('draw_nature_001')">
-            <div class="thumb thumb-lilac">✿</div><b>Moon Flowers</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="nature" data-testid="drawing-card-draw_nature_002" onclick="openArtwork('draw_nature_002')">
-            <div class="thumb thumb-pink">✾</div><b>Flower Fairy</b>
-          </button>
-          <button class="drawing-card" data-component-id="CMP-LIBRARY-DRAWING-CARD" data-category="nature" data-testid="drawing-card-draw_nature_003" onclick="openArtwork('draw_nature_003')">
-            <div class="thumb thumb-green">♣</div><b>Misty Forest</b>
-          </button>
-        </div>
+          data-active-filter="all"></div>
 
         <div class="empty-state" data-testid="library-empty-state" hidden>
           <p>No artwork in this category yet.</p>
@@ -420,32 +354,20 @@
         data-requirement="REQ-EDITOR-003"
         data-testid="coloring-canvas">
         <div class="artboard" id="artboard" data-testid="editor-zoom-state" data-state="default">
-          <!-- Fill/Brush are raster layers (bottom to top: fillCanvas, then
-               brushCanvas), so any connected region the flood-fill engine
-               finds — including the white background outside the subject —
-               can be painted, not just a fixed set of pre-drawn SVG shapes.
-               The SVG on top (pointer-events:none — see styles.css) is the
-               single immutable line-art source, both for display AND as the
-               barrier geometry rasterized by buildBarrierMask(); it is never
-               modified by Fill/Brush/Erase. See report for the engine. -->
-          <canvas id="fillCanvas" width="360" height="360" data-testid="editor-fill-canvas" aria-hidden="true"></canvas>
-          <canvas id="brushCanvas" width="360" height="360" data-testid="editor-brush-layer" aria-hidden="true"></canvas>
-          <svg id="artboardSvg" viewBox="0 0 360 360" aria-label="Elephant coloring page">
-            <g class="lineart" fill="none" stroke="#111" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M116 86c-28-35-72-19-72 27 0 36 25 62 57 54"/>
-              <path d="M244 86c28-35 72-19 72 27 0 36-25 62-57 54"/>
-              <path d="M132 82c-7-20 9-31 24-20 4-15 25-16 29-1 13-8 30 0 28 18"/>
-              <path d="M101 153c0-62 32-93 79-93s79 31 79 93c0 43-21 79-57 89v40c0 12-10 22-22 22s-22-10-22-22v-39c-36-8-57-45-57-90z"/>
-              <path d="M161 160c-4 31 4 52 20 52 18 0 22-23 17-52"/>
-              <circle cx="143" cy="142" r="11"/>
-              <circle cx="217" cy="142" r="11"/>
-              <path d="M130 245c-12 22-15 43-7 61 4 9 16 12 26 6"/>
-              <path d="M230 245c12 22 15 43 7 61-4 9-16 12-26 6"/>
-            </g>
-            <path class="fill-region" id="region_001" d="M150 254c14-19 47-19 61 0-12 18-22 27-31 27s-18-9-30-27z"
-              fill="none" stroke="#111" stroke-width="6"/>
-            <circle class="fill-region" id="region_002" cx="180" cy="247" r="8" fill="none" stroke="#111" stroke-width="3"/>
-          </svg>
+          <!-- Fill/Brush/line-art are raster layers, bottom to top:
+               fillCanvas, brushCanvas, lineArtCanvas. Any connected region
+               the flood-fill engine finds in the CURRENT lesson's artwork —
+               including the white background outside the subject — can be
+               painted, not just a fixed set of shapes. lineArtCanvas
+               (pointer-events:none — see styles.css) is drawn fresh from the
+               real 800×800 PNG each time a lesson opens: dark pixels stay
+               opaque black, everything else becomes fully transparent, so
+               fillCanvas/brushCanvas show through everywhere except the
+               actual ink. The source PNG itself is never modified — see
+               loadLessonArtwork()/buildBarrierMask() in app.js. -->
+          <canvas id="fillCanvas" width="800" height="800" data-testid="editor-fill-canvas" aria-hidden="true"></canvas>
+          <canvas id="brushCanvas" width="800" height="800" data-testid="editor-brush-layer" aria-hidden="true"></canvas>
+          <canvas id="lineArtCanvas" width="800" height="800" data-testid="editor-line-art" aria-hidden="true"></canvas>
         </div>
 
         <div class="tool-rail"
@@ -798,6 +720,6 @@
     </section>
   </div>
 </div>
-<script src="app.js?v=20260816-focus-baseline-fix"></script>
+<script src="app.js?v=20260816-real-content-pass"></script>
 </body>
 </html>
