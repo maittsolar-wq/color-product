@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Coloring App — Hi‑Fi Step 6</title>
-<link rel="stylesheet" href="styles.css?v=20260816-final-functional-pass">
+<link rel="stylesheet" href="styles.css?v=20260816-hsv-picker-fix">
 </head>
 <body>
 <div class="prototype-shell">
@@ -502,10 +502,24 @@
             </button>
           </header>
           <div class="color-picker-card">
+            <!-- Small "current draft" swatch — kept for the existing
+                 color-picker-preview contract selector; the ring+square below
+                 are the actual HSV picker per the approved reference. -->
+            <div class="color-picker-preview-chip" id="colorPreview" data-testid="color-picker-preview" aria-hidden="true"></div>
             <div class="hue-ring-wrap" id="hueRingWrap" data-testid="color-picker-hue-ring">
               <div class="hue-ring"></div>
-              <div class="hue-center-preview" id="colorPreview" data-testid="color-picker-preview"></div>
               <button class="hue-handle" id="hueHandle" data-testid="color-picker-hue-handle" aria-label="Hue handle"></button>
+              <!-- Inner Saturation/Value square: horizontal = Saturation
+                   (0% left -> 100% right), vertical = Value/Brightness (100%
+                   top -> 0% bottom). Base color is the pure current Hue; a
+                   white->transparent (left->right) gradient and a
+                   transparent->black (top->bottom) gradient sit on top (see
+                   styles.css) so every corner lands exactly on white/hue/
+                   black/black — including true #000000 and #FFFFFF, which a
+                   hue-only ring can never represent. -->
+              <div class="sv-square-wrap" id="svSquareWrap" data-testid="color-picker-sv-square">
+                <button class="sv-handle" id="svHandle" data-testid="color-picker-sv-handle" aria-label="Saturation and brightness handle"></button>
+              </div>
             </div>
           </div>
         </div>
@@ -752,6 +766,6 @@
     </section>
   </div>
 </div>
-<script src="app.js?v=20260816-final-functional-pass"></script>
+<script src="app.js?v=20260816-hsv-picker-fix"></script>
 </body>
 </html>

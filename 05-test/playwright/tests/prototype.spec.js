@@ -856,7 +856,7 @@ test('TC-EDITOR-COLORPICKER-002 — Picking a hue updates the draft/preview live
   await page.locator('.playful').click();
   await pickHueAtRightEdge(page);
 
-  const draft = await page.evaluate(() => draftColor);
+  const draft = await page.evaluate(() => pickerState.draftColor);
   const stillActive = await page.evaluate(() => activeColor);
   expect(draft).not.toBe(before);
   expect(stillActive).toBe(before); // Editor's activeColor is untouched while the sheet is open
@@ -885,7 +885,7 @@ test('TC-EDITOR-COLORPICKER-004/005 — Save commits the draft to activeColor an
 
   await page.locator('.playful').click();
   await pickHueAtRightEdge(page);
-  const draft = await page.evaluate(() => draftColor);
+  const draft = await page.evaluate(() => pickerState.draftColor);
   await page.locator('[data-testid="color-picker-save"]').click();
 
   await expect(page.locator('[data-testid="color-picker-overlay"]')).toBeHidden();
@@ -924,7 +924,7 @@ test('TC-EDITOR-COLORPICKER-007 — Save always replaces + focuses the right-mos
 
   await page.locator('.playful').click();
   await pickHueAtRightEdge(page);
-  const draft = await page.evaluate(() => draftColor);
+  const draft = await page.evaluate(() => pickerState.draftColor);
   await page.locator('[data-testid="color-picker-save"]').click();
 
   const customBtn = page.locator('[data-testid="palette-color-custom"]');
@@ -2478,5 +2478,177 @@ test.describe('IV. Profile Artwork Detail Popup', () => {
     await active(page).locator('[data-testid="drawing-card-animal_babydeer"]').click();
     await expect(page.locator('[data-screen-id="SCR-EDITOR-001"]')).toHaveClass(/active/);
     await expect(page.locator('[data-testid="profile-artwork-popup"]')).toBeHidden();
+  });
+});
+
+// HSV picker geometry helpers. The S/V square is inset:26% inside
+// #hueRingWrap with NO border-radius (intentional — see the sv-square-wrap
+// comment in styles.css: a rounded corner there clips the exact geometric
+// corner out of the hit-test area, confirmed via elementsFromPoint(), and
+// the picker explicitly requires literal-corner taps to reach true
+// white/black). fracX/fracY of exactly 0/1 land inside SV_EDGE_SNAP's ~3%
+// forgiveness band in app.js, so real edge/corner taps still resolve to
+// exact 0 or 1 — matching how a real fingertip can never land on the
+// mathematically exact boundary pixel either.
+async function svPoint(page, fracX, fracY) {
+  const box = await page.locator('#svSquareWrap').boundingBox();
+  return { x: box.x + box.width * fracX, y: box.y + box.height * fracY };
+}
+
+// 0deg = up (12 o'clock), increasing clockwise — matches the app's own
+// conic-gradient/positionHueHandle() convention.
+async function huePoint(page, deg) {
+  const box = await page.locator('#hueRingWrap').boundingBox();
+  const cx = box.x + box.width / 2, cy = box.y + box.height / 2;
+  const r = box.width / 2 * 0.905;
+  const rad = deg * Math.PI / 180;
+  return { x: cx + r * Math.sin(rad), y: cy - r * Math.cos(rad) };
+}
+
+async function tapAt(page, point) {
+  await page.mouse.move(point.x, point.y);
+  await page.mouse.down();
+  await page.mouse.up();
+}
+
+test.describe('V. HSV Color Picker', () => {
+  test('TC-EDITOR-HSV-001 — S/V square top-left corner selects true white; Save commits it and the custom swatch is clearly visible/selected', async ({ page }) => {
+    await openHome(page);
+    await active(page).locator(`[data-testid="drawing-card-${LESSON_A}"]`).click();
+
+    await page.locator('.playful').click();
+    await tapAt(page, await svPoint(page, 0, 0));
+    await expect.poll(() => page.evaluate(() => pickerState.draftColor)).toBe('#FFFFFF');
+
+    await page.locator('[data-testid="color-picker-save"]').click();
+    await expect(page.locator('[data-testid="color-picker-overlay"]')).toBeHidden();
+    expect(await page.evaluate(() => activeColor)).toBe('#FFFFFF');
+
+    const custom = page.locator('[data-testid="palette-color-custom"]');
+    await expect(custom).toHaveAttribute('data-color', '#FFFFFF');
+    await expect(custom).toHaveClass(/selected/);
+    // The selection ring must use the purple accent, not the swatch's own
+    // (white) color — otherwise a selected white swatch's ring is invisible
+    // against the picker's white background.
+    const ringColor = await custom.locator('.swatch').evaluate(el => getComputedStyle(el).boxShadow);
+    expect(ringColor).not.toMatch(/rgb\(255, 255, 255\).*rgb\(255, 255, 255\)/); // not white-on-white
+  });
+
+  test('TC-EDITOR-HSV-002 — S/V square bottom edge selects true black regardless of Hue, and the swatch remains visually clear when selected', async ({ page }) => {
+    await openHome(page);
+    await active(page).locator(`[data-testid="drawing-card-${LESSON_A}"]`).click();
+
+    await page.locator('.playful').click();
+    await tapAt(page, await huePoint(page, 200)); // an arbitrary hue — must not matter once Value hits 0
+    // 0.99, not the literal 1.0: a real pointer can never land on the exact
+    // mathematical box.height boundary (getBoundingClientRect()'s bottom
+    // edge is exclusive), and SV_EDGE_SNAP in app.js is what turns "near the
+    // bottom edge" into an exact Value=0 — see the sv-square-wrap/
+    // svFromPointer comments.
+    await tapAt(page, await svPoint(page, 0.5, 0.99));
+    await expect.poll(() => page.evaluate(() => pickerState.draftColor)).toBe('#000000');
+
+    await page.locator('[data-testid="color-picker-save"]').click();
+    expect(await page.evaluate(() => activeColor)).toBe('#000000');
+    const custom = page.locator('[data-testid="palette-color-custom"]');
+    await expect(custom).toHaveAttribute('data-color', '#000000');
+    await expect(custom).toHaveClass(/selected/);
+  });
+
+  test('TC-EDITOR-HSV-003 — Saturation=0 at mid-Value produces a neutral gray (R=G=B), independent of Hue', async ({ page }) => {
+    await openHome(page);
+    await active(page).locator(`[data-testid="drawing-card-${LESSON_A}"]`).click();
+
+    await page.locator('.playful').click();
+    await tapAt(page, await huePoint(page, 45));
+    await tapAt(page, await svPoint(page, 0, 0.5));
+    const draft = await page.evaluate(() => pickerState.draftColor);
+    const r = parseInt(draft.slice(1, 3), 16), g = parseInt(draft.slice(3, 5), 16), b = parseInt(draft.slice(5, 7), 16);
+    expect(r).toBe(g);
+    expect(g).toBe(b);
+    expect(await page.evaluate(() => pickerState.saturation)).toBe(0);
+  });
+
+  test('TC-EDITOR-HSV-004 — Choosing a Hue + high Saturation/Value paints and fills with the exact chosen color', async ({ page }) => {
+    await openHome(page);
+    await active(page).locator(`[data-testid="drawing-card-${LESSON_A}"]`).click();
+    await waitForBarrierMask(page);
+    const { interior } = await calibrateLesson(page);
+
+    await page.locator('.playful').click();
+    await tapAt(page, await huePoint(page, 120)); // green
+    await tapAt(page, await svPoint(page, 0.85, 0.15));
+    const chosen = await page.evaluate(() => pickerState.draftColor);
+    await page.locator('[data-testid="color-picker-save"]').click();
+    expect(await page.evaluate(() => activeColor)).toBe(chosen);
+
+    const p = await artPoint(page, interior.x, interior.y);
+    await page.mouse.move(p.sx, p.sy);
+    await page.mouse.down();
+    await page.mouse.up();
+    const brushed = await readCanvasPixel(page, 'editor-brush-layer', interior.x, interior.y);
+    expect(`#${[brushed.r, brushed.g, brushed.b].map(n => n.toString(16).padStart(2, '0')).join('').toUpperCase()}`).toBe(chosen);
+
+    await page.locator('[data-testid="tool-fill"]').click();
+    const { background } = await calibrateLesson(page);
+    await tapInArtwork(page, background.x, background.y);
+    const filled = await readCanvasPixel(page, 'editor-fill-canvas', background.x, background.y);
+    expect(`#${[filled.r, filled.g, filled.b].map(n => n.toString(16).padStart(2, '0')).join('').toUpperCase()}`).toBe(chosen);
+  });
+
+  test('TC-EDITOR-HSV-005 — Back discards S/V + Hue changes; activeColor and the custom slot are untouched', async ({ page }) => {
+    await openHome(page);
+    await active(page).locator(`[data-testid="drawing-card-${LESSON_A}"]`).click();
+    const original = await page.evaluate(() => activeColor);
+
+    await page.locator('.playful').click();
+    await tapAt(page, await huePoint(page, 300));
+    await tapAt(page, await svPoint(page, 0.9, 0.9));
+    await page.locator('[data-testid="color-picker-back"]').click();
+
+    await expect(page.locator('[data-testid="color-picker-overlay"]')).toBeHidden();
+    expect(await page.evaluate(() => activeColor)).toBe(original);
+  });
+
+  test('TC-EDITOR-HSV-006 — Reopening Playful positions both handles at the CURRENT activeColor (HSV round-trip)', async ({ page }) => {
+    await openHome(page);
+    await active(page).locator(`[data-testid="drawing-card-${LESSON_A}"]`).click();
+
+    await page.locator('.playful').click();
+    await tapAt(page, await huePoint(page, 210));
+    await tapAt(page, await svPoint(page, 0.6, 0.35));
+    const chosen = await page.evaluate(() => pickerState.draftColor);
+    await page.locator('[data-testid="color-picker-save"]').click();
+
+    await page.locator('.playful').click();
+    const reconstructed = await page.evaluate(() => hsvToHex(pickerState.hue, pickerState.saturation, pickerState.value));
+    expect(reconstructed).toBe(chosen);
+    await page.locator('[data-testid="color-picker-back"]').click();
+  });
+
+  test('TC-EDITOR-HSV-007 — Eyedropper sampling black, then reopening Playful, positions the S/V handle at true black (Saturation=0, Value=0)', async ({ page }) => {
+    await openHome(page);
+    await active(page).locator(`[data-testid="drawing-card-${LESSON_A}"]`).click();
+    await waitForBarrierMask(page);
+    const { background } = await calibrateLesson(page);
+
+    await page.evaluate(() => { activeColor = '#000000'; });
+    await page.locator('[data-testid="tool-fill"]').click();
+    await tapInArtwork(page, background.x, background.y);
+
+    await page.locator('[aria-label="Eyedropper"]').click();
+    const p = await artPoint(page, background.x, background.y);
+    await page.mouse.move(p.sx, p.sy);
+    await page.mouse.down();
+    await page.mouse.up();
+    expect(await page.evaluate(() => activeColor)).toBe('#000000');
+
+    await page.locator('.playful').click();
+    const hsv = await page.evaluate(() => ({ s: pickerState.saturation, v: pickerState.value }));
+    expect(hsv.s).toBe(0);
+    expect(hsv.v).toBe(0);
+    const svHandleTop = await page.locator('#svHandle').evaluate(el => parseFloat(el.style.top));
+    const svSquareHeight = await page.locator('#svSquareWrap').evaluate(el => el.getBoundingClientRect().height);
+    assertClose(svHandleTop, svSquareHeight, 3); // handle sits at the very bottom (Value=0)
   });
 });

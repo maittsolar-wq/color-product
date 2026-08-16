@@ -126,7 +126,14 @@
 .color{flex:0 0 auto;width:44px;height:44px;border-radius:50%;border:0;background:transparent;display:grid;place-items:center;cursor:pointer}
 .color:focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:50%}
 .color .swatch{width:26px;height:26px;border-radius:50%;background:var(--c);box-shadow:0 0 0 1px rgba(0,0,0,.08)}
-.color.selected .swatch{box-shadow:0 0 0 3px #fff,0 0 0 5px var(--c)}
+/* The outer selection ring is always the PURPLE accent, never var(--c) (the
+   swatch's own color) — using the swatch's own color made a selected WHITE
+   swatch's ring disappear entirely against the picker's white background.
+   The inner 1px rgba(0,0,0,.08) boundary (from the base rule above, kept
+   here too) keeps a white swatch visibly delineated even before the purple
+   ring; a selected BLACK swatch stays clear via its own strong contrast
+   plus the same purple ring. */
+.color.selected .swatch{box-shadow:0 0 0 1px rgba(0,0,0,.08),0 0 0 4px #fff,0 0 0 6px var(--accent)}
 .editor-quick{display:grid;grid-template-columns:38px 38px 1fr 38px 38px;gap:8px;align-items:center;padding:2px 2px 0}
 .editor-quick button{height:38px;border:1px solid var(--editor-control-border);background:#fff;border-radius:12px;color:#5B5B5E;display:grid;place-items:center;cursor:pointer;transition:background-color .15s ease}
 .editor-quick button:hover{background:#F7F7F8}
@@ -227,12 +234,29 @@
 .color-picker-overlay[hidden]{display:none}
 .color-picker-sheet{width:100%;max-height:54%;background:#fff;border-radius:30px 30px 0 0;padding:16px 18px max(18px,env(safe-area-inset-bottom));box-shadow:0 -8px 24px rgba(0,0,0,.14);display:flex;flex-direction:column;box-sizing:border-box}
 .color-picker-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.color-picker-card{background:#fff;border:1px solid #ECECEE;box-shadow:0 4px 16px rgba(0,0,0,.06);border-radius:20px;margin:0 4px;padding:28px;display:grid;place-items:center}
+.color-picker-card{background:#fff;border:1px solid #ECECEE;box-shadow:0 4px 16px rgba(0,0,0,.06);border-radius:20px;margin:0 4px;padding:24px 28px 28px;display:grid;place-items:center;gap:16px}
+.color-picker-preview-chip{width:30px;height:30px;border-radius:50%;box-shadow:inset 0 0 0 1px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.12);background:#168B2D}
 .hue-ring-wrap{position:relative;width:min(220px,52vw);height:min(220px,52vw);touch-action:none}
 .hue-ring{position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,#ff0000,#ff8a00,#ffea00,#37ff00,#00e5ff,#0026ff,#8f00ff,#ff00c8,#ff0000)}
-.hue-ring::after{content:'';position:absolute;inset:15%;border-radius:50%;background:#fff}
-.hue-center-preview{position:absolute;left:50%;top:50%;width:42%;height:42%;border-radius:50%;transform:translate(-50%,-50%);box-shadow:inset 0 0 0 1px rgba(0,0,0,.08);background:#168B2D;pointer-events:none}
-.hue-handle{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25);transform:translate(-50%,-50%);cursor:pointer;padding:0}
+.hue-handle{position:absolute;width:24px;height:24px;border-radius:50%;background:#fff;border:3px solid #fff;box-shadow:0 0 0 2px rgba(0,0,0,.15),0 2px 6px rgba(0,0,0,.25);transform:translate(-50%,-50%);cursor:pointer;padding:0;z-index:2}
+/* Inner Saturation/Value square — inset far enough (~26%) that its corners
+   stay inside the Hue ring's inner edge instead of poking into the rainbow
+   band (a square's corners reach further from center than its sides, unlike
+   the old plain-white circle cutout this replaces). Layered backgrounds
+   (topmost first): transparent->black vertically, white->transparent
+   horizontally, over a solid --hue-color base — this is what produces the
+   required 4 corners (white / pure hue / black / black) and every true
+   in-between shade, including neutral grays, with no separate DOM layers. */
+/* Sharp corners (no border-radius) are intentional, not just unstyled — a
+   rounded corner here would clip the exact geometric corner out of the
+   element's hit-test area (confirmed via elementsFromPoint: a literal-corner
+   tap fell through to the Hue ring behind it), and the task explicitly
+   requires tapping the literal top-left/bottom corners to reliably reach
+   true white/black. */
+.sv-square-wrap{position:absolute;inset:26%;touch-action:none;
+  background-image:linear-gradient(to bottom,transparent,#000),linear-gradient(to right,#fff,transparent);
+  background-color:var(--hue-color,#ff0000)}
+.sv-handle{position:absolute;width:20px;height:20px;border-radius:50%;background:transparent;border:3px solid #fff;box-shadow:0 0 0 1.5px rgba(0,0,0,.35),0 2px 6px rgba(0,0,0,.3);transform:translate(-50%,-50%);cursor:pointer;padding:0;pointer-events:none}
 
 /* Eyedropper "armed"/sampling affordance — next artboard tap/drag samples,
    not draw/fill. Covers both the topbar (.editor-icon-btn) and the bottom

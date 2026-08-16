@@ -936,6 +936,53 @@ function rgbToHex(r, g, b){
   return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
+// --- HSV <-> RGB/HEX ---------------------------------------------------
+// Reliable numeric conversion (not a CSS-angle approximation) so the Color
+// Picker can represent every real color, including exact #000000/#FFFFFF
+// and neutral grays — a hue-only ring can never reach those since it has no
+// saturation/value axis at all.
+function hsvToRgb(h, s, v){
+  const c = v * s;
+  const hh = ((h % 360) + 360) % 360 / 60;
+  const x = c * (1 - Math.abs((hh % 2) - 1));
+  let r = 0, g = 0, b = 0;
+  if(hh < 1){ r = c; g = x; b = 0; }
+  else if(hh < 2){ r = x; g = c; b = 0; }
+  else if(hh < 3){ r = 0; g = c; b = x; }
+  else if(hh < 4){ r = 0; g = x; b = c; }
+  else if(hh < 5){ r = x; g = 0; b = c; }
+  else { r = c; g = 0; b = x; }
+  const m = v - c;
+  return [Math.round((r + m) * 255), Math.round((g + m) * 255), Math.round((b + m) * 255)];
+}
+
+function hsvToHex(h, s, v){
+  const [r, g, b] = hsvToRgb(h, s, v);
+  return rgbToHex(r, g, b);
+}
+
+function rgbToHsv(r, g, b){
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  let h = 0;
+  if(d !== 0){
+    if(max === r) h = ((g - b) / d) % 6;
+    else if(max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if(h < 0) h += 360;
+  }
+  const v = max;
+  const s = max === 0 ? 0 : d / max;
+  return { h, s, v };
+}
+
+function hexToHsv(hex){
+  const [r, g, b] = hexToRgbArr(hex);
+  return rgbToHsv(r, g, b);
+}
+
 // Composites fillCanvas + brushCanvas + lineArtCanvas into one flat image
 // (for the Completion preview and for dynamic progress-thumbnail previews —
 // see updateLessonPreview() below). All three source layers are already
@@ -1536,34 +1583,55 @@ function panEditorBy(dx, dy){
 }
 
 // --- Color Picker (bottom sheet over SCR-EDITOR-001) ---------------------
-// draft/original color pair per the approved state model: dragging the hue
-// ring only ever updates draftColor + the live preview; activeColor itself
-// is untouched until Save explicitly commits it. Back discards the draft.
-let originalColor = null;
-let draftColor = null;
-let colorPickerDragging = false;
+// HSV-style picker: an outer Hue ring (0-360deg) plus an inner Saturation/
+// Value square, so every real color — including true black/white and
+// neutral grays, which the old hue-only ring could never represent — is
+// reachable. draft/original pair per the approved state model: dragging
+// EITHER handle only ever updates pickerState.draftColor + the live preview;
+// activeColor itself is untouched until Save explicitly commits it, and Back
+// discards the draft entirely (pickerState is only ever read from when
+// re-opening, never persisted).
+let pickerState = { hue: 0, saturation: 1, value: 1, originalColor: null, draftColor: null };
+let hueDragging = false;
+let svDragging = false;
 
+// Opening the picker converts activeColor -> HSV once, so both handles
+// always start positioned exactly at the color currently in use — including
+// after the Eyedropper commits a sampled black/white/gray (setCustomPaletteColor
+// -> applyActiveColor already keeps activeColor authoritative; this just
+// reads it back).
 function openColorPicker(){
-  originalColor = activeColor;
-  draftColor = activeColor;
-  updateColorPickerPreview(draftColor);
-  positionHueHandle(hexToHue(draftColor));
+  pickerState.originalColor = activeColor;
+  pickerState.draftColor = activeColor;
+  const hsv = hexToHsv(activeColor);
+  pickerState.hue = hsv.h;
+  pickerState.saturation = hsv.s;
+  pickerState.value = hsv.v;
+  // Reveal FIRST, then position — positionHueHandle()/positionSvHandle() read
+  // real layout via getBoundingClientRect(), which is 0 for a hidden (display:
+  // none) element; doing this in the same synchronous task means the browser
+  // never actually paints an unpositioned intermediate frame.
   const overlay = document.querySelector('[data-testid="color-picker-overlay"]');
   if(overlay) overlay.hidden = false;
+  updateColorPickerPreview(pickerState.draftColor);
+  positionHueHandle(pickerState.hue);
+  updateSvSquareHue(pickerState.hue);
+  positionSvHandle(pickerState.saturation, pickerState.value);
 }
 
 function closeColorPicker(save){
   // Save: setCustomPaletteColor() replaces + focuses the right-most custom
-  // slot — the same shared rule Eyedropper release uses (req. 1/7/9). Back:
+  // slot — the same shared rule Eyedropper release uses, and works
+  // identically for black/white/gray/any custom color (req. 1/7/9). Back:
   // activeColor and the palette's focus state were never touched while the
-  // sheet was open (dragging the hue ring only ever wrote draftColor), so
-  // whatever was focused before Save/opening is still exactly what's
+  // sheet was open (dragging either handle only ever wrote pickerState.draftColor),
+  // so whatever was focused before Save/opening is still exactly what's
   // showing — the custom slot is never replaced on Back (req. 2/8).
-  if(save && draftColor){
-    setCustomPaletteColor(draftColor);
+  if(save && pickerState.draftColor){
+    setCustomPaletteColor(pickerState.draftColor);
   }
-  originalColor = null;
-  draftColor = null;
+  pickerState.originalColor = null;
+  pickerState.draftColor = null;
   const overlay = document.querySelector('[data-testid="color-picker-overlay"]');
   if(overlay) overlay.hidden = true;
 }
@@ -1573,28 +1641,18 @@ function updateColorPickerPreview(hex){
   if(preview) preview.style.background = hex;
 }
 
-function hexToHue(hex){
-  const r = parseInt(hex.slice(1,3),16) / 255;
-  const g = parseInt(hex.slice(3,5),16) / 255;
-  const b = parseInt(hex.slice(5,7),16) / 255;
-  const max = Math.max(r,g,b), min = Math.min(r,g,b);
-  if(max === min) return 0;
-  const d = max - min;
-  let h;
-  if(max === r) h = ((g - b) / d) % 6;
-  else if(max === g) h = (b - r) / d + 2;
-  else h = (r - g) / d + 4;
-  h *= 60;
-  return h < 0 ? h + 360 : h;
+// The S/V square's base color (pure, fully-saturated hue) — its white-to-
+// transparent and transparent-to-black gradient overlays (see styles.css)
+// sit on top of this, producing the standard HSV square: white at the
+// saturation=0 edge, black at the value=0 edge, regardless of hue.
+function updateSvSquareHue(hue){
+  const sq = document.getElementById('svSquareWrap');
+  if(sq) sq.style.setProperty('--hue-color', hsvToHex(hue, 1, 1));
 }
 
-function hslToHex(h, s, l){
-  s /= 100; l /= 100;
-  const k = n => (n + h / 30) % 12;
-  const a = s * Math.min(l, 1 - l);
-  const f = n => l - a * Math.max(-1, Math.min(k(n) - 3, Math.min(9 - k(n), 1)));
-  const toHex = x => Math.round(255 * x).toString(16).padStart(2, '0');
-  return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`.toUpperCase();
+function recomputeDraftColor(){
+  pickerState.draftColor = hsvToHex(pickerState.hue, pickerState.saturation, pickerState.value);
+  updateColorPickerPreview(pickerState.draftColor);
 }
 
 // Angle convention matches CSS conic-gradient(from 0deg, ...): 0deg = up
@@ -1606,7 +1664,7 @@ function positionHueHandle(hue){
   if(!wrap || !handle) return;
   const size = wrap.getBoundingClientRect().width || wrap.offsetWidth || 220;
   const cx = size / 2, cy = size / 2;
-  const midRadius = (size / 2) * 0.83;
+  const midRadius = (size / 2) * 0.905; // center of the ring band, outside the inset S/V square
   const rad = hue * Math.PI / 180;
   handle.style.left = `${cx + midRadius * Math.sin(rad)}px`;
   handle.style.top = `${cy - midRadius * Math.cos(rad)}px`;
@@ -1620,19 +1678,19 @@ function hueFromPointer(evt, wrap){
   return deg < 0 ? deg + 360 : deg;
 }
 
-function updateDraftFromPointer(e){
+function updateHueFromPointer(e){
   const wrap = document.getElementById('hueRingWrap');
   if(!wrap) return;
-  const hue = hueFromPointer(e, wrap);
-  draftColor = hslToHex(hue, 88, 55);
-  updateColorPickerPreview(draftColor);
-  positionHueHandle(hue);
+  pickerState.hue = hueFromPointer(e, wrap);
+  positionHueHandle(pickerState.hue);
+  updateSvSquareHue(pickerState.hue);
+  recomputeDraftColor();
 }
 
 function onHueRingPointerDown(e){
-  colorPickerDragging = true;
+  hueDragging = true;
+  updateHueFromPointer(e);
   const wrap = document.getElementById('hueRingWrap');
-  updateDraftFromPointer(e);
   if(wrap && wrap.setPointerCapture && e.pointerId != null){
     try { wrap.setPointerCapture(e.pointerId); } catch(err) { /* not critical for the prototype */ }
   }
@@ -1640,12 +1698,81 @@ function onHueRingPointerDown(e){
 }
 
 function onHueRingPointerMove(e){
-  if(!colorPickerDragging) return;
-  updateDraftFromPointer(e);
+  if(!hueDragging) return;
+  updateHueFromPointer(e);
 }
 
 function onHueRingPointerUp(){
-  colorPickerDragging = false;
+  hueDragging = false;
+}
+
+// x (Saturation, 0=left/1=right) and y (Value, 0=bottom/1=top — CSS "top"
+// runs the opposite way, so this is inverted) both clamped to the square's
+// own bounds, which — combined with setPointerCapture below — is what keeps
+// a drag that continues outside the square from ever producing an
+// out-of-range Saturation/Value (req. 18).
+function positionSvHandle(s, v){
+  const sq = document.getElementById('svSquareWrap');
+  const handle = document.getElementById('svHandle');
+  if(!sq || !handle) return;
+  const rect = sq.getBoundingClientRect();
+  const w = rect.width || sq.offsetWidth || 1;
+  const h = rect.height || sq.offsetHeight || 1;
+  handle.style.left = `${s * w}px`;
+  handle.style.top = `${(1 - v) * h}px`;
+}
+
+// A real fingertip/pointer essentially never lands on the exact mathematical
+// edge pixel — snapping the last ~3% near each edge to a true 0/1 is what
+// actually makes "tap/drag to the bottom edge -> exact #000000" (and the
+// top-left corner -> exact #FFFFFF) reliably reachable, rather than
+// requiring pixel-perfect precision that would otherwise land on
+// near-black/near-white instead of the exact value.
+const SV_EDGE_SNAP = 0.03;
+function svFromPointer(evt, sq){
+  const rect = sq.getBoundingClientRect();
+  let s = rect.width ? (evt.clientX - rect.left) / rect.width : 0;
+  let v = rect.height ? 1 - (evt.clientY - rect.top) / rect.height : 0;
+  s = Math.max(0, Math.min(1, s));
+  v = Math.max(0, Math.min(1, v));
+  if(s < SV_EDGE_SNAP) s = 0; else if(s > 1 - SV_EDGE_SNAP) s = 1;
+  if(v < SV_EDGE_SNAP) v = 0; else if(v > 1 - SV_EDGE_SNAP) v = 1;
+  return { s, v };
+}
+
+function updateSvFromPointer(e){
+  const sq = document.getElementById('svSquareWrap');
+  if(!sq) return;
+  const { s, v } = svFromPointer(e, sq);
+  pickerState.saturation = s;
+  pickerState.value = v;
+  positionSvHandle(s, v);
+  recomputeDraftColor();
+}
+
+// The S/V square is visually nested inside the Hue ring wrap, which has its
+// OWN pointer listeners — stopPropagation() keeps a tap/drag on the square
+// from also bubbling up and being mistaken for a Hue ring interaction.
+function onSvSquarePointerDown(e){
+  svDragging = true;
+  updateSvFromPointer(e);
+  const sq = document.getElementById('svSquareWrap');
+  if(sq && sq.setPointerCapture && e.pointerId != null){
+    try { sq.setPointerCapture(e.pointerId); } catch(err) { /* not critical for the prototype */ }
+  }
+  e.preventDefault();
+  e.stopPropagation();
+}
+
+function onSvSquarePointerMove(e){
+  if(!svDragging) return;
+  updateSvFromPointer(e);
+  e.stopPropagation();
+}
+
+function onSvSquarePointerUp(e){
+  svDragging = false;
+  e.stopPropagation();
 }
 
 const slider = document.getElementById('brushSlider');
@@ -1686,6 +1813,14 @@ if(hueRingWrap){
   hueRingWrap.addEventListener('pointermove', onHueRingPointerMove);
   hueRingWrap.addEventListener('pointerup', onHueRingPointerUp);
   hueRingWrap.addEventListener('pointercancel', onHueRingPointerUp);
+}
+
+const svSquareWrap = document.getElementById('svSquareWrap');
+if(svSquareWrap){
+  svSquareWrap.addEventListener('pointerdown', onSvSquarePointerDown);
+  svSquareWrap.addEventListener('pointermove', onSvSquarePointerMove);
+  svSquareWrap.addEventListener('pointerup', onSvSquarePointerUp);
+  svSquareWrap.addEventListener('pointercancel', onSvSquarePointerUp);
 }
 
 syncFocusIndicators(); // match the seeded default activeTool/activeColor

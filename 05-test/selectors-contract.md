@@ -120,13 +120,15 @@ Lock/Unlock applies per Brush stroke, not to a persistent session-wide region. S
 
 `workspace-settings` (floating canvas-display button) — **removed 2026-08-16.** Deleted, not hidden.
 
-## Editor Color Picker *(new — 2026-08-16)*
+## Editor Color Picker *(new — 2026-08-16; HSV redesign — 2026-08-16)*
 - `color-picker-overlay`
 - `color-picker-back`
 - `color-picker-save`
 - `color-picker-hue-ring`
 - `color-picker-hue-handle`
-- `color-picker-preview`
+- `color-picker-preview` *(small draft-color swatch — kept functional, now positioned above the ring/square instead of centered inside the old hue-only ring's cutout; still updates live via the same `updateColorPickerPreview()`)*
+- `color-picker-sv-square` *(new — 2026-08-16, HSV redesign; the inner Saturation/Value square — horizontal = Saturation, vertical = Value/Brightness — required so black/white/gray are reachable, which the prior hue-only ring could not represent)*
+- `color-picker-sv-handle` *(new — 2026-08-16, HSV redesign; the S/V square's own drag handle, positioned by saturation/value)*
 
 ## Editor Settings *(new — 2026-08-16; distinct sheet from `settings`/`settings-screen` — SCR-SETTINGS-001 is never opened from here)*
 - `editor-settings-overlay`
