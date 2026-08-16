@@ -1,35 +1,41 @@
 import 'package:flutter/foundation.dart';
 
+import '../models/lesson_drawing_state.dart';
 import '../models/lesson_progress.dart';
 
-/// SINGLE SOURCE OF TRUTH for lesson progress state. Prepared now so later
-/// passes (Coloring Engine, persistence, Completion) only need to change
-/// this repository's *implementation* — the interface Home/Library/Profile/
-/// Editor call against should not need to change.
+/// SINGLE SOURCE OF TRUTH for lesson progress state — status AND (as of
+/// Pass 2) in-memory drawing state. Deliberately the SAME repository from
+/// Pass 1, extended rather than duplicated, per the explicit instruction not
+/// to create a second competing progress store.
 ///
-/// Pass 1: in-memory only, starts empty. No fake/seeded progress is created
-/// here — an empty Profile is the correct, honest state until the Coloring
-/// Engine pass actually produces real progress.
+/// Pass 2: drawing state is in-memory only, keyed by lessonId (real disk
+/// persistence is still deferred). No fake/seeded progress is created here.
 abstract class ProgressRepository extends ChangeNotifier {
   LessonProgress? getProgress(String lessonId);
 
   /// Creates or updates a lesson's progress record. `status` defaults to
-  /// keeping the current status (or `inProgress` if none exists yet) — the
-  /// Coloring Engine pass will extend this with real drawing-state
-  /// parameters (regionColors/brushStrokes) once it lands.
+  /// keeping the current status (or `inProgress` if none exists yet).
   void saveProgress(String lessonId, {LessonProgressStatus? status});
 
-  /// Removes a lesson's progress entirely (used by Profile's Restart
-  /// contract). The actual drawing-state reset belongs to the Coloring
-  /// Engine pass — this only clears the progress *record*.
+  /// Removes a lesson's progress record AND its saved drawing state (used by
+  /// Profile's Restart contract) — after this, reopening the lesson starts
+  /// clean, exactly as if it had never been colored.
   void resetProgress(String lessonId);
 
   List<String> get completedLessonIds;
   List<String> get inProgressLessonIds;
+
+  /// The lesson's saved in-memory coloring state, or null if it has never
+  /// been colored (or was just reset). Never another lesson's state — this
+  /// is the mechanism that makes per-lesson isolation actually hold.
+  LessonDrawingState? getDrawingState(String lessonId);
+
+  void saveDrawingState(String lessonId, LessonDrawingState state);
 }
 
 class InMemoryProgressRepository extends ProgressRepository {
   final Map<String, LessonProgress> _progress = {};
+  final Map<String, LessonDrawingState> _drawingStates = {};
 
   @override
   LessonProgress? getProgress(String lessonId) => _progress[lessonId];
@@ -47,7 +53,9 @@ class InMemoryProgressRepository extends ProgressRepository {
 
   @override
   void resetProgress(String lessonId) {
-    if (_progress.remove(lessonId) != null) {
+    final removedProgress = _progress.remove(lessonId) != null;
+    final removedDrawing = _drawingStates.remove(lessonId) != null;
+    if (removedProgress || removedDrawing) {
       notifyListeners();
     }
   }
@@ -63,4 +71,17 @@ class InMemoryProgressRepository extends ProgressRepository {
       .where((p) => p.status == LessonProgressStatus.inProgress)
       .map((p) => p.lessonId)
       .toList();
+
+  @override
+  LessonDrawingState? getDrawingState(String lessonId) => _drawingStates[lessonId];
+
+  @override
+  void saveDrawingState(String lessonId, LessonDrawingState state) {
+    _drawingStates[lessonId] = state;
+    // Drawing-state saves happen continuously (every stroke/fill/undo/redo)
+    // — notifying on each one would trigger excessive rebuilds of anything
+    // listening to the whole repository (Home/Library/Profile only care
+    // about status, not raw pixel data). saveProgress() already notifies
+    // for the state changes those screens actually need to react to.
+  }
 }

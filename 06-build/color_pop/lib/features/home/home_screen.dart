@@ -198,6 +198,7 @@ class _CategorySection extends StatelessWidget {
               itemBuilder: (context, index) {
                 final lesson = lessons[index];
                 return LessonThumbCard(
+                  key: Key('lesson-card-${lesson.id}'),
                   lesson: lesson,
                   width: 112,
                   showTitle: false,

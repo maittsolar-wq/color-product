@@ -115,7 +115,11 @@ class _LibraryScreenState extends State<LibraryScreen> {
                         itemCount: lessons.length,
                         itemBuilder: (context, index) {
                           final LessonModel lesson = lessons[index];
-                          return LessonThumbCard(lesson: lesson, onTap: () => widget.onOpenEditor(lesson.id));
+                          return LessonThumbCard(
+                            key: Key('lesson-card-${lesson.id}'),
+                            lesson: lesson,
+                            onTap: () => widget.onOpenEditor(lesson.id),
+                          );
                         },
                       ),
               ),
