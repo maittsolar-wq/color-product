@@ -1,18 +1,21 @@
 import 'package:flutter/material.dart';
 
 import '../../core/app_data.dart';
+import '../../features/editor/lesson_preview_cache.dart';
 import '../../models/lesson_model.dart';
+import '../../shared/lesson_thumb_card.dart';
 
 /// Profile Artwork Detail Popup — Profile-only (Home/Library never show
 /// this; they always open the Editor directly). Matches the approved
 /// prototype structure: dimmed Profile behind, rounded white modal, X
 /// close, artwork preview, Restart / Color.
 ///
-/// Pass 1 uses the static thumbnail as the preview (dynamic colored
-/// previews depend on the Coloring Engine, not implemented yet). Restart
-/// clears the lesson's progress RECORD via ProgressRepository — the actual
-/// drawing-state reset is the Coloring Engine pass's job; this only
-/// establishes the correct callback contract for it to plug into later.
+/// PASS 3: uses LessonPreviewImage, so the preview here is the CURRENT
+/// composited drawing state (or the static thumbnail if none exists yet) —
+/// the same one Home/Library/Search show, never a separate copy. Restart
+/// clears the lesson's progress record AND in-memory drawing state via
+/// ProgressRepository.resetProgress, plus its cached preview, then reopens
+/// a clean Editor for the same lesson only.
 Future<void> showProfileArtworkPopup({
   required BuildContext context,
   required LessonModel lesson,
@@ -59,7 +62,7 @@ class _ProfileArtworkPopup extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   color: const Color(0xFFF4F4F5),
-                  child: Image.asset(lesson.thumbnailAsset, fit: BoxFit.contain),
+                  child: LessonPreviewImage(lesson: lesson, fit: BoxFit.contain),
                 ),
               ),
             ),
@@ -75,8 +78,13 @@ class _ProfileArtworkPopup extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // Progress-record reset only — see file doc comment.
+                      // Progress-record + drawing-state reset (never
+                      // another lesson's — see ProgressRepository.
+                      // resetProgress) plus its cached dynamic preview, so
+                      // discovery screens revert to the static thumbnail
+                      // immediately rather than showing a stale render.
                       AppData.progressRepository.resetProgress(lesson.id);
+                      LessonPreviewCache.instance.invalidate(lesson.id);
                       Navigator.of(context).pop();
                       onOpenEditor(lesson.id);
                     },

@@ -142,7 +142,7 @@ class _ContinueCard extends StatelessWidget {
                   padding: const EdgeInsets.fromLTRB(4, 12, 16, 12),
                   child: ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.asset(lesson.thumbnailAsset, fit: BoxFit.contain),
+                    child: LessonPreviewImage(lesson: lesson, fit: BoxFit.contain),
                   ),
                 ),
               ),
@@ -190,7 +190,14 @@ class _CategorySection extends StatelessWidget {
             ),
           ),
           SizedBox(
-            height: 128,
+            // PASS 3.2 §1: Home-only thumbnail enlargement (~14% — within
+            // the requested 10-15% range). Library/Search/Profile use
+            // LessonThumbCard without an explicit width (their own
+            // GridView-driven sizing), so this change is scoped to Home
+            // alone. Row height keeps the same 16px slack above the card's
+            // own height (width - 16px padding + 16px padding = width) that
+            // the original 128/112 pairing used.
+            height: 144,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: lessons.length,
@@ -200,7 +207,7 @@ class _CategorySection extends StatelessWidget {
                 return LessonThumbCard(
                   key: Key('lesson-card-${lesson.id}'),
                   lesson: lesson,
-                  width: 112,
+                  width: 128,
                   showTitle: false,
                   onTap: () => onOpenEditor(lesson.id),
                 );

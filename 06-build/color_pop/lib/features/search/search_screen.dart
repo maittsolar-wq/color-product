@@ -37,6 +37,18 @@ class _SearchScreenState extends State<SearchScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // PASS 3.1 fix: Search had NO repository subscription at all, so a
+    // lesson coloured via a result tapped here (pushing the Editor on top,
+    // then popping back to this SAME still-mounted SearchScreen) never
+    // showed its updated preview — this rebuilds Search whenever progress
+    // changes, same fix as Library.
+    return AnimatedBuilder(
+      animation: AppData.progressRepository,
+      builder: (context, _) => _buildScaffold(context),
+    );
+  }
+
+  Widget _buildScaffold(BuildContext context) {
     final repo = AppData.lessonRepository;
     final trimmed = _query.trim();
     final List<LessonModel> matches = trimmed.isEmpty ? const [] : repo.search(trimmed);

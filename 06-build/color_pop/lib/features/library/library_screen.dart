@@ -43,8 +43,12 @@ class _LibraryScreenState extends State<LibraryScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // PASS 3.1 fix: was listening to lessonRepository ONLY, so Library
+    // never rebuilt when coloring progress changed while it stayed mounted
+    // underneath a pushed Editor route (Home/Profile already merged both
+    // repositories correctly — this screen was the one actual bug).
     return AnimatedBuilder(
-      animation: AppData.lessonRepository,
+      animation: Listenable.merge([AppData.lessonRepository, AppData.progressRepository]),
       builder: (context, _) {
         final repo = AppData.lessonRepository;
         final lessons = _activeFilter == 'all' ? repo.lessons : repo.byCategory(_activeFilter);
