@@ -6,11 +6,19 @@ import '../../core/constants.dart';
 import '../../models/stroke.dart';
 import 'editor_controller.dart';
 
-/// Composites (bottom to top): white artwork base, then the Fill layer and
-/// the Brush/Erase strokes together inside ONE saveLayer (so Erase's
-/// BlendMode.clear reaches user color from EITHER tool — Fill or Brush —
-/// and reveals the white base beneath, never the line art), then the
-/// immutable line-art overlay on top.
+/// Composites (bottom to top): white artwork base, then ONE chronological
+/// user-paint composition (every Fill/Brush/Erase action, replayed in the
+/// exact order the user performed them, inside ONE shared saveLayer), then
+/// the immutable line-art overlay on top.
+///
+/// Because Fill/Brush/Erase are all just entries in the SAME ordered list
+/// (EditorController.strokes) instead of Fill being a separate
+/// always-bottom raster, an Erase's BlendMode.clear only ever removes
+/// whatever user paint was composited before it in that order — never the
+/// white base drawn outside the layer, never the line art drawn after
+/// restore() — and any action recorded AFTER an Erase (Fill or Brush) is
+/// replayed after it and therefore paints normally on top, unaffected by
+/// that earlier Erase.
 class EditorPainter extends CustomPainter {
   EditorPainter(this.controller) : super(repaint: controller);
 
@@ -30,23 +38,20 @@ class EditorPainter extends CustomPainter {
 
     canvas.drawRect(_artRect, Paint()..color = Colors.white);
 
-    // Fill and Brush/Erase share this one saveLayer so that an Erase
-    // stroke's BlendMode.clear can remove color regardless of whether it
-    // was applied by Fill or Brush — clearing within this layer reveals the
-    // white base drawn above, never the line art drawn after restore().
+    // Every Fill/Brush/Erase action shares this one saveLayer and is
+    // replayed in chronological order, so each action sees exactly the
+    // state left behind by everything before it — including an Erase's
+    // BlendMode.clear, which only ever clears prior actions in this same
+    // layer, never the white base (drawn above, outside the layer) or the
+    // line art (drawn after restore(), also outside the layer).
     canvas.saveLayer(_artRect, Paint());
 
-    final fillImage = controller.fillImage;
-    if (fillImage != null) {
-      canvas.drawImage(fillImage, Offset.zero, Paint());
-    }
-
     for (final stroke in controller.strokes) {
-      _paintStroke(canvas, stroke.tool, stroke.color, stroke.width, stroke.points, stroke.regionMaskImage);
+      _paintAction(canvas, stroke.tool, stroke.color, stroke.width, stroke.points, stroke.regionMaskImage);
     }
     final live = controller.liveStroke;
     if (live != null) {
-      _paintStroke(canvas, live.tool, live.color, live.width, live.points, live.regionMaskImage);
+      _paintAction(canvas, live.tool, live.color, live.width, live.points, live.regionMaskImage);
     }
     canvas.restore();
 
@@ -58,7 +63,7 @@ class EditorPainter extends CustomPainter {
     canvas.restore();
   }
 
-  void _paintStroke(
+  void _paintAction(
     Canvas canvas,
     StrokeTool tool,
     Color color,
@@ -66,6 +71,19 @@ class EditorPainter extends CustomPainter {
     List<StrokePoint> points,
     ui.Image? maskImage,
   ) {
+    if (tool == StrokeTool.fill) {
+      // A Fill action is a flat color over its whole precomputed region
+      // mask — not a stroked path. Clipped via the same BlendMode.dstIn
+      // technique masked Brush strokes use, isolated to just this action
+      // via its own nested saveLayer.
+      if (maskImage == null) return; // a fill action always carries its region mask
+      canvas.saveLayer(_artRect, Paint());
+      canvas.drawRect(_artRect, Paint()..color = color);
+      canvas.drawImage(maskImage, Offset.zero, Paint()..blendMode = BlendMode.dstIn);
+      canvas.restore();
+      return;
+    }
+
     if (points.isEmpty) return;
     final path = Path()..moveTo(points.first.x, points.first.y);
     if (points.length == 1) {
@@ -84,10 +102,11 @@ class EditorPainter extends CustomPainter {
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round
       // Erase is true transparent removal (BlendMode.clear wipes pixels back
-      // to alpha 0 within the shared Fill+Brush layer, revealing the white
-      // artboard base beneath) — never a painted color, so it can never
-      // cover the immutable line art with an opaque patch. Color is
-      // irrelevant for BlendMode.clear; only the stroked shape matters.
+      // to alpha 0 within the shared user-paint layer, revealing whatever
+      // was drawn earlier in that same layer, or the white artboard base if
+      // nothing was) — never a painted color, so it can never cover the
+      // immutable line art with an opaque patch. Color is irrelevant for
+      // BlendMode.clear; only the stroked shape matters.
       ..color = isErase ? Colors.black : color
       ..blendMode = isErase ? BlendMode.clear : BlendMode.srcOver;
 
@@ -99,7 +118,7 @@ class EditorPainter extends CustomPainter {
     // Clip this ONE stroke to its precomputed region mask via dstIn — the
     // same destination-in compositing technique Locked Brush always uses,
     // isolated to just this stroke via its own nested saveLayer so it never
-    // affects any other stroke already painted in the outer layer.
+    // affects any other action already painted in the outer layer.
     canvas.saveLayer(_artRect, Paint());
     canvas.drawPath(path, strokePaint);
     canvas.drawImage(maskImage, Offset.zero, Paint()..blendMode = BlendMode.dstIn);

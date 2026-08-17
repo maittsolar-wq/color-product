@@ -122,10 +122,13 @@ void main() {
     expect(_closeTo(trueCornerMax, const Color(0xFFFF6D80)), true, reason: 'Background fill must reach the true bottom-right artwork corner');
     debugPrint('[TEST] fill: full background reaches true edges ok');
 
-    // ================= ERASE (true removal, not white paint) ==================
-    // Brush a distinct color OVER the just-filled background, then erase it --
-    // the pixel must revert to the FILL color underneath (pink), not to
-    // opaque white -- proving Erase clears rather than paints white.
+    // ================= ERASE (reveals ORIGINAL artwork, PASS 2.1 semantics) ===
+    // Approved PASS 2.1 semantics: Erase removes user paint and reveals the
+    // ORIGINAL uncoloured artwork underneath -- never a lower Fill layer,
+    // never opaque white PAINT DATA that blocks future repaint. Brush a
+    // distinct color OVER the just-filled background, then erase it -- the
+    // pixel must revert to the untouched artwork (white background), not to
+    // the earlier pink Fill.
     await _selectTool(tester, 'tool-brush');
     await _toggleLock(tester); // unlock so this brush stroke isn't region-constrained
     await _selectColor(tester, const Color(0xFF0D0D0D)); // black
@@ -137,19 +140,53 @@ void main() {
     await _dragOnArtboard(tester, [backgroundCorner, Offset(backgroundCorner.dx + 8, backgroundCorner.dy + 8)]);
     final erasedPixel = await _samplePixel(tester, backgroundCorner);
     expect(_closeTo(erasedPixel, const Color(0xFF0D0D0D)), false, reason: 'Erase must remove the brushed color');
-    expect(_closeTo(erasedPixel, const Color(0xFFFF6D80)), true, reason: 'Erase must reveal the Fill color underneath, not paint opaque white');
-    await _toggleLock(tester); // restore locked
-    debugPrint('[TEST] erase: true removal ok');
+    expect(
+      _closeTo(erasedPixel, const Color(0xFFFF6D80)),
+      false,
+      reason: 'Erase must NOT reveal a lower Fill layer -- it reveals the original artwork, not an earlier paint action',
+    );
+    expect(
+      _closeTo(erasedPixel, Colors.white),
+      true,
+      reason: 'Erase must reveal the original uncoloured artwork (white background), not a blocking paint layer',
+    );
+    debugPrint('[TEST] erase: reveals original artwork, not a lower Fill layer ok');
+
+    // ================= REPAINT AFTER ERASE (the PASS 2.1 bug fix) ============
+    // The actual regression under test: a LATER Fill must be able to repaint
+    // pixels an EARLIER Erase cleared. Under the old fixed-z-order engine
+    // (Fill permanently bottom, Erase permanently on top) this failed -- the
+    // erase stroke replayed on top every frame and re-cleared the new Fill.
+    // Chronological ordering (one shared action list, replayed in order)
+    // fixes it.
+    await _selectTool(tester, 'tool-fill');
+    await _selectColor(tester, const Color(0xFF168B2D)); // green
+    await _tapOnArtboard(tester, backgroundCorner);
+    final repaintedAfterErase = await _samplePixel(tester, backgroundCorner);
+    expect(
+      _closeTo(repaintedAfterErase, const Color(0xFF168B2D)),
+      true,
+      reason: 'A Fill AFTER an Erase must be able to repaint the erased pixels (PASS 2.1 fix)',
+    );
+    debugPrint('[TEST] repaint-after-erase: later Fill correctly repaints erased pixels ok');
 
     // ================= UNDO / REDO ==========================================
+    await _tapUndo(tester); // undo the repaint-after-erase green fill
+    final afterUndoRepaint = await _samplePixel(tester, backgroundCorner);
+    expect(_closeTo(afterUndoRepaint, Colors.white), true, reason: 'Undo of the repaint Fill should restore the erased (white) state');
+    await _tapRedo(tester);
+    final afterRedoRepaint = await _samplePixel(tester, backgroundCorner);
+    expect(_closeTo(afterRedoRepaint, const Color(0xFF168B2D)), true, reason: 'Redo should reapply the repaint Fill');
+    await _tapUndo(tester); // undo the just-redone repaint fill -> back to erased/white
+
     await _tapUndo(tester); // undo the erase stroke
     final afterUndoErase = await _samplePixel(tester, backgroundCorner);
     expect(_closeTo(afterUndoErase, const Color(0xFF0D0D0D)), true, reason: 'Undo should restore the erased brush stroke');
     await _tapRedo(tester);
     final afterRedoErase = await _samplePixel(tester, backgroundCorner);
-    expect(_closeTo(afterRedoErase, const Color(0xFFFF6D80)), true, reason: 'Redo should reapply the erase');
+    expect(_closeTo(afterRedoErase, Colors.white), true, reason: 'Redo should reapply the erase, revealing the original artwork again');
 
-    // Undo back through the brush stroke and the background Fill.
+    // Undo back through the erase, the brush stroke and the background Fill.
     await _tapUndo(tester); // undo redo-erase state -> back to black brush visible
     await _tapUndo(tester); // undo black brush -> back to pink fill
     await _tapUndo(tester); // undo pink fill
@@ -159,6 +196,7 @@ void main() {
     final afterRedoFill = await _samplePixel(tester, backgroundCorner);
     expect(_closeTo(afterRedoFill, const Color(0xFFFF6D80)), true, reason: 'Redo of the background Fill should reapply the pink');
     debugPrint('[TEST] undo/redo ok');
+    await _toggleLock(tester); // restore locked
 
     // ================= LESSON ISOLATION ======================================
     await _goBack(tester); // commits lesson A's in-memory progress, returns Home

@@ -45,24 +45,19 @@ class LiveStroke {
   final ui.Image? regionMaskImage;
 }
 
-sealed class _HistoryEntry {}
-
-class _StrokeHistoryEntry extends _HistoryEntry {
-  _StrokeHistoryEntry(this.stroke);
-  final BrushStroke stroke;
-}
-
-class _FillHistoryEntry extends _HistoryEntry {
-  _FillHistoryEntry({required this.before, required this.after});
-  final Uint8List before;
-  final Uint8List after;
-}
-
 /// Owns ALL Editor drawing state and tool logic for one open lesson. A
 /// fresh EditorController is created each time SCR-EDITOR-001 opens (see
 /// EditorScreen) — per-lesson isolation itself lives in ProgressRepository
 /// (getDrawingState/saveDrawingState), which this controller reads from on
 /// load and writes to on every committed change.
+///
+/// PASS 2.1: Fill, Brush and Erase all live in ONE chronologically ordered
+/// action list (`strokes`) — see EditorPainter, which replays them in that
+/// exact order inside a single shared layer every frame. There is no
+/// separate always-bottom Fill raster any more: a Fill action is just
+/// another entry in the same list, so an Erase correctly reveals whatever
+/// (if anything) came before it, and a later Fill/Brush action correctly
+/// paints over an earlier Erase, because it is drawn after it in the replay.
 class EditorController extends ChangeNotifier {
   EditorController({required this.lessonId}) {
     _load();
@@ -75,9 +70,8 @@ class EditorController extends ChangeNotifier {
   ui.Image? lineArtImage;
   RegionEngine? _regionEngine;
 
-  Uint8List _fillBuffer = Uint8List(kArtworkSize * kArtworkSize * 4);
-  ui.Image? fillImage;
-
+  /// The single chronological user-paint action list: Fill, Brush and Erase
+  /// entries in the exact order the user performed them.
   List<BrushStroke> strokes = [];
   LiveStroke? _liveStroke;
   LiveStroke? get liveStroke => _liveStroke;
@@ -87,8 +81,10 @@ class EditorController extends ChangeNotifier {
   double brushSliderValue = 40; // 0-100
   bool locked = true;
 
-  final List<_HistoryEntry> _undoStack = [];
-  final List<_HistoryEntry> _redoStack = [];
+  // Mirrors `strokes` append order 1:1 — undo/redo only ever act on the
+  // list tail, so these always agree with `strokes.last`/`strokes.length`.
+  final List<BrushStroke> _undoStack = [];
+  final List<BrushStroke> _redoStack = [];
 
   bool get canUndo => _undoStack.isNotEmpty;
   bool get canRedo => _redoStack.isNotEmpty;
@@ -110,23 +106,10 @@ class EditorController extends ChangeNotifier {
     // Restore THIS lesson's saved in-memory drawing state, never another
     // lesson's — the per-lesson isolation contract (§16).
     final saved = AppData.progressRepository.getDrawingState(lessonId);
-    if (saved != null) {
-      _fillBuffer = Uint8List.fromList(saved.fillBuffer);
-      strokes = List.of(saved.strokes);
-    } else {
-      _fillBuffer = Uint8List(kArtworkSize * kArtworkSize * 4);
-      strokes = [];
-    }
-    await _rebuildFillImage();
+    strokes = saved != null ? List.of(saved.strokes) : [];
 
     artworkReady = true;
     notifyListeners();
-  }
-
-  Future<void> _rebuildFillImage() async {
-    final newImage = await decodeRgbaImage(_fillBuffer, kArtworkSize, kArtworkSize);
-    fillImage?.dispose();
-    fillImage = newImage;
   }
 
   // --- Tool / color / brush-size / lock selection --------------------------
@@ -202,9 +185,7 @@ class EditorController extends ChangeNotifier {
       points: live.points,
       regionMaskImage: live.regionMaskImage,
     );
-    strokes.add(stroke);
-    _pushHistory(_StrokeHistoryEntry(stroke));
-    _commitDrawingState();
+    _commitAction(stroke);
     notifyListeners();
   }
 
@@ -224,43 +205,50 @@ class EditorController extends ChangeNotifier {
   }
 
   // --- Fill ------------------------------------------------------------------
-  // Uses the exact same RegionEngine as Locked Brush. Renders into the fill
-  // buffer (the bottom-most visual layer), never touching the immutable
-  // line art or the brush/erase layer above it. Lock/Unlock never changes
-  // Fill behavior.
+  // Uses the exact same RegionEngine as Locked Brush. A Fill tap becomes ONE
+  // action in the same chronological `strokes` list as Brush/Erase — never a
+  // separately-flattened always-bottom raster — so a Fill that happens AFTER
+  // an Erase correctly repaints the erased pixels (it replays after the
+  // Erase), and an Erase that happens after a Fill correctly reveals the
+  // original artwork underneath (there is nothing else left to reveal).
+  // Lock/Unlock never changes Fill behavior.
 
   Future<void> _performFill(Offset artworkPoint) async {
     final mask = _regionEngine!.floodFillFrom(artworkPoint.dx.round(), artworkPoint.dy.round());
     if (mask == null) return; // tapped directly on a barrier line -- nothing to fill
 
-    final before = Uint8List.fromList(_fillBuffer);
-    final r = (activeColor.r * 255).round();
-    final g = (activeColor.g * 255).round();
-    final b = (activeColor.b * 255).round();
-    for (int i = 0; i < mask.length; i++) {
-      if (mask[i] != 0) {
-        final base = i * 4;
-        _fillBuffer[base] = r;
-        _fillBuffer[base + 1] = g;
-        _fillBuffer[base + 2] = b;
-        _fillBuffer[base + 3] = 255;
-      }
-    }
-    final after = Uint8List.fromList(_fillBuffer);
-
-    _pushHistory(_FillHistoryEntry(before: before, after: after));
-    await _rebuildFillImage();
-    _commitDrawingState();
+    final maskImage = await _maskToImage(mask);
+    final stroke = BrushStroke(
+      tool: StrokeTool.fill,
+      color: activeColor,
+      width: 0,
+      points: [StrokePoint(artworkPoint.dx, artworkPoint.dy)],
+      regionMaskImage: maskImage,
+    );
+    _commitAction(stroke);
     notifyListeners();
   }
 
   // --- Undo / Redo -------------------------------------------------------
+  // One uniform action stack for Fill, Brush AND Erase: undo/redo simply
+  // moves the most recent action between `strokes` and `_redoStack`/
+  // `_undoStack`, which is enough on its own to correctly reverse/reapply
+  // an Erase (or anything else) because rendering always replays whatever
+  // remains in `strokes`, in order, from scratch every frame.
+
+  void _commitAction(BrushStroke stroke) {
+    strokes.add(stroke);
+    _undoStack.add(stroke);
+    if (_undoStack.length > kHistoryLimit) _undoStack.removeAt(0);
+    _redoStack.clear(); // a new artwork action always clears redo
+    _commitDrawingState();
+  }
 
   Future<void> undo() async {
     if (_undoStack.isEmpty) return;
-    final action = _undoStack.removeLast();
-    await _applyInverse(action);
-    _redoStack.add(action);
+    final stroke = _undoStack.removeLast();
+    strokes.removeLast();
+    _redoStack.add(stroke);
     if (_redoStack.length > kHistoryLimit) _redoStack.removeAt(0);
     _commitDrawingState();
     notifyListeners();
@@ -268,47 +256,18 @@ class EditorController extends ChangeNotifier {
 
   Future<void> redo() async {
     if (_redoStack.isEmpty) return;
-    final action = _redoStack.removeLast();
-    await _applyForward(action);
-    _undoStack.add(action);
+    final stroke = _redoStack.removeLast();
+    strokes.add(stroke);
+    _undoStack.add(stroke);
     if (_undoStack.length > kHistoryLimit) _undoStack.removeAt(0);
     _commitDrawingState();
     notifyListeners();
   }
 
-  void _pushHistory(_HistoryEntry action) {
-    _undoStack.add(action);
-    if (_undoStack.length > kHistoryLimit) _undoStack.removeAt(0);
-    _redoStack.clear(); // a new artwork action always clears redo
-  }
-
-  Future<void> _applyInverse(_HistoryEntry action) async {
-    switch (action) {
-      case _FillHistoryEntry():
-        _fillBuffer = Uint8List.fromList(action.before);
-        await _rebuildFillImage();
-      case _StrokeHistoryEntry():
-        strokes.remove(action.stroke);
-    }
-  }
-
-  Future<void> _applyForward(_HistoryEntry action) async {
-    switch (action) {
-      case _FillHistoryEntry():
-        _fillBuffer = Uint8List.fromList(action.after);
-        await _rebuildFillImage();
-      case _StrokeHistoryEntry():
-        strokes.add(action.stroke);
-    }
-  }
-
   // --- Per-lesson progress isolation --------------------------------------
 
   void _commitDrawingState() {
-    AppData.progressRepository.saveDrawingState(
-      lessonId,
-      LessonDrawingState(fillBuffer: Uint8List.fromList(_fillBuffer), strokes: List.of(strokes)),
-    );
+    AppData.progressRepository.saveDrawingState(lessonId, LessonDrawingState(strokes: List.of(strokes)));
     AppData.progressRepository.saveProgress(lessonId);
   }
 
@@ -321,7 +280,6 @@ class EditorController extends ChangeNotifier {
 
   @override
   void dispose() {
-    fillImage?.dispose();
     // lineArtImage is owned by LessonArtworkCache (shared across reopens of
     // the same lesson) — must NOT be disposed here.
     super.dispose();
