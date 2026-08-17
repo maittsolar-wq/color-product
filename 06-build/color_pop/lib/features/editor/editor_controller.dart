@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_data.dart';
 import '../../core/constants.dart';
-import '../../models/lesson_drawing_state.dart';
 import '../../models/lesson_model.dart';
+import '../../models/persisted_stroke.dart';
 import '../../models/stroke.dart';
 import 'artwork_coordinates.dart';
 import 'lesson_artwork_cache.dart';
@@ -109,6 +109,11 @@ class EditorController extends ChangeNotifier {
       colorHistory.removeRange(kMaxColorHistory, colorHistory.length);
     }
     activeColor = color;
+    // PASS 4 §16: MRU history is app-level (not per-lesson), so it survives
+    // across restarts and across opening different lessons. A deliberate
+    // swatch tap/confirm is a committed action, not pointermove-frequency,
+    // so persisting on every promotion is safe.
+    AppData.progressRepository.saveColorHistory(colorHistory);
   }
 
   /// A committed color choice — preset/history swatch tap, Playful Save, or
@@ -194,15 +199,68 @@ class EditorController extends ChangeNotifier {
 
     final artworkData = await LessonArtworkCache.load(resolvedLesson);
     lineArtImage = artworkData.lineArtImage;
-    _regionEngine = RegionEngine(size: kArtworkSize, barrierMask: artworkData.barrierMask);
+    final regionEngine = RegionEngine(size: kArtworkSize, barrierMask: artworkData.barrierMask);
+    _regionEngine = regionEngine;
 
-    // Restore THIS lesson's saved in-memory drawing state, never another
-    // lesson's — the per-lesson isolation contract (§16).
-    final saved = AppData.progressRepository.getDrawingState(lessonId);
-    strokes = saved != null ? List.of(saved.strokes) : [];
+    // Restore THIS lesson's saved chronological actions, never another
+    // lesson's — the per-lesson isolation contract (§16). Fill/locked-Brush
+    // masks are NOT stored as pixels; they're regenerated deterministically
+    // from each stroke's seed point via the same RegionEngine call the live
+    // engine already makes (see _hydrateStrokes).
+    final persisted = await AppData.progressRepository.getDrawingState(lessonId);
+    strokes = await _hydrateStrokes(persisted, regionEngine);
+
+    // PASS 4 §17: restore Undo history too, not just the visual result --
+    // otherwise Undo silently no-ops (disabled button) immediately after a
+    // restart, even though the same action would have been undoable a
+    // moment before the app was killed. Capped the same way a live session
+    // caps it. Redo is deliberately NOT restored (there is nothing to
+    // redo into -- only committed actions are persisted) -- it starts
+    // empty on every fresh app launch, same as a lesson opened for the
+    // first time.
+    _undoStack
+      ..clear()
+      ..addAll(strokes.length > kHistoryLimit ? strokes.sublist(strokes.length - kHistoryLimit) : strokes);
+    _redoStack.clear();
+
+    // App-level MRU color history (§16) — falls back to the default preset
+    // row only if nothing has ever been persisted.
+    final persistedHistory = AppData.progressRepository.colorHistory;
+    if (persistedHistory.isNotEmpty) {
+      colorHistory = List.of(persistedHistory);
+      activeColor = colorHistory.first;
+    }
 
     artworkReady = true;
     notifyListeners();
+  }
+
+  /// Reconstructs live [BrushStroke]s (with regenerated `ui.Image?` region
+  /// masks) from disk-persisted plain-data [PersistedStroke]s. A stroke
+  /// whose seed point no longer resolves to a valid region (should not
+  /// happen in practice, since the same point was validated at commit time,
+  /// but corruption/edge cases are possible) is skipped rather than drawn
+  /// unclipped — mirroring how Fill itself refuses to commit with no mask.
+  Future<List<BrushStroke>> _hydrateStrokes(List<PersistedStroke> persisted, RegionEngine regionEngine) async {
+    final result = <BrushStroke>[];
+    for (final p in persisted) {
+      ui.Image? maskImage;
+      final needsMask = p.tool == StrokeTool.fill || (p.tool == StrokeTool.brush && p.locked);
+      if (needsMask) {
+        final seed = p.points.first;
+        final mask = regionEngine.floodFillFrom(seed.x.round(), seed.y.round());
+        if (mask == null) continue; // cannot reconstruct this action safely -- skip it
+        maskImage = await _maskToImage(mask);
+      }
+      result.add(BrushStroke(
+        tool: p.tool,
+        color: p.color,
+        width: p.width,
+        points: p.points.map((pt) => StrokePoint(pt.x, pt.y)).toList(),
+        regionMaskImage: maskImage,
+      ));
+    }
+    return result;
   }
 
   // --- Tool / brush-size / lock / mode selection ----------------------------
@@ -647,12 +705,30 @@ class EditorController extends ChangeNotifier {
   // --- Per-lesson progress isolation --------------------------------------
 
   void _commitDrawingState() {
-    AppData.progressRepository.saveDrawingState(lessonId, LessonDrawingState(strokes: List.of(strokes)));
+    final persisted = strokes.map(_toPersistedStroke).toList();
+    unawaited(AppData.progressRepository.saveDrawingState(lessonId, persisted));
     AppData.progressRepository.saveProgress(lessonId);
     // Every committed lifecycle event (stroke/fill/erase commit, undo,
-    // redo, exit, explicit Save) invalidates the cached discovery-screen
-    // preview for this lesson — never regenerated on pointermove, only here.
-    LessonPreviewCache.instance.invalidate(lessonId);
+    // redo, exit, explicit Save) re-renders and persists the discovery-
+    // screen preview for this lesson — never on pointermove, only here.
+    // Fire-and-forget: strokes/lineArtImage are already in memory, so this
+    // never blocks the UI, and Home/Library never do this work themselves.
+    final resolvedLesson = lesson;
+    if (resolvedLesson != null) {
+      unawaited(LessonPreviewCache.instance.renderAndPersist(resolvedLesson, List.of(strokes)));
+    }
+  }
+
+  /// Strips the non-serializable `ui.Image?` mask down to a plain `locked`
+  /// flag — the mask itself is regenerated on load (see _hydrateStrokes).
+  PersistedStroke _toPersistedStroke(BrushStroke stroke) {
+    return PersistedStroke(
+      tool: stroke.tool,
+      color: stroke.color,
+      width: stroke.width,
+      points: stroke.points.map((p) => PersistedPoint(p.x, p.y)).toList(),
+      locked: stroke.regionMaskImage != null,
+    );
   }
 
   /// Called on Editor Back — commits current in-memory progress before

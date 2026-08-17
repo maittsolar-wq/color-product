@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import '../core/app_data.dart';
 import 'app_shell.dart';
 
-/// Loads categories/lessons once before the real app shell renders, so no
-/// screen ever has to handle "repository not loaded yet" as a special case.
+/// Loads categories/lessons AND persisted lesson progress (PASS 4) once
+/// before the real app shell renders, so no screen ever has to handle
+/// "repository not loaded yet" as a special case, and Home/Library/Search/
+/// Profile reflect persisted state from their very first frame.
 class AppBootstrap extends StatefulWidget {
   const AppBootstrap({super.key});
 
@@ -13,7 +15,10 @@ class AppBootstrap extends StatefulWidget {
 }
 
 class _AppBootstrapState extends State<AppBootstrap> {
-  late final Future<void> _loadFuture = AppData.lessonRepository.load();
+  late final Future<void> _loadFuture = Future.wait([
+    AppData.lessonRepository.load(),
+    AppData.progressRepository.init(),
+  ]);
 
   @override
   Widget build(BuildContext context) {

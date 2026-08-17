@@ -6,14 +6,12 @@ import '../core/app_data.dart';
 import '../features/editor/lesson_preview_cache.dart';
 import '../models/lesson_model.dart';
 
-/// PASS 3 dynamic progress preview (§21-22): no progress -> the original
-/// static thumbnail asset; has progress -> the CURRENT composited artwork
-/// state, rendered by LessonPreviewCache from the exact same
-/// LessonDrawingState the Editor itself reads/writes (never a second,
-/// separately-maintained colored-thumbnail concept). Shared by
-/// LessonThumbCard, Home's Continue card, and Profile's detail popup, so
-/// the "static vs dynamic" decision and its loading-fallback behavior live
-/// in exactly one place.
+/// Dynamic progress preview (§21-22): no progress -> the original static
+/// thumbnail asset; has progress -> the persisted composited artwork PNG
+/// (PASS 4: loaded from disk, never re-rendered from strokes here — see
+/// LessonPreviewCache class doc for why). Shared by LessonThumbCard, Home's
+/// Continue card, and Profile's detail popup, so the "static vs dynamic"
+/// decision and its loading-fallback behavior live in exactly one place.
 class LessonPreviewImage extends StatelessWidget {
   const LessonPreviewImage({super.key, required this.lesson, this.fit = BoxFit.cover});
 
@@ -22,16 +20,20 @@ class LessonPreviewImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final drawingState = AppData.progressRepository.getDrawingState(lesson.id);
-    if (drawingState == null || drawingState.strokes.isEmpty) {
+    final progress = AppData.progressRepository.getProgress(lesson.id);
+    if (progress == null) {
       return Image.asset(lesson.thumbnailAsset, fit: fit);
     }
-    return FutureBuilder<ui.Image>(
-      future: LessonPreviewCache.instance.get(lesson, drawingState.strokes),
+    final peeked = LessonPreviewCache.instance.peek(lesson.id);
+    if (peeked != null) {
+      return RawImage(image: peeked, fit: fit);
+    }
+    return FutureBuilder<ui.Image?>(
+      future: LessonPreviewCache.instance.loadPersisted(lesson.id),
       builder: (context, snapshot) {
-        // Cheap when already cached (§23: only invalidated on committed
-        // lifecycle events, not on every rebuild) — falls back to the
-        // static thumbnail only for the brief first render.
+        // Cheap once cached (only invalidated on committed lifecycle
+        // events, not on every rebuild) — falls back to the static
+        // thumbnail only for the brief first load from disk.
         final image = snapshot.data ?? LessonPreviewCache.instance.peek(lesson.id);
         if (image == null) {
           return Image.asset(lesson.thumbnailAsset, fit: fit);

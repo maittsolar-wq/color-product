@@ -10,5 +10,5 @@ class AppData {
   AppData._();
 
   static final LessonRepository lessonRepository = LessonRepository();
-  static final ProgressRepository progressRepository = InMemoryProgressRepository();
+  static final ProgressRepository progressRepository = LocalProgressRepository();
 }

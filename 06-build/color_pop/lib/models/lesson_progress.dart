@@ -20,4 +20,23 @@ class LessonProgress {
       updatedAt: updatedAt ?? this.updatedAt,
     );
   }
+
+  // PASS 4: persistence-facing (de)serialization. Kept on the model itself
+  // since it's a trivial, stable mapping — no separate DTO needed.
+  Map<String, dynamic> toJson() => {
+    'lessonId': lessonId,
+    'status': status.name,
+    'updatedAt': updatedAt.toIso8601String(),
+  };
+
+  static LessonProgress? fromJson(Map<String, dynamic> json) {
+    try {
+      final lessonId = json['lessonId'] as String;
+      final status = LessonProgressStatus.values.byName(json['status'] as String);
+      final updatedAt = DateTime.parse(json['updatedAt'] as String);
+      return LessonProgress(lessonId: lessonId, status: status, updatedAt: updatedAt);
+    } catch (_) {
+      return null;
+    }
+  }
 }

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import '../../core/app_data.dart';
@@ -78,13 +80,15 @@ class _ProfileArtworkPopup extends StatelessWidget {
                 Expanded(
                   child: OutlinedButton(
                     onPressed: () {
-                      // Progress-record + drawing-state reset (never
-                      // another lesson's — see ProgressRepository.
-                      // resetProgress) plus its cached dynamic preview, so
-                      // discovery screens revert to the static thumbnail
-                      // immediately rather than showing a stale render.
+                      // PASS 4 §15: real persistent reset — progress
+                      // record + drawing state (in memory AND on disk, see
+                      // ProgressRepository.resetProgress) plus the
+                      // persisted preview PNG (deletePersisted, not just
+                      // invalidate), so discovery screens revert to the
+                      // static thumbnail immediately and it stays that way
+                      // across a restart. Never another lesson's data.
                       AppData.progressRepository.resetProgress(lesson.id);
-                      LessonPreviewCache.instance.invalidate(lesson.id);
+                      unawaited(LessonPreviewCache.instance.deletePersisted(lesson.id));
                       Navigator.of(context).pop();
                       onOpenEditor(lesson.id);
                     },
