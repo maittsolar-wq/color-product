@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
+import 'package:flutter/gestures.dart' show kTouchSlop;
 import 'package:flutter/material.dart';
 
 import '../../core/app_data.dart';
@@ -70,6 +71,13 @@ class LiveStroke {
 /// pinch/pan can never leave a mark under the first finger. Also: MRU color
 /// history replaces the old fixed presets + separate custom slot (§7), an
 /// Expanded/Focus mode flag (§5), and an explicit Save/Done commit (§4).
+///
+/// PASS 4.1: the single-pointer arbitration window above is now ALSO a
+/// hold-to-pan recognizer. A pointer that stays within [kTouchSlop] of its
+/// down point for [_holdToPanDelay] is promoted to one-finger Pan instead of
+/// being confirmed as a paint action — see _beginHoldToPan. A pointer that
+/// moves beyond that tolerance first is confirmed as paint immediately
+/// (never waits out the full delay), so Brush/Erase stay instant.
 class EditorController extends ChangeNotifier {
   EditorController({required this.lessonId}) {
     _load();
@@ -143,6 +151,29 @@ class EditorController extends ChangeNotifier {
   double viewScale = kMinZoomScale;
   Offset viewOffset = Offset.zero;
 
+  // PASS 4.4 §7/§9: the viewport is now the FULL grey workspace rect (which
+  // LayoutBuilder only reports once actual layout happens), not a fixed
+  // square known in advance -- so the centered starting position has to be
+  // computed lazily, once, the first time the real viewport size is known.
+  // Deliberately does NOT re-center on every later size change (e.g. the
+  // Normal<->Expanded toggle reusing this same controller against a
+  // differently-sized viewport) -- per §16, the same scale/translation
+  // state is preserved across that toggle rather than re-derived.
+  bool _viewportInitialized = false;
+
+  /// Called from the artboard's LayoutBuilder on every build; a no-op after
+  /// the first real viewport size is seen. Centers the unzoomed 800x800
+  /// sheet inside the viewport by default -- mutates plain fields only (no
+  /// notifyListeners), since this always runs synchronously during layout,
+  /// before the same frame's paint.
+  void ensureViewportInitialized(Size viewportSize) {
+    if (_viewportInitialized) return;
+    final fit = baseFitScale(viewportSize);
+    final rendered = kArtworkSize * fit;
+    viewOffset = Offset((viewportSize.width - rendered) / 2, (viewportSize.height - rendered) / 2);
+    _viewportInitialized = true;
+  }
+
   // Raw multi-pointer tracking for the artboard. Deliberately NOT
   // GestureDetector's scale recognizer — that competes in the same gesture
   // arena as single-pointer tool input, and can't guarantee "two pointers
@@ -154,21 +185,33 @@ class EditorController extends ChangeNotifier {
   double? _twoFingerStartScale;
   Offset? _twoFingerStartOffset;
 
-  // --- Pointer ARBITRATION (§1) ---------------------------------------------
+  // --- Pointer ARBITRATION (§1) + PASS 4.1 hold-to-pan -----------------------
   // A single pointer-down does NOT immediately become a paint action. It
-  // becomes "pending" for a short window; if a 2nd pointer joins within
-  // that window, the pending gesture is discarded outright (nothing was
-  // ever committed — no dot, no live stroke, no Fill, no Eyedropper
-  // sample). If the window elapses with still-exactly-one pointer down, OR
-  // that one pointer lifts before the window elapses (a fast tap), the
-  // gesture is retroactively confirmed as genuine single-pointer painting.
-  static const Duration _paintArbitrationDelay = Duration(milliseconds: 70);
+  // becomes "pending" for a short window. Three ways out:
+  //   1. A 2nd pointer joins -> discarded outright (nothing was ever
+  //      committed — no dot, no live stroke, no Fill, no Eyedropper sample).
+  //   2. It moves beyond `kTouchSlop`, or is released, before the hold delay
+  //      elapses -> confirmed immediately as genuine single-pointer painting
+  //      (a real drag never waits out the delay; a fast tap resolves on up).
+  //   3. The hold delay elapses with the pointer still down and still within
+  //      `kTouchSlop` of its start -> promoted to one-finger PAN instead
+  //      (§1B) — the pending paint state is discarded with zero committed
+  //      paint, and the rest of this gesture only ever pans, never paints.
+  static const Duration _holdToPanDelay = Duration(milliseconds: 250);
   int? _pendingPointerId;
   Offset? _pendingLocalPosition;
   Size? _pendingDisplaySize;
   final List<Offset> _pendingMovePositions = [];
   Timer? _pendingArbitrationTimer;
   bool _paintingConfirmed = false;
+
+  // One-finger Pan state (§1B, §4, §5) — armed by _beginHoldToPan once the
+  // hold delay elapses; the artwork translates by the raw screen-space
+  // delta from the pan's start point, independent of viewScale (viewOffset
+  // is applied BEFORE scale in EditorPainter's transform chain).
+  bool _singlePointerPanning = false;
+  Offset? _panStartLocalPosition;
+  Offset? _panStartViewOffset;
 
   /// Set by EditorScreen to bridge to the widget-layer pixel capture the
   /// Eyedropper needs (reading the actual RENDERED/composited artboard —
@@ -326,11 +369,28 @@ class EditorController extends ChangeNotifier {
 
   // --- View transform helpers ----------------------------------------------
 
-  Offset _clampOffset(Offset raw, double scale, Size displaySize) {
-    final minDx = displaySize.width * (1 - scale);
-    final minDy = displaySize.height * (1 - scale);
-    // At scale == 1.0 this collapses to exactly (0,0) on both axes.
-    return Offset(raw.dx.clamp(minDx, 0.0), raw.dy.clamp(minDy, 0.0));
+  // PASS 4.4 §7: the viewport is now the FULL grey workspace, not a small
+  // square sized to the artwork, so the ArtworkSurface must be able to
+  // traverse that whole rectangle — top/bottom/left/right/diagonal — at
+  // every scale, not just wiggle near a fixed center. minDx/maxDx (and Y)
+  // range from "sheet's trailing edge at the viewport's leading edge" to
+  // "sheet's leading edge at the viewport's trailing edge" (i.e. the sheet
+  // can go anywhere from just-off-screen-left to just-off-screen-right),
+  // plus a modest slack margin beyond that for a bit of overshoot give.
+  // Still always recoverable: the gesture area covers the full viewport
+  // regardless of where the sheet currently renders, so it can always be
+  // grabbed and dragged back even while fully off-screen.
+  static const double kPanSlackFactor = 0.2;
+
+  Offset _clampOffset(Offset raw, double scale, Size viewportSize) {
+    final rendered = kArtworkSize * scale * baseFitScale(viewportSize);
+    final slackX = viewportSize.width * kPanSlackFactor;
+    final slackY = viewportSize.height * kPanSlackFactor;
+    final minDx = -rendered - slackX;
+    final maxDx = viewportSize.width + slackX;
+    final minDy = -rendered - slackY;
+    final maxDy = viewportSize.height + slackY;
+    return Offset(raw.dx.clamp(minDx, maxDx), raw.dy.clamp(minDy, maxDy));
   }
 
   void _startTwoFingerGesture() {
@@ -374,6 +434,11 @@ class EditorController extends ChangeNotifier {
     _activePointers[pointerId] = localPosition;
 
     if (_activePointers.length == 2) {
+      // PASS 4.1 §14: a 2nd pointer arriving at ANY time — mid-arbitration
+      // OR mid one-finger Pan — cancels that single-pointer state outright
+      // and hands off to two-finger pinch/pan, re-baselined from wherever
+      // the artwork currently is (including anywhere one-finger Pan just
+      // moved it to).
       _cancelPendingPaintGesture();
       _liveStroke = null;
       _eyedropperSampleToken++; // invalidate any in-flight sample from before this interrupt
@@ -387,20 +452,54 @@ class EditorController extends ChangeNotifier {
 
     if (!artworkReady || _regionEngine == null) return;
 
-    // Exactly one active pointer -- arm the arbitration window. Nothing
-    // irreversible happens yet: no live stroke, no Fill, no Eyedropper
-    // sample. If a 2nd pointer joins before this fires, the branch above
-    // discards it via _cancelPendingPaintGesture with zero visible trace.
+    // Exactly one active pointer -- arm the arbitration/hold-to-pan window.
+    // Nothing irreversible happens yet: no live stroke, no Fill, no
+    // Eyedropper sample. If a 2nd pointer joins before this resolves, the
+    // branch above discards it via _cancelPendingPaintGesture with zero
+    // visible trace.
     _pendingPointerId = pointerId;
     _pendingLocalPosition = localPosition;
     _pendingDisplaySize = displaySize;
     _pendingMovePositions.clear();
     _paintingConfirmed = false;
+    _singlePointerPanning = false;
     _pendingArbitrationTimer?.cancel();
-    _pendingArbitrationTimer = Timer(_paintArbitrationDelay, () {
-      _pendingArbitrationTimer = null;
-      unawaited(_confirmPendingPaintGesture());
-    });
+    _pendingArbitrationTimer = Timer(_holdToPanDelay, _beginHoldToPan);
+  }
+
+  /// PASS 4.1 §1B/§2/§3 — fires after [_holdToPanDelay] of the pointer
+  /// staying down, still within [kTouchSlop] of its start (a real drag
+  /// would already have confirmed as paint via handlePointerMove and
+  /// cancelled this timer before it ever got here). Promotes the pending
+  /// gesture to one-finger Pan: the provisional paint state is discarded
+  /// wholesale — no live stroke was ever created, no Fill/Eyedropper ever
+  /// sampled — so this gesture contributes ZERO paint no matter what
+  /// happens next.
+  void _beginHoldToPan() {
+    _pendingArbitrationTimer = null;
+    if (_paintingConfirmed || _singlePointerPanning) return; // already resolved another way
+    final pointerId = _pendingPointerId;
+    final startLocal = _pendingLocalPosition;
+    if (pointerId == null || startLocal == null) return;
+    if (_activePointers.length != 1 || !_activePointers.containsKey(pointerId)) return;
+
+    _pendingMovePositions.clear();
+    _singlePointerPanning = true;
+    _panStartLocalPosition = startLocal;
+    _panStartViewOffset = viewOffset;
+    notifyListeners(); // lets the UI reflect "now panning" if it ever wants to (e.g. a cursor/hint)
+  }
+
+  void _updateSinglePointerPan(Offset localPosition, Size displaySize) {
+    final startLocal = _panStartLocalPosition;
+    final startOffset = _panStartViewOffset;
+    if (startLocal == null || startOffset == null) return;
+    // viewOffset is applied BEFORE viewScale in EditorPainter's transform
+    // chain, so a raw screen-space delta translates the whole artwork by
+    // exactly that many screen pixels regardless of current zoom (§6/§7).
+    final delta = localPosition - startLocal;
+    viewOffset = _clampOffset(startOffset + delta, viewScale, displaySize);
+    notifyListeners();
   }
 
   Future<void> handlePointerMove(int pointerId, Offset localPosition, Size displaySize) async {
@@ -413,11 +512,32 @@ class EditorController extends ChangeNotifier {
     }
     if (_activePointers.length != 1) return;
 
+    // PASS 4.1 §1B/§13 — once Pan Mode has been recognized for this
+    // gesture, EVERY subsequent move is a pan and nothing else, until
+    // pointerUp/cancel. Never switches back into painting mid-gesture.
+    if (_singlePointerPanning) {
+      if (pointerId == _pendingPointerId) {
+        _updateSinglePointerPan(localPosition, displaySize);
+      }
+      return;
+    }
+
     if (!_paintingConfirmed) {
+      if (pointerId != _pendingPointerId) return;
       // Still arbitrating -- buffer so a fast drag that starts before
       // confirmation doesn't lose its early points, but do not paint yet.
-      if (pointerId == _pendingPointerId) {
-        _pendingMovePositions.add(localPosition);
+      _pendingMovePositions.add(localPosition);
+
+      // PASS 4.1 §1A — real painting motion (beyond touch-slop) confirms
+      // immediately rather than waiting out the hold-to-pan delay, so
+      // Brush/Erase drags never feel laggy. Only a pointer that stays near
+      // its start point for the full delay becomes a Pan (via
+      // _beginHoldToPan / the timer armed in handlePointerDown).
+      final start = _pendingLocalPosition;
+      if (start != null && (localPosition - start).distance > kTouchSlop) {
+        _pendingArbitrationTimer?.cancel();
+        _pendingArbitrationTimer = null;
+        await _confirmPendingPaintGesture();
       }
       return;
     }
@@ -427,7 +547,9 @@ class EditorController extends ChangeNotifier {
   }
 
   Future<void> handlePointerUp(int pointerId) async {
-    final wasStillArbitrating = pointerId == _pendingPointerId && !_paintingConfirmed;
+    final wasPendingPointer = pointerId == _pendingPointerId;
+    final wasPanning = wasPendingPointer && _singlePointerPanning;
+    final wasStillArbitrating = wasPendingPointer && !_paintingConfirmed && !_singlePointerPanning;
 
     _activePointers.remove(pointerId);
     if (_activePointers.length == 2) {
@@ -435,6 +557,14 @@ class EditorController extends ChangeNotifier {
     } else {
       _twoFingerStartFocal = null;
       _twoFingerStartDistance = null;
+    }
+
+    if (wasPanning) {
+      // Pan ends with the release -- nothing to commit (viewport-only,
+      // never touches strokes/undo history) and nothing was ever pending
+      // to confirm as paint (§3).
+      _cancelPendingPaintGesture();
+      return;
     }
 
     if (wasStillArbitrating) {
@@ -519,6 +649,9 @@ class EditorController extends ChangeNotifier {
     _pendingDisplaySize = null;
     _pendingMovePositions.clear();
     _paintingConfirmed = false;
+    _singlePointerPanning = false;
+    _panStartLocalPosition = null;
+    _panStartViewOffset = null;
   }
 
   Future<void> _handleToolPointerDown(Offset artworkPoint, Offset localPosition) async {

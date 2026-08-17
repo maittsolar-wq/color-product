@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/constants.dart';
 import '../../models/stroke.dart';
+import 'artwork_coordinates.dart';
 import 'editor_controller.dart';
 
 final Rect kArtRect = Rect.fromLTWH(0, 0, kArtworkSize.toDouble(), kArtworkSize.toDouble());
@@ -113,22 +114,24 @@ void _paintAction(
   canvas.restore();
 }
 
-/// Paints the live Editor — adds the PASS 3 Zoom/Pan viewport transform (and
-/// the live in-progress stroke) on top of the shared `paintUserArtwork`
-/// compositor. Zoom/Pan are purely a canvas transform applied here; they
-/// never alter `controller.strokes` or any stored coordinate.
+/// Paints the live Editor — adds the PASS 3/4.4 Zoom/Pan viewport transform
+/// (and the live in-progress stroke, and the sheet's own drop shadow) on
+/// top of the shared `paintUserArtwork` compositor. Zoom/Pan are purely a
+/// canvas transform applied here; they never alter `controller.strokes` or
+/// any stored coordinate. PASS 4.4: the viewport is the full widget size —
+/// which may be a tall rectangle, not a square sized to the artwork — and
+/// `baseFitScale` (the SAME function `artworkPointFromLocal` inverts) is
+/// the one authoritative formula for how the 800x800 sheet maps into it.
 class EditorPainter extends CustomPainter {
   EditorPainter(this.controller) : super(repaint: controller);
 
   final EditorController controller;
 
-  static final double _artSize = kArtworkSize.toDouble();
-
   @override
   void paint(Canvas canvas, Size size) {
     if (!controller.artworkReady) return;
 
-    final baseScale = size.width / _artSize;
+    final baseScale = baseFitScale(size);
     canvas.save();
     canvas.clipRect(Rect.fromLTWH(0, 0, size.width, size.height));
 
@@ -138,6 +141,16 @@ class EditorPainter extends CustomPainter {
     canvas.translate(controller.viewOffset.dx, controller.viewOffset.dy);
     canvas.scale(controller.viewScale);
     canvas.scale(baseScale, baseScale);
+
+    // PASS 4.4 §5/§13: the sheet's own drop shadow is drawn HERE, inside
+    // the same transformed canvas state as everything else, so it pans and
+    // scales together with the white background/paint/line-art as part of
+    // ONE artwork object ("one flat coloring page") — never as a separate,
+    // fixed frame decoration behind it.
+    final shadowPaint = Paint()
+      ..color = const Color(0x33000000)
+      ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 12);
+    canvas.drawRect(kArtRect.translate(0, 6), shadowPaint);
 
     paintUserArtwork(
       canvas,

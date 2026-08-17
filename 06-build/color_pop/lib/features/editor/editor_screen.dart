@@ -131,7 +131,14 @@ class _EditorScreenState extends State<EditorScreen> {
                         Expanded(
                           child: Stack(
                             children: [
-                              Center(
+                              // PASS 4.4 §7: the artboard now fills this ENTIRE
+                              // area (minus a thin fixed margin) — this whole
+                              // grey rectangle is the Pan/Zoom viewport, not a
+                              // small square sized to the artwork's aspect
+                              // ratio. The 800x800 sheet starts centered inside
+                              // it (via EditorController.ensureViewportInitialized)
+                              // but is free to roam the full rectangle from there.
+                              Positioned.fill(
                                 child: Padding(
                                   padding: EdgeInsets.all(expanded ? 12 : 24),
                                   child: _Artboard(controller: _controller, repaintBoundaryKey: _repaintBoundaryKey),
@@ -178,58 +185,58 @@ class _Artboard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AspectRatio(
-      aspectRatio: 1,
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(6),
-          boxShadow: const [BoxShadow(color: Color(0x14000000), blurRadius: 20, offset: Offset(0, 8))],
-        ),
-        clipBehavior: Clip.antiAlias,
-        child: !controller.artworkReady
-            ? const Center(child: CircularProgressIndicator())
-            : LayoutBuilder(
-                builder: (context, constraints) {
-                  final displaySize = constraints.biggest;
-                  return Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      Listener(
-                        key: const Key('artboard-gesture-area'),
-                        behavior: HitTestBehavior.opaque,
-                        onPointerDown: (event) => controller.handlePointerDown(event.pointer, event.localPosition, displaySize),
-                        onPointerMove: (event) => controller.handlePointerMove(event.pointer, event.localPosition, displaySize),
-                        onPointerUp: (event) => controller.handlePointerUp(event.pointer),
-                        onPointerCancel: (event) => controller.handlePointerCancel(event.pointer),
-                        // KeyedSubtree keeps the ValueKey test contract
-                        // ('artboard-repaint-boundary') intact while ALSO
-                        // giving production code a GlobalKey handle (below)
-                        // straight onto the same RenderRepaintBoundary, for
-                        // the Eyedropper's pixel capture.
-                        child: KeyedSubtree(
-                          key: const Key('artboard-repaint-boundary'),
-                          child: RepaintBoundary(
-                            key: repaintBoundaryKey,
-                            child: CustomPaint(
-                              size: displaySize,
-                              painter: EditorPainter(controller),
-                            ),
-                          ),
-                        ),
-                      ),
-                      if (controller.activeTool == EditorTool.eyedropper &&
-                          controller.eyedropperPreviewColor != null &&
-                          controller.eyedropperPreviewLocalPosition != null)
-                        _EyedropperPreview(
-                          position: controller.eyedropperPreviewLocalPosition!,
-                          color: controller.eyedropperPreviewColor!,
-                        ),
-                    ],
-                  );
-                },
+    // PASS 4.4 §1/§4/§7: this whole rectangle (NOT a square sized to the
+    // artwork) is the Pan/Zoom viewport — "the initial centered artwork
+    // rectangle must NOT be the clipping viewport." There is no white/
+    // framed Container here anymore: the white 800x800 sheet, its own drop
+    // shadow, the user paint, and the line art are ALL drawn by
+    // EditorPainter as one composited ArtworkSurface, inside the one
+    // transform applied there — never a separate widget-level layer. The
+    // Scaffold's light grey shows through everywhere the transformed sheet
+    // doesn't currently cover.
+    if (!controller.artworkReady) {
+      return const Center(child: CircularProgressIndicator());
+    }
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final displaySize = constraints.biggest;
+        controller.ensureViewportInitialized(displaySize);
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            Listener(
+              key: const Key('artboard-gesture-area'),
+              behavior: HitTestBehavior.opaque,
+              onPointerDown: (event) => controller.handlePointerDown(event.pointer, event.localPosition, displaySize),
+              onPointerMove: (event) => controller.handlePointerMove(event.pointer, event.localPosition, displaySize),
+              onPointerUp: (event) => controller.handlePointerUp(event.pointer),
+              onPointerCancel: (event) => controller.handlePointerCancel(event.pointer),
+              // KeyedSubtree keeps the ValueKey test contract
+              // ('artboard-repaint-boundary') intact while ALSO giving
+              // production code a GlobalKey handle (below) straight onto
+              // the same RenderRepaintBoundary, for the Eyedropper's pixel
+              // capture.
+              child: KeyedSubtree(
+                key: const Key('artboard-repaint-boundary'),
+                child: RepaintBoundary(
+                  key: repaintBoundaryKey,
+                  child: CustomPaint(
+                    size: displaySize,
+                    painter: EditorPainter(controller),
+                  ),
+                ),
               ),
-      ),
+            ),
+            if (controller.activeTool == EditorTool.eyedropper &&
+                controller.eyedropperPreviewColor != null &&
+                controller.eyedropperPreviewLocalPosition != null)
+              _EyedropperPreview(
+                position: controller.eyedropperPreviewLocalPosition!,
+                color: controller.eyedropperPreviewColor!,
+              ),
+          ],
+        );
+      },
     );
   }
 }
