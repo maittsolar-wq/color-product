@@ -43,11 +43,11 @@ class HomeScreen extends StatelessWidget {
                   // to this exact Home instance (§11 — never a duplicate
                   // Home route, never a reset of Home/tab state).
                   onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaywallScreen())),
-                  icon: const Icon(Icons.workspace_premium, size: 16, color: Color(0xFFE8850C)),
-                  label: const Text('PRO', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFE8850C))),
+                  icon: const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
+                  label: const Text('PRO', style: TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
                   style: OutlinedButton.styleFrom(
-                    backgroundColor: Colors.white,
-                    side: const BorderSide(color: Color(0xFFF0EEEB)),
+                    backgroundColor: const Color(0xFF7C4DFF),
+                    side: BorderSide.none,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(999)),
                   ),
                 ),
@@ -118,9 +118,9 @@ class _ContinueCard extends StatelessWidget {
                     children: [
                       Text(
                         lesson.title,
-                        maxLines: 2,
+                        maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+                        style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
                       ),
                       const SizedBox(height: 12),
                       Container(
@@ -178,12 +178,12 @@ class _CategorySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 6),
+      padding: const EdgeInsets.only(bottom: 2),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 13),
+            padding: const EdgeInsets.only(top: 6, bottom: 4),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [

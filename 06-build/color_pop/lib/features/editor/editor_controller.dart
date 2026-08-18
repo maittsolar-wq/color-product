@@ -725,6 +725,10 @@ class EditorController extends ChangeNotifier {
   // handlePointerDown/handlePointerMove, bypassing arbitration entirely, so
   // activeTool can never be eyedropper at this point.
   Future<void> _handleToolPointerDown(Offset artworkPoint, Offset localPosition) async {
+    // PASS 6.3 §12: the grey workspace outside the 800x800 artwork is not
+    // paintable -- a tap/drag-start that maps there must never begin a
+    // Fill, Brush, or (locked-Brush) region-mask lookup.
+    if (!_inArtworkBounds(artworkPoint)) return;
     if (activeTool == EditorTool.fill) {
       await _performFill(artworkPoint);
       return;
@@ -754,8 +758,24 @@ class EditorController extends ChangeNotifier {
   Future<void> _handleToolPointerMove(Offset artworkPoint, Offset localPosition) async {
     final live = _liveStroke;
     if (live == null) return;
+    // PASS 6.3 §12: a drag that leaves the artwork simply stops adding
+    // points while outside it (never cancels the whole stroke -- the user
+    // may drag back in) -- the sheet edge is a hard boundary for where
+    // paint DATA is recorded, not just how it's rendered.
+    if (!_inArtworkBounds(artworkPoint)) return;
     live.points.add(StrokePoint(artworkPoint.dx, artworkPoint.dy));
     notifyListeners();
+  }
+
+  /// PASS 6.3 §12 — the ONE bounds check for Brush/Fill/(locked-Brush
+  /// region lookup)/Erase gestures, mirroring the artwork's actual source
+  /// rect (0..kArtworkSize inclusive, same convention the existing
+  /// Eyedropper bounds check already used).
+  bool _inArtworkBounds(Offset artworkPoint) {
+    return artworkPoint.dx >= 0 &&
+        artworkPoint.dx <= kArtworkSize &&
+        artworkPoint.dy >= 0 &&
+        artworkPoint.dy <= kArtworkSize;
   }
 
   Future<void> _finishToolGesture() async {

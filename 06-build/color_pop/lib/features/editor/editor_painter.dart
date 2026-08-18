@@ -9,6 +9,31 @@ import 'editor_controller.dart';
 
 final Rect kArtRect = Rect.fromLTWH(0, 0, kArtworkSize.toDouble(), kArtworkSize.toDouble());
 
+/// PASS 6.3 — a real, hard-bounded 800x800 fully-opaque image, built once
+/// and cached, used to force-clip the ENTIRE composited artwork to the
+/// source rect via BlendMode.dstIn (see [paintUserArtwork]). `canvas.
+/// clipRect`/`clipPath` measured unreliably on-device for content drawn
+/// through this compositor's saveLayer/masked-stroke chain (Skia's own
+/// docs describe saveLayer's bounds as a rasterization HINT only, and this
+/// app's target renderer appears to genuinely not clip stroke content to
+/// it) -- `drawImage` + `dstIn` against a real, hard-bounded raster has no
+/// such ambiguity: pixels outside the image's own extent are categorically
+/// outside the draw operation, not just clipped by hint.
+ui.Image? _boundsMaskImage;
+
+ui.Image _getBoundsMaskImage() {
+  final cached = _boundsMaskImage;
+  if (cached != null) return cached;
+  final recorder = ui.PictureRecorder();
+  final canvas = Canvas(recorder);
+  canvas.drawRect(kArtRect, Paint()..color = Colors.white);
+  final picture = recorder.endRecording();
+  final image = picture.toImageSync(kArtworkSize, kArtworkSize);
+  picture.dispose();
+  _boundsMaskImage = image;
+  return image;
+}
+
 /// Composites (bottom to top): white artwork base, then ONE chronological
 /// user-paint composition (every Fill/Brush/Erase action, replayed in the
 /// exact order the user performed them, inside ONE shared saveLayer), then
@@ -30,12 +55,26 @@ final Rect kArtRect = Rect.fromLTWH(0, 0, kArtworkSize.toDouble(), kArtworkSize.
 /// never the line art drawn after restore() — and any action recorded
 /// AFTER an Erase (Fill or Brush) is replayed after it and therefore paints
 /// normally on top, unaffected by that earlier Erase.
+///
+/// PASS 6.3: the WHOLE composition (white base + user paint + line art) is
+/// built inside ONE outer saveLayer, then force-masked to exactly the
+/// source artwork rect via [_getBoundsMaskImage] + BlendMode.dstIn as the
+/// very last step, before that layer is composited back by the final
+/// restore(). Nothing this function draws -- regardless of a Brush/Erase
+/// stroke's width pushing its geometry past x=800/y=800 (or below 0) --
+/// can survive into the final result outside that rect. Because the mask
+/// is applied here, inside the shared compositor, it automatically rides
+/// along with whatever transform the caller already applied (viewport
+/// scale/pan for the live Editor) -- the boundary moves and scales WITH
+/// the artwork under Zoom/Pan, never pinned to a fixed screen position.
 void paintUserArtwork(
   Canvas canvas, {
   required List<BrushStroke> strokes,
   required ui.Image? lineArtImage,
   LiveStroke? liveStroke,
 }) {
+  canvas.saveLayer(kArtRect, Paint());
+
   canvas.drawRect(kArtRect, Paint()..color = Colors.white);
 
   canvas.saveLayer(kArtRect, Paint());
@@ -50,6 +89,9 @@ void paintUserArtwork(
   if (lineArtImage != null) {
     canvas.drawImage(lineArtImage, Offset.zero, Paint());
   }
+
+  canvas.drawImage(_getBoundsMaskImage(), Offset.zero, Paint()..blendMode = BlendMode.dstIn);
+  canvas.restore();
 }
 
 void _paintAction(

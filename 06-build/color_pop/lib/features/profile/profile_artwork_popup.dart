@@ -1,8 +1,10 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
 
 import '../../core/app_data.dart';
+import '../../features/editor/lesson_artwork_render.dart';
 import '../../features/editor/lesson_preview_cache.dart';
 import '../../models/lesson_model.dart';
 import '../../shared/lesson_thumb_card.dart';
@@ -64,7 +66,7 @@ class _ProfileArtworkPopup extends StatelessWidget {
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
                   color: const Color(0xFFF4F4F5),
-                  child: LessonPreviewImage(lesson: lesson, fit: BoxFit.contain),
+                  child: _HighResPreview(lesson: lesson),
                 ),
               ),
             ),
@@ -122,5 +124,61 @@ class _ProfileArtworkPopup extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+/// PASS 6.2 — the popup shows artwork noticeably larger than a grid
+/// thumbnail, so it renders the current artwork at up to native resolution
+/// on demand (see lesson_artwork_render.dart) instead of stretching the
+/// shared thumbnail-sized preview. Shows that shared preview immediately
+/// (same image Home/Library/Profile's grid already have in memory) so the
+/// popup is never blank, then swaps to the high-res render once it's
+/// ready. The high-res image is computed fresh per popup-open and disposed
+/// when the popup closes -- never cached long-term, keeping this an
+/// on-demand cost rather than a standing memory/CPU cost for every lesson.
+class _HighResPreview extends StatefulWidget {
+  const _HighResPreview({required this.lesson});
+
+  final LessonModel lesson;
+
+  @override
+  State<_HighResPreview> createState() => _HighResPreviewState();
+}
+
+class _HighResPreviewState extends State<_HighResPreview> {
+  ui.Image? _highRes;
+  bool _disposed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    unawaited(_load());
+  }
+
+  Future<void> _load() async {
+    final image = await renderHighResArtworkPreview(widget.lesson);
+    if (_disposed) {
+      image?.dispose();
+      return;
+    }
+    if (mounted && image != null) {
+      setState(() => _highRes = image);
+    }
+  }
+
+  @override
+  void dispose() {
+    _disposed = true;
+    _highRes?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final image = _highRes;
+    if (image == null) {
+      return LessonPreviewImage(lesson: widget.lesson, fit: BoxFit.contain);
+    }
+    return RawImage(image: image, fit: BoxFit.contain);
   }
 }

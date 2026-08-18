@@ -31,7 +31,11 @@ void main() {
     'PASS 3: two-finger pinch never paints; the point under the pinch focal stays under it while zoomed',
     (tester) async {
     await tester.pumpWidget(const ColorPopApp());
-    await _settle(tester);
+    // PASS 6.1: AppBootstrap now shows a branded Splash with a ~1s minimum
+    // display guard (see lib/features/splash/splash_screen.dart) instead of
+    // resolving as soon as loading finishes, so the post-launch settle must
+    // outlast that guard before Home's lesson cards exist to find.
+    await _settle(tester, duration: const Duration(milliseconds: 1800));
 
     await _openLesson(tester, _lessonId);
     await _waitForArtworkReady(tester);
@@ -131,7 +135,11 @@ void main() {
     // between the two touches, for both Fill (commits instantly on down —
     // the highest-risk tool) and Brush (default tool, live-stroke dot risk).
     await tester.pumpWidget(const ColorPopApp());
-    await _settle(tester);
+    // PASS 6.1: AppBootstrap now shows a branded Splash with a ~1s minimum
+    // display guard (see lib/features/splash/splash_screen.dart) instead of
+    // resolving as soon as loading finishes, so the post-launch settle must
+    // outlast that guard before Home's lesson cards exist to find.
+    await _settle(tester, duration: const Duration(milliseconds: 1800));
     await _openLesson(tester, _lessonId);
     await _waitForArtworkReady(tester);
 

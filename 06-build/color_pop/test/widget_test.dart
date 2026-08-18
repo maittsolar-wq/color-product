@@ -9,6 +9,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:path_provider_platform_interface/path_provider_platform_interface.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
 
+import 'package:color_pop/features/splash/splash_screen.dart';
 import 'package:color_pop/main.dart';
 
 /// PASS 4: AppBootstrap now also awaits ProgressRepository.init(), which
@@ -44,15 +45,17 @@ void main() {
 
     await tester.pumpWidget(const ColorPopApp());
 
-    // Initial frame: bootstrap loading indicator.
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
+    // Initial frame: bootstrap shows the branded Splash (PASS 6.1 §1), not
+    // a bare spinner.
+    expect(find.byType(SplashScreen), findsOneWidget);
 
-    // Let both the asset load (rootBundle.loadString) and the real file I/O
-    // (ProgressRepository.init(), path_provider) complete. Interleaving
-    // real delays with tester.pump() inside runAsync lets both kinds of
-    // async work — channel-based and real dart:io — resolve together.
+    // Let both the asset load (rootBundle.loadString), the real file I/O
+    // (ProgressRepository.init(), path_provider), and the Splash's ~1s
+    // minimum-display guard complete. Interleaving real delays with
+    // tester.pump() inside runAsync lets both kinds of async work —
+    // channel-based and real dart:io — resolve together.
     await tester.runAsync(() async {
-      for (var i = 0; i < 30; i++) {
+      for (var i = 0; i < 80; i++) {
         await Future<void>.delayed(const Duration(milliseconds: 20));
         await tester.pump();
       }

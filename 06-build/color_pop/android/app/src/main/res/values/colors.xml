@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Matches SplashScreen's background (lib/features/splash/splash_screen.dart)
+         so the native launch window and the first Flutter frame don't
+         flash between white and pastel. -->
+    <color name="splash_background">#FBF7FF</color>
+</resources>

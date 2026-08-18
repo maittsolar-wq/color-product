@@ -33,7 +33,12 @@ class LessonPreviewCache {
   LessonPreviewCache._();
   static final LessonPreviewCache instance = LessonPreviewCache._();
 
-  static const int previewSize = 250;
+  // PASS 6.2: was 250 -- too small for Library/Profile grid cards on
+  // high-DPI screens (visibly soft/pixelated once upscaled). 480 covers
+  // those card sizes with headroom while staying well under the artwork's
+  // native 800x800 (see lesson_artwork_render.dart for the separate
+  // on-demand full-resolution render used by Profile's larger popup).
+  static const int previewSize = 480;
 
   final Map<String, ui.Image> _cache = {};
   final Map<String, Future<ui.Image?>> _inFlight = {};

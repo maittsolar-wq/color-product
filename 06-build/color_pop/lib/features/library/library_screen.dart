@@ -94,6 +94,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                       selected: selected,
                       onSelected: (_) => setState(() => _activeFilter = filterId),
                       selectedColor: const Color(0xFF7C4DFF),
+                      checkmarkColor: Colors.white,
                       labelStyle: TextStyle(
                         color: selected ? Colors.white : const Color(0xFF3A3A3C),
                         fontWeight: FontWeight.w600,

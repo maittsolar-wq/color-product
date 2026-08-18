@@ -34,7 +34,11 @@ void main() {
     'PASS 2.1: Erase reveals original artwork; later Fill/Brush repaints erased pixels; line art intact; undo/redo',
     (tester) async {
     await tester.pumpWidget(const ColorPopApp());
-    await _settle(tester);
+    // PASS 6.1: AppBootstrap now shows a branded Splash with a ~1s minimum
+    // display guard (see lib/features/splash/splash_screen.dart) instead of
+    // resolving as soon as loading finishes, so the post-launch settle must
+    // outlast that guard before Home's lesson cards exist to find.
+    await _settle(tester, duration: const Duration(milliseconds: 1800));
     debugPrint('[TEST] app booted');
 
     for (final lessonId in _lessonIds) {
