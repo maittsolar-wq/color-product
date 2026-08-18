@@ -4,8 +4,8 @@ import '../../core/app_data.dart';
 import '../../models/lesson_model.dart';
 import '../../shared/explore_empty_state.dart';
 import '../../shared/lesson_thumb_card.dart';
+import '../settings/settings_screen.dart';
 import 'profile_artwork_popup.dart';
-import 'settings_placeholder_screen.dart';
 
 enum _ProfileSegment { all, completed, inProgress }
 
@@ -61,8 +61,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     children: [
                       const Text('Profile', style: TextStyle(fontSize: 28, fontWeight: FontWeight.w800)),
                       IconButton(
+                        key: const Key('profile-settings-icon'),
+                        // PASS 6 §3/REQ-PROFILE-006: SCR-SETTINGS-001 is a
+                        // separate full screen (never merged into Profile).
+                        // A plain push; Settings' own back button/system-
+                        // back just pops back to this exact Profile
+                        // instance, preserving its tab/segment state.
                         onPressed: () => Navigator.of(context).push(
-                          MaterialPageRoute(builder: (_) => const SettingsPlaceholderScreen()),
+                          MaterialPageRoute(builder: (_) => const SettingsScreen()),
                         ),
                         icon: const Icon(Icons.settings_outlined),
                         style: IconButton.styleFrom(backgroundColor: const Color(0xFFF5F5F6), shape: const CircleBorder()),

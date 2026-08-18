@@ -4,6 +4,7 @@ import '../../core/app_data.dart';
 import '../../models/lesson_model.dart';
 import '../../repositories/progress_repository.dart';
 import '../../shared/lesson_thumb_card.dart';
+import '../paywall/paywall_screen.dart';
 
 /// SCR-HOME-001 — repeatable category sections (Manga/Animal/Nature) +
 /// conditional Continue card, per the approved prototype/ui-spec. Reads
@@ -36,7 +37,12 @@ class HomeScreen extends StatelessWidget {
               Align(
                 alignment: Alignment.centerLeft,
                 child: OutlinedButton.icon(
-                  onPressed: () {}, // Paywall is out of scope for Pass 1.
+                  key: const Key('home-pro-button'),
+                  // PASS 6 §6: Home PRO -> SCR-PAYWALL-001. A plain push;
+                  // Paywall's own close button/system-back just pops back
+                  // to this exact Home instance (§11 — never a duplicate
+                  // Home route, never a reset of Home/tab state).
+                  onPressed: () => Navigator.of(context).push(MaterialPageRoute(builder: (_) => const PaywallScreen())),
                   icon: const Icon(Icons.workspace_premium, size: 16, color: Color(0xFFE8850C)),
                   label: const Text('PRO', style: TextStyle(fontWeight: FontWeight.w800, color: Color(0xFFE8850C))),
                   style: OutlinedButton.styleFrom(
