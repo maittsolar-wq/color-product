@@ -96,12 +96,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ? const Center(child: Text('Nothing in this view yet.'))
                         : GridView.builder(
                             padding: const EdgeInsets.only(bottom: 20),
-                            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                              crossAxisCount: 2,
-                              mainAxisSpacing: 12,
-                              crossAxisSpacing: 12,
-                              childAspectRatio: 0.82,
-                            ),
+                            gridDelegate: kLessonGridDelegate,
                             itemCount: lessons.length,
                             itemBuilder: (context, index) {
                               final lesson = lessons[index];

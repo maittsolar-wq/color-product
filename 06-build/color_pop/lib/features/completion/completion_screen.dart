@@ -219,12 +219,7 @@ class _CompletionScreenState extends State<CompletionScreen> {
               GridView.builder(
                 shrinkWrap: true,
                 physics: const NeverScrollableScrollPhysics(),
-                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                  crossAxisCount: 2,
-                  mainAxisSpacing: 12,
-                  crossAxisSpacing: 12,
-                  childAspectRatio: 0.82,
-                ),
+                gridDelegate: kLessonGridDelegate,
                 itemCount: recommended.length,
                 itemBuilder: (context, index) {
                   final rec = recommended[index];

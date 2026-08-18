@@ -44,6 +44,34 @@ class LessonPreviewImage extends StatelessWidget {
   }
 }
 
+/// PASS 6.4 §7 — the shared, subtle rounded border every lesson thumbnail
+/// (Home/Library/Profile/Completion-recommendations, all via
+/// [LessonThumbCard]) uses to separate a white-background line-art artwork
+/// from the app's own white/light page background. Pure UI decoration:
+/// applied around the artwork widget, never rasterized into it, so dynamic
+/// colored previews keep rendering exactly as before.
+const Color kThumbnailBorderColor = Color(0xFFE4E4E7);
+const double kThumbnailBorderRadius = 15;
+
+/// UI-POLISH — the ONE shared 2-column grid delegate for every lesson
+/// thumbnail grid (Library, Search, Profile, Completion recommendations),
+/// so their spacing/density never drifts apart into four separately-tuned
+/// copies. `mainAxisSpacing` (vertical) is deliberately a bit larger than
+/// `crossAxisSpacing` (horizontal) to read as row rhythm rather than a
+/// uniform checkerboard. `childAspectRatio` is intentionally left at the
+/// existing, already field-proven 0.82 -- a tighter ratio was tried and
+/// measured to overflow by a few pixels once a full-length title wraps to
+/// its max line count on narrower (~360dp) widths, since the card's title
+/// text has a fixed pixel height that doesn't shrink with the cell the
+/// way the square image does. Compactness instead comes from the reduced
+/// header/section spacing and Home's larger cards.
+const SliverGridDelegateWithFixedCrossAxisCount kLessonGridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
+  crossAxisCount: 2,
+  mainAxisSpacing: 14,
+  crossAxisSpacing: 12,
+  childAspectRatio: 0.82,
+);
+
 /// Shared 250x250-thumbnail lesson card — Home, Library, Search, and Profile
 /// all render through this ONE widget so thumbnail usage/sizing/tap
 /// behavior never drifts between screens. Home cards omit the title caption
@@ -78,9 +106,16 @@ class LessonThumbCard extends StatelessWidget {
             children: [
               AspectRatio(
                 aspectRatio: 1,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(12),
-                  child: LessonPreviewImage(lesson: lesson),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(kThumbnailBorderRadius),
+                    border: Border.all(color: kThumbnailBorderColor, width: 1),
+                  ),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(kThumbnailBorderRadius - 1),
+                    child: LessonPreviewImage(lesson: lesson),
+                  ),
                 ),
               ),
               if (showTitle) ...[

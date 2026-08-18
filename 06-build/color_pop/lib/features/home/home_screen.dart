@@ -178,12 +178,12 @@ class _CategorySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 2),
+      padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 4),
+            padding: const EdgeInsets.only(top: 6, bottom: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -196,24 +196,26 @@ class _CategorySection extends StatelessWidget {
             ),
           ),
           SizedBox(
-            // PASS 3.2 §1: Home-only thumbnail enlargement (~14% — within
-            // the requested 10-15% range). Library/Search/Profile use
-            // LessonThumbCard without an explicit width (their own
-            // GridView-driven sizing), so this change is scoped to Home
-            // alone. Row height keeps the same 16px slack above the card's
-            // own height (width - 16px padding + 16px padding = width) that
-            // the original 128/112 pairing used.
-            height: 144,
+            // UI-POLISH: Home-only thumbnail size, ~9% larger than the
+            // previous 128 (within the requested 5-10% range). Library/
+            // Search/Profile use LessonThumbCard without an explicit
+            // width (their own GridView-driven sizing via
+            // kLessonGridDelegate), so this stays scoped to Home alone —
+            // only the layout dimensions differ; the card's shared
+            // border/radius styling is untouched. Row height keeps the
+            // same 16px slack above the card's own height (width - 16px
+            // padding + 16px padding = width) the original pairing used.
+            height: 156,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: lessons.length,
-              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              separatorBuilder: (_, _) => const SizedBox(width: 10),
               itemBuilder: (context, index) {
                 final lesson = lessons[index];
                 return LessonThumbCard(
                   key: Key('lesson-card-${lesson.id}'),
                   lesson: lesson,
-                  width: 128,
+                  width: 140,
                   showTitle: false,
                   onTap: () => onOpenEditor(lesson.id),
                 );

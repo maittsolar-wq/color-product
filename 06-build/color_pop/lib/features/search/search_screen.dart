@@ -129,12 +129,7 @@ class _SearchScreenState extends State<SearchScreen> {
     }
     return GridView.builder(
       padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 0.82,
-      ),
+      gridDelegate: kLessonGridDelegate,
       itemCount: matches.length,
       itemBuilder: (context, index) {
         final lesson = matches[index];

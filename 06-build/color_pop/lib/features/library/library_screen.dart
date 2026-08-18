@@ -111,12 +111,7 @@ class _LibraryScreenState extends State<LibraryScreen> {
                     ? const Center(child: Text('No artwork in this category yet.'))
                     : GridView.builder(
                         padding: const EdgeInsets.fromLTRB(20, 4, 20, 20),
-                        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                          crossAxisCount: 2,
-                          mainAxisSpacing: 12,
-                          crossAxisSpacing: 12,
-                          childAspectRatio: 0.82,
-                        ),
+                        gridDelegate: kLessonGridDelegate,
                         itemCount: lessons.length,
                         itemBuilder: (context, index) {
                           final LessonModel lesson = lessons[index];
