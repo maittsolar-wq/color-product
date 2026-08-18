@@ -53,7 +53,7 @@ void main() {
     await tester.pumpWidget(
       RepaintBoundary(
         key: rootKey,
-        child: const MaterialApp(home: EditorScreen(lessonId: 'food_happydonuts')),
+        child: MaterialApp(home: EditorScreen(lessonId: 'food_happydonuts', onOpenEditor: (_) {}, onBackToHome: () {})),
       ),
     );
 

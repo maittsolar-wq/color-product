@@ -4,6 +4,7 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 
+import '../completion/completion_screen.dart';
 import 'color_picker_sheet.dart';
 import 'editor_controller.dart';
 import 'editor_painter.dart';
@@ -11,12 +12,29 @@ import 'editor_settings_sheet.dart';
 
 /// SCR-EDITOR-001 — the real coloring engine. Brush (Locked/Unlocked),
 /// Fill, Erase, Undo/Redo, per-lesson in-memory progress isolation (PASS
-/// 2/2.1), Zoom/Pan, Eyedropper and Playful HSV picker (PASS 3), and
-/// Save/Done + Expanded/Focus mode + MRU color history (PASS 3.1).
+/// 2/2.1), Zoom/Pan, Eyedropper and Playful HSV picker (PASS 3), Expanded/
+/// Focus mode + MRU color history (PASS 3.1), and the real Done ->
+/// Completion flow (PASS 5).
 class EditorScreen extends StatefulWidget {
-  const EditorScreen({super.key, required this.lessonId});
+  const EditorScreen({
+    super.key,
+    required this.lessonId,
+    required this.onOpenEditor,
+    required this.onBackToHome,
+  });
 
   final String lessonId;
+
+  /// Threaded down to Completion for "Recommended lesson tap -> Editor
+  /// directly" (PASS 5 §11) — always the SAME AppShell-owned callback, so a
+  /// recommended lesson's Editor can itself complete and recommend further,
+  /// arbitrarily deep, through one consistent navigation primitive.
+  final void Function(String lessonId) onOpenEditor;
+
+  /// Threaded down to Completion's "Back to home" (§7) — pops every pushed
+  /// route back to the AppShell root AND selects the Home tab specifically,
+  /// which only AppShell (the NavigationBar's owner) can do.
+  final VoidCallback onBackToHome;
 
   @override
   State<EditorScreen> createState() => _EditorScreenState();
@@ -25,6 +43,7 @@ class EditorScreen extends StatefulWidget {
 class _EditorScreenState extends State<EditorScreen> {
   late final EditorController _controller = EditorController(lessonId: widget.lessonId);
   final GlobalKey _repaintBoundaryKey = GlobalKey();
+  bool _isCompleting = false;
 
   @override
   void initState() {
@@ -43,15 +62,32 @@ class _EditorScreenState extends State<EditorScreen> {
     Navigator.of(context).pop();
   }
 
-  /// PASS 3.1 §4 — commits in-memory progress now (without leaving the
-  /// Editor) and visually acknowledges it. No Completion behavior.
-  void _handleSave() {
-    _controller.saveNow();
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(content: Text('Progress saved'), duration: Duration(seconds: 1), behavior: SnackBarBehavior.floating),
-      );
+  /// PASS 5 §2 — the purple check button's real Done action: durably
+  /// persists the latest drawing state, preview, and COMPLETED status
+  /// (awaited — see EditorController.completeLesson) BEFORE navigating, so
+  /// SCR-COMPLETE-001 always opens onto state that's already safe against
+  /// an immediate process kill. Does not reset the artwork. A guard flag
+  /// blocks a double-tap from firing this twice while the first is still
+  /// in flight.
+  Future<void> _handleDone() async {
+    if (_isCompleting) return;
+    setState(() => _isCompleting = true);
+    await _controller.completeLesson();
+    if (!mounted) return;
+    setState(() => _isCompleting = false);
+
+    final lesson = _controller.lesson;
+    if (lesson == null) return;
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CompletionScreen(
+          lesson: lesson,
+          strokes: List.of(_controller.strokes),
+          onOpenEditor: widget.onOpenEditor,
+          onBackToHome: widget.onBackToHome,
+        ),
+      ),
+    );
   }
 
   /// PASS 4.5 — reads the FINAL rendered/composited artboard around
@@ -145,7 +181,7 @@ class _EditorScreenState extends State<EditorScreen> {
                   icon: const Icon(Icons.settings_outlined),
                 ),
                 const SizedBox(width: 4),
-                _SaveDoneButton(onSave: _handleSave),
+                _SaveDoneButton(onDone: _handleDone, isLoading: _isCompleting),
                 const SizedBox(width: 8),
               ],
             ),
@@ -486,14 +522,17 @@ class _LockToggleButton extends StatelessWidget {
   }
 }
 
-/// PASS 3.1 §4 — the approved top-right primary control: prominent purple
-/// circular check button (matches the locked prototype's done-circle).
-/// Commits in-memory progress; explicitly does NOT open a Completion screen
-/// (deferred to a later pass).
+/// PASS 5 §2 — the approved top-right primary control: prominent purple
+/// circular check button (matches the locked prototype's done-circle). Now
+/// the real Done action — durably persists progress and navigates to
+/// SCR-COMPLETE-001 (see EditorScreen._handleDone). Shows a small spinner
+/// in place of the checkmark, and ignores taps, while that persistence is
+/// in flight.
 class _SaveDoneButton extends StatelessWidget {
-  const _SaveDoneButton({required this.onSave});
+  const _SaveDoneButton({required this.onDone, required this.isLoading});
 
-  final VoidCallback onSave;
+  final VoidCallback onDone;
+  final bool isLoading;
 
   @override
   Widget build(BuildContext context) {
@@ -503,10 +542,16 @@ class _SaveDoneButton extends StatelessWidget {
       shape: const CircleBorder(),
       child: InkWell(
         customBorder: const CircleBorder(),
-        onTap: onSave,
-        child: const Padding(
-          padding: EdgeInsets.all(9),
-          child: Icon(Icons.check, color: Colors.white, size: 20),
+        onTap: isLoading ? null : onDone,
+        child: Padding(
+          padding: const EdgeInsets.all(9),
+          child: isLoading
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                )
+              : const Icon(Icons.check, color: Colors.white, size: 20),
         ),
       ),
     );

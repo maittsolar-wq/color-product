@@ -34,6 +34,13 @@ abstract class ProgressRepository extends ChangeNotifier {
   /// keeping the current status (or `inProgress` if none exists yet).
   void saveProgress(String lessonId, {LessonProgressStatus? status});
 
+  /// PASS 5 §2/§8 — marks a lesson COMPLETED and AWAITS the disk write
+  /// completing before returning (unlike saveProgress's fire-and-forget
+  /// autosave) — the Editor's Done action calls this so it can guarantee
+  /// the status is durable before navigating to Completion, surviving a
+  /// force-stop immediately afterward.
+  Future<void> completeLesson(String lessonId);
+
   /// Removes a lesson's progress record AND its saved drawing state, both
   /// in memory and on disk (used by Profile's Restart contract) — after
   /// this, reopening the lesson starts clean, exactly as if it had never
@@ -103,6 +110,14 @@ class LocalProgressRepository extends ProgressRepository {
     _progress[lessonId] = updated;
     notifyListeners();
     unawaited(_persistRecord(lessonId, updated));
+  }
+
+  @override
+  Future<void> completeLesson(String lessonId) async {
+    final updated = LessonProgress(lessonId: lessonId, status: LessonProgressStatus.completed, updatedAt: DateTime.now());
+    _progress[lessonId] = updated;
+    notifyListeners();
+    await _persistRecord(lessonId, updated); // AWAITED -- durable before the caller navigates
   }
 
   @override

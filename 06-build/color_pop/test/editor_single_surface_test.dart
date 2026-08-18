@@ -48,7 +48,7 @@ void main() {
     await tester.pumpWidget(
       RepaintBoundary(
         key: rootKey,
-        child: const MaterialApp(home: EditorScreen(lessonId: 'animal_babydeer')),
+        child: MaterialApp(home: EditorScreen(lessonId: 'animal_babydeer', onOpenEditor: (_) {}, onBackToHome: () {})),
       ),
     );
 

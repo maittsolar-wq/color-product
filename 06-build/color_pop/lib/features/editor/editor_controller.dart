@@ -372,16 +372,23 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// PASS 3.1 Save/Done (§4). Completion is explicitly NOT part of this
-  /// pass: this only (1) commits current in-memory progress, (2) which as
-  /// part of that invalidates the cached preview so it regenerates fresh,
-  /// and (3) ensures status is at least inProgress -- but ONLY if the
-  /// artwork actually has user edits, never fabricating progress for an
-  /// untouched lesson from a stray tap. Stays in the Editor; the visual
-  /// "saved" acknowledgment is the widget layer's job (e.g. a SnackBar).
-  void saveNow() {
-    if (!artworkReady || strokes.isEmpty) return;
-    _commitDrawingState();
+  /// PASS 5 §2 — the Done action. Unlike the fire-and-forget autosave path
+  /// (_commitDrawingState, used by every stroke/undo/redo/exit commit),
+  /// every step here is durably AWAITED before returning, so the caller
+  /// (EditorScreen's Done handler) can push Completion only once the
+  /// drawing state, the discovery-screen preview, AND the COMPLETED status
+  /// are all guaranteed to survive an immediate process kill (§8/§18 TEST
+  /// G). COMPLETED means the user tapped Done — nothing here inspects
+  /// coverage/percentage, and nothing here resets or alters the artwork.
+  Future<void> completeLesson() async {
+    if (!artworkReady) return;
+    final resolvedLesson = lesson;
+    if (resolvedLesson == null) return;
+
+    final persisted = strokes.map(_toPersistedStroke).toList();
+    await AppData.progressRepository.saveDrawingState(lessonId, persisted);
+    await LessonPreviewCache.instance.renderAndPersist(resolvedLesson, List.of(strokes));
+    await AppData.progressRepository.completeLesson(lessonId);
   }
 
   // --- View transform helpers ----------------------------------------------

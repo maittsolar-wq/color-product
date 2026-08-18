@@ -31,8 +31,26 @@ class _AppShellState extends State<AppShell> {
 
   void _openEditor(String lessonId) {
     Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => EditorScreen(lessonId: lessonId)),
+      MaterialPageRoute(
+        builder: (_) => EditorScreen(
+          lessonId: lessonId,
+          onOpenEditor: _openEditor,
+          onBackToHome: _backToHome,
+        ),
+      ),
     );
+  }
+
+  /// PASS 5 §7 — Completion's "Back to home": pops every pushed route back
+  /// to this AppShell root AND selects the Home tab specifically, so it
+  /// always lands on Home root regardless of which tab was active before
+  /// the Editor was opened.
+  void _backToHome() {
+    setState(() {
+      _tabIndex = 0;
+      _libraryFilter = 'all';
+    });
+    Navigator.of(context).popUntil((route) => route.isFirst);
   }
 
   Widget _buildBody() {
