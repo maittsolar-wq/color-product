@@ -37,6 +37,19 @@ const List<Color> kEditorPresetColors = [
   Color(0xFFF4E6BE), // cream
 ];
 
+// PASS 4.5 — the live magnifying loupe. Diameter/magnification chosen to
+// sit inside the spec's "60-90px diameter / 4x-8x magnification" ranges;
+// tuned on the physical device (see PASS 4.5 report).
+const double kLoupeDiameter = 76;
+const double kLoupeMagnification = 6.0;
+
+/// The result of one eyedropper capture: a small crop of the ACTUAL
+/// rendered/composited artboard already centered on the sample point (the
+/// loupe's direct rendering source -- see EditorScreen._captureColorAt),
+/// plus the exact pixel color at its center. Ownership of `image` passes to
+/// whoever stores it on EditorController; it must be disposed exactly once.
+typedef EyedropperCapture = ({ui.Image image, Color color});
+
 class LiveStroke {
   LiveStroke({
     required this.tool,
@@ -216,13 +229,18 @@ class EditorController extends ChangeNotifier {
   /// Set by EditorScreen to bridge to the widget-layer pixel capture the
   /// Eyedropper needs (reading the actual RENDERED/composited artboard —
   /// see class doc on why that lives outside the controller).
-  Future<Color?> Function(Offset localPosition)? sampleColorAt;
+  Future<EyedropperCapture?> Function(Offset localPosition)? sampleColorAt;
   bool _eyedropperSampling = false;
   Future<void>? _pendingEyedropperSample;
   int _eyedropperSampleToken = 0;
   Color? eyedropperPreviewColor;
   Offset? eyedropperPreviewLocalPosition;
-  EditorTool? _toolBeforeEyedropper;
+
+  // PASS 4.5 — the small live crop backing the loupe (see EyedropperCapture
+  // doc). Owned here; disposed whenever replaced, cleared, or the
+  // controller itself is disposed -- never left to leak GPU memory.
+  ui.Image? _eyedropperSourceImage;
+  ui.Image? get eyedropperSourceImage => _eyedropperSourceImage;
 
   final List<BrushStroke> _undoStack = [];
   final List<BrushStroke> _redoStack = [];
@@ -313,10 +331,8 @@ class EditorController extends ChangeNotifier {
     if (activeTool == EditorTool.eyedropper && tool != EditorTool.eyedropper) {
       // Switching away from Eyedropper via the tool rail (not by
       // completing/cancelling a sample) still needs to drop any in-flight
-      // preview state cleanly.
-      eyedropperPreviewColor = null;
-      eyedropperPreviewLocalPosition = null;
-      _toolBeforeEyedropper = null;
+      // preview/loupe state cleanly.
+      _clearEyedropperPreview();
     }
     activeTool = tool;
     notifyListeners();
@@ -346,11 +362,12 @@ class EditorController extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Remembers the current painting tool and enters sampling mode (§9) —
-  /// does not permanently replace the Brush/Fill/Erase selection.
+  /// Enters live sampling mode (§9). PASS 4.5 §14: Eyedropper is now
+  /// "sticky" — after a pick commits, the Editor stays in Pick mode (ready
+  /// for another pick) rather than silently reverting to whatever tool was
+  /// active before; the user leaves Pick explicitly via the tool rail.
   void activateEyedropper() {
     if (activeTool == EditorTool.eyedropper) return;
-    _toolBeforeEyedropper = activeTool;
     activeTool = EditorTool.eyedropper;
     notifyListeners();
   }
@@ -426,9 +443,16 @@ class EditorController extends ChangeNotifier {
 
   // --- Pointer handling (screen-local coordinates; multi-pointer aware) ----
   // Exactly one active pointer, once ARBITRATED (see above), drives Brush/
-  // Fill/Erase/Eyedropper. Exactly two drive Zoom/Pan. A second finger
-  // arriving at ANY point — during arbitration or after painting was
-  // already confirmed — aborts painting outright (§1).
+  // Fill/Erase. Exactly two drive Zoom/Pan. A second finger arriving at ANY
+  // point — during arbitration or after painting was already confirmed —
+  // aborts painting outright (§1).
+  //
+  // PASS 4.5 §12: Eyedropper is the one exception to arbitration entirely —
+  // a single finger while Pick is active samples immediately and on every
+  // move, with NO hold-to-pan delay and NO touch-slop gate. A deliberate
+  // slow drag (exactly how accurate color picking works) must never get
+  // hijacked into Pan; priority for Pick mode is continuous, reliable
+  // sampling. Two fingers still cancel it in favor of Zoom/Pan (§11).
 
   Future<void> handlePointerDown(int pointerId, Offset localPosition, Size displaySize) async {
     _activePointers[pointerId] = localPosition;
@@ -438,12 +462,12 @@ class EditorController extends ChangeNotifier {
       // OR mid one-finger Pan — cancels that single-pointer state outright
       // and hands off to two-finger pinch/pan, re-baselined from wherever
       // the artwork currently is (including anywhere one-finger Pan just
-      // moved it to).
+      // moved it to). PASS 4.5: also cancels an in-progress Eyedropper
+      // sample with zero MRU commit (§11) — the loupe hides immediately.
       _cancelPendingPaintGesture();
       _liveStroke = null;
       _eyedropperSampleToken++; // invalidate any in-flight sample from before this interrupt
-      eyedropperPreviewColor = null;
-      eyedropperPreviewLocalPosition = null;
+      _clearEyedropperPreview();
       notifyListeners();
       _startTwoFingerGesture();
       return;
@@ -452,11 +476,21 @@ class EditorController extends ChangeNotifier {
 
     if (!artworkReady || _regionEngine == null) return;
 
+    if (activeTool == EditorTool.eyedropper) {
+      // Bypass arbitration entirely — sample immediately (§1 "pointer down
+      // -> immediately show a floating magnifier"). Still record
+      // _pendingPointerId/_pendingDisplaySize so a 2nd finger joining mid-
+      // drag is recognized and cancelled by the branch above.
+      _pendingPointerId = pointerId;
+      _pendingDisplaySize = displaySize;
+      await _sampleEyedropper(localPosition, displaySize);
+      return;
+    }
+
     // Exactly one active pointer -- arm the arbitration/hold-to-pan window.
-    // Nothing irreversible happens yet: no live stroke, no Fill, no
-    // Eyedropper sample. If a 2nd pointer joins before this resolves, the
-    // branch above discards it via _cancelPendingPaintGesture with zero
-    // visible trace.
+    // Nothing irreversible happens yet: no live stroke, no Fill. If a 2nd
+    // pointer joins before this resolves, the branch above discards it via
+    // _cancelPendingPaintGesture with zero visible trace.
     _pendingPointerId = pointerId;
     _pendingLocalPosition = localPosition;
     _pendingDisplaySize = displaySize;
@@ -512,6 +546,13 @@ class EditorController extends ChangeNotifier {
     }
     if (_activePointers.length != 1) return;
 
+    if (activeTool == EditorTool.eyedropper) {
+      if (pointerId == _pendingPointerId) {
+        await _sampleEyedropper(localPosition, displaySize);
+      }
+      return;
+    }
+
     // PASS 4.1 §1B/§13 — once Pan Mode has been recognized for this
     // gesture, EVERY subsequent move is a pan and nothing else, until
     // pointerUp/cancel. Never switches back into painting mid-gesture.
@@ -548,6 +589,25 @@ class EditorController extends ChangeNotifier {
 
   Future<void> handlePointerUp(int pointerId) async {
     final wasPendingPointer = pointerId == _pendingPointerId;
+
+    if (activeTool == EditorTool.eyedropper && wasPendingPointer) {
+      // PASS 4.5 §14: commit the final sample directly — Eyedropper never
+      // goes through the paint arbitration/confirm pipeline, so there is
+      // nothing to retroactively confirm, only the live-sampled state
+      // already held in eyedropperPreviewColor to commit.
+      _activePointers.remove(pointerId);
+      if (_activePointers.length == 2) {
+        _startTwoFingerGesture();
+      } else {
+        _twoFingerStartFocal = null;
+        _twoFingerStartDistance = null;
+      }
+      _pendingPointerId = null;
+      _pendingDisplaySize = null;
+      await _finishToolGesture();
+      return;
+    }
+
     final wasPanning = wasPendingPointer && _singlePointerPanning;
     final wasStillArbitrating = wasPendingPointer && !_paintingConfirmed && !_singlePointerPanning;
 
@@ -654,11 +714,10 @@ class EditorController extends ChangeNotifier {
     _panStartViewOffset = null;
   }
 
+  // Eyedropper never reaches here — PASS 4.5 §12 routes it directly from
+  // handlePointerDown/handlePointerMove, bypassing arbitration entirely, so
+  // activeTool can never be eyedropper at this point.
   Future<void> _handleToolPointerDown(Offset artworkPoint, Offset localPosition) async {
-    if (activeTool == EditorTool.eyedropper) {
-      await _sampleEyedropper(localPosition);
-      return;
-    }
     if (activeTool == EditorTool.fill) {
       await _performFill(artworkPoint);
       return;
@@ -686,10 +745,6 @@ class EditorController extends ChangeNotifier {
   }
 
   Future<void> _handleToolPointerMove(Offset artworkPoint, Offset localPosition) async {
-    if (activeTool == EditorTool.eyedropper) {
-      await _sampleEyedropper(localPosition);
-      return;
-    }
     final live = _liveStroke;
     if (live == null) return;
     live.points.add(StrokePoint(artworkPoint.dx, artworkPoint.dy));
@@ -704,13 +759,12 @@ class EditorController extends ChangeNotifier {
       final pending = _pendingEyedropperSample;
       if (pending != null) await pending;
 
-      // Restore the tool first so the one notify below (whichever branch)
-      // reflects the fully-settled state in a single frame.
+      // PASS 4.5 §14: commit the FINAL live-sampled color (never an
+      // intermediate one — see _runEyedropperSample, which only ever holds
+      // the latest sample), promote it to MRU, and hide the loupe. Stays in
+      // Pick mode (§ activateEyedropper doc) rather than reverting tool.
       final color = eyedropperPreviewColor;
-      activeTool = _toolBeforeEyedropper ?? EditorTool.brush;
-      _toolBeforeEyedropper = null;
-      eyedropperPreviewColor = null;
-      eyedropperPreviewLocalPosition = null;
+      _clearEyedropperPreview();
       if (color != null) {
         commitCustomColor(color);
       } else {
@@ -741,14 +795,36 @@ class EditorController extends ChangeNotifier {
     if (activeTool == EditorTool.eyedropper) {
       // Interrupted sample (e.g. a second finger joined) — stay in
       // Eyedropper mode rather than treating this as a completed pick.
+      // PASS 4.5 §8: cancel hides the loupe and commits nothing to MRU.
       _eyedropperSampleToken++; // invalidate any in-flight sample
-      eyedropperPreviewColor = null;
-      eyedropperPreviewLocalPosition = null;
+      _clearEyedropperPreview();
     }
     notifyListeners();
   }
 
-  Future<void> _sampleEyedropper(Offset localPosition) {
+  /// Drops zero, one, or two `ui.Image`s depending on timing: any image
+  /// currently backing the loupe, and (via _runEyedropperSample's own
+  /// stale-token check) any in-flight capture that resolves after this
+  /// call — both are disposed exactly once, never leaked, never double-
+  /// disposed.
+  void _clearEyedropperPreview() {
+    eyedropperPreviewColor = null;
+    eyedropperPreviewLocalPosition = null;
+    final image = _eyedropperSourceImage;
+    _eyedropperSourceImage = null;
+    image?.dispose();
+  }
+
+  /// PASS 4.5 §8/§9: never samples outside the 800x800 artwork (the grey
+  /// workspace must never be read as a color) — computed via the SAME
+  /// inverse ArtworkSurface transform every other tool uses, so this stays
+  /// correct at any pan/zoom state, in Normal or Expanded mode alike.
+  Future<void> _sampleEyedropper(Offset localPosition, Size displaySize) {
+    final artworkPoint = artworkPointFromLocal(localPosition, displaySize, scale: viewScale, offset: viewOffset);
+    final inBounds =
+        artworkPoint.dx >= 0 && artworkPoint.dx <= kArtworkSize && artworkPoint.dy >= 0 && artworkPoint.dy <= kArtworkSize;
+    if (!inBounds) return Future.value(); // retain the last valid sample rather than showing workspace grey
+
     final sampler = sampleColorAt;
     if (sampler == null || _eyedropperSampling) return Future.value();
     _eyedropperSampling = true;
@@ -758,15 +834,22 @@ class EditorController extends ChangeNotifier {
     return future;
   }
 
-  Future<void> _runEyedropperSample(Future<Color?> Function(Offset) sampler, Offset localPosition, int token) async {
+  Future<void> _runEyedropperSample(Future<EyedropperCapture?> Function(Offset) sampler, Offset localPosition, int token) async {
     try {
-      final color = await sampler(localPosition);
+      final capture = await sampler(localPosition);
       // A 2-finger interrupt (cancel) bumps the token while this was in
       // flight — discard a result that's no longer for the current
-      // gesture rather than resurrecting a stale preview mid-zoom.
-      if (color == null || token != _eyedropperSampleToken) return;
+      // gesture rather than resurrecting a stale preview mid-zoom. Still
+      // dispose its image: it was never stored anywhere else.
+      if (capture == null || token != _eyedropperSampleToken) {
+        capture?.image.dispose();
+        return;
+      }
+      final oldImage = _eyedropperSourceImage;
+      _eyedropperSourceImage = capture.image;
       eyedropperPreviewLocalPosition = localPosition;
-      eyedropperPreviewColor = color;
+      eyedropperPreviewColor = capture.color;
+      oldImage?.dispose();
       notifyListeners();
     } finally {
       _eyedropperSampling = false;
@@ -874,6 +957,7 @@ class EditorController extends ChangeNotifier {
   @override
   void dispose() {
     _pendingArbitrationTimer?.cancel();
+    _eyedropperSourceImage?.dispose();
     // lineArtImage is owned by LessonArtworkCache (shared across reopens of
     // the same lesson) — must NOT be disposed here.
     super.dispose();

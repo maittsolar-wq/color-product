@@ -14,6 +14,7 @@ import 'dart:ui' as ui;
 
 import 'package:color_pop/core/app_data.dart';
 import 'package:color_pop/core/constants.dart';
+import 'package:color_pop/features/editor/artwork_coordinates.dart';
 import 'package:color_pop/features/editor/lesson_artwork_cache.dart';
 import 'package:color_pop/main.dart';
 import 'package:flutter/material.dart';
@@ -40,9 +41,8 @@ void main() {
     final interior = _findPaintablePoint(artwork.barrierMask, xMin: 250, xMax: 550, yMin: 250, yMax: 550);
 
     final rect = tester.getRect(find.byKey(const Key('artboard-gesture-area')));
-    final baseScale = rect.width / kArtworkSize;
     // `interior`'s on-screen LOCAL position at scale=1 (before any zoom).
-    final focalLocal = Offset(interior.dx * baseScale, interior.dy * baseScale);
+    final focalLocal = _artworkPointToLocal(rect.size, interior);
     final focalGlobal = rect.topLeft + focalLocal;
 
     // ---- Two-finger pinch centered exactly on `interior`, tool = Brush ----
@@ -139,8 +139,7 @@ void main() {
     final artwork = await LessonArtworkCache.load(lesson);
     final interior = _findPaintablePoint(artwork.barrierMask, xMin: 250, xMax: 550, yMin: 250, yMax: 550);
     final rect = tester.getRect(find.byKey(const Key('artboard-gesture-area')));
-    final baseScale = rect.width / kArtworkSize;
-    final focalLocal = Offset(interior.dx * baseScale, interior.dy * baseScale);
+    final focalLocal = _artworkPointToLocal(rect.size, interior);
     final focalGlobal = rect.topLeft + focalLocal;
 
     // ---- Fill active (default) — the highest-risk case: Fill commits ----
@@ -248,6 +247,19 @@ Future<void> _waitForArtworkReady(WidgetTester tester) async {
 Future<void> _selectTool(WidgetTester tester, String key) async {
   await tester.tap(find.byKey(Key(key)));
   await _settle(tester);
+}
+
+// PASS 4.4: the gesture area is now the FULL grey workspace, not a square
+// sized to the artwork -- the 800x800 sheet is centered inside it at
+// `baseFitScale` (viewScale 1.0, no pan/zoom yet at the point these tests
+// use this helper). Must mirror EditorController.ensureViewportInitialized's
+// centering formula exactly, or the pinch focal point drifts off the
+// intended artwork point.
+Offset _artworkPointToLocal(Size displaySize, Offset artworkPoint) {
+  final fit = baseFitScale(displaySize);
+  final rendered = kArtworkSize * fit;
+  final centeredOffset = Offset((displaySize.width - rendered) / 2, (displaySize.height - rendered) / 2);
+  return centeredOffset + artworkPoint * fit;
 }
 
 Future<void> _selectColor(WidgetTester tester, Color color) async {

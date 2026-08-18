@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:ui' as ui;
 
 import 'package:flutter/material.dart';
@@ -53,31 +54,56 @@ class _EditorScreenState extends State<EditorScreen> {
       );
   }
 
-  /// Reads the FINAL rendered/composited artboard pixel under [localPosition]
-  /// — captures the same RepaintBoundary the Editor itself displays, so the
-  /// Eyedropper sees exactly what the user sees. The capture already
-  /// reflects the current Zoom/Pan transform.
-  Future<Color?> _captureColorAt(Offset localPosition) async {
+  /// PASS 4.5 — reads the FINAL rendered/composited artboard around
+  /// [localPosition] — captures the same RepaintBoundary the Editor itself
+  /// displays (white canvas + Fill/Brush/Erase chronology + line art, at
+  /// the current Zoom/Pan transform), exactly what the user sees, never a
+  /// separate source-only or paint-only layer.
+  ///
+  /// Returns a small CROP centered on the sample point (not the whole
+  /// boundary) — this is both the loupe's direct magnified-rendering
+  /// source (§3/§4) and, via one cheap readback of that tiny image, the
+  /// live sampled color (§5). Cropping BEFORE the CPU/GPU readback keeps
+  /// every live-drag tick cheap regardless of how large the workspace is
+  /// (§13) — this never does a full-boundary pixel readback, let alone a
+  /// PNG export.
+  Future<EyedropperCapture?> _captureColorAt(Offset localPosition) async {
     final renderObject = _repaintBoundaryKey.currentContext?.findRenderObject();
     if (renderObject is! RenderRepaintBoundary) return null;
     final displaySize = renderObject.size;
     if (displaySize.width == 0 || displaySize.height == 0) return null;
 
-    final image = await renderObject.toImage(pixelRatio: 1.0);
-    final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    final pixelRatio = MediaQuery.of(context).devicePixelRatio;
+    final fullImage = await renderObject.toImage(pixelRatio: pixelRatio);
+
+    const cropLogical = kLoupeDiameter / kLoupeMagnification;
+    final cropSize = (cropLogical * pixelRatio).ceil().clamp(1, fullImage.width);
+    final cropSizeDouble = cropSize.toDouble();
+    final imageCenter = localPosition * pixelRatio;
+    final maxLeft = math.max(0.0, fullImage.width - cropSizeDouble);
+    final maxTop = math.max(0.0, fullImage.height - cropSizeDouble);
+    final srcLeft = (imageCenter.dx - cropSizeDouble / 2).clamp(0.0, maxLeft);
+    final srcTop = (imageCenter.dy - cropSizeDouble / 2).clamp(0.0, maxTop);
+    final srcRect = Rect.fromLTWH(srcLeft, srcTop, cropSizeDouble, cropSizeDouble);
+
+    final recorder = ui.PictureRecorder();
+    final canvas = Canvas(recorder);
+    canvas.drawImageRect(fullImage, srcRect, Rect.fromLTWH(0, 0, cropSize.toDouble(), cropSize.toDouble()), Paint());
+    final picture = recorder.endRecording();
+    final cropImage = await picture.toImage(cropSize, cropSize);
+    picture.dispose();
+    fullImage.dispose();
+
+    final byteData = await cropImage.toByteData(format: ui.ImageByteFormat.rawRgba);
     if (byteData == null) {
-      image.dispose();
+      cropImage.dispose();
       return null;
     }
-    final width = image.width;
-    final height = image.height;
-    final px = (localPosition.dx / displaySize.width * width).round().clamp(0, width - 1);
-    final py = (localPosition.dy / displaySize.height * height).round().clamp(0, height - 1);
     final bytes = byteData.buffer.asUint8List();
-    final idx = (py * width + px) * 4;
-    image.dispose();
-    if (idx < 0 || idx + 3 >= bytes.length) return null;
-    return Color.fromARGB(bytes[idx + 3], bytes[idx], bytes[idx + 1], bytes[idx + 2]);
+    final centerIndex = ((cropSize ~/ 2) * cropSize + (cropSize ~/ 2)) * 4;
+    final color = Color.fromARGB(bytes[centerIndex + 3], bytes[centerIndex], bytes[centerIndex + 1], bytes[centerIndex + 2]);
+
+    return (image: cropImage, color: color);
   }
 
   @override
@@ -228,11 +254,13 @@ class _Artboard extends StatelessWidget {
               ),
             ),
             if (controller.activeTool == EditorTool.eyedropper &&
-                controller.eyedropperPreviewColor != null &&
+                controller.eyedropperSourceImage != null &&
                 controller.eyedropperPreviewLocalPosition != null)
-              _EyedropperPreview(
+              _EyedropperLoupe(
                 position: controller.eyedropperPreviewLocalPosition!,
-                color: controller.eyedropperPreviewColor!,
+                image: controller.eyedropperSourceImage!,
+                color: controller.eyedropperPreviewColor,
+                workspaceSize: displaySize,
               ),
           ],
         );
@@ -241,51 +269,116 @@ class _Artboard extends StatelessWidget {
   }
 }
 
-/// Sampling-point indicator + floating circular sampled-color preview,
-/// offset above the finger so it doesn't cover the exact sample point.
+/// PASS 4.5 — the live magnifying loupe: a floating circular preview of the
+/// ACTUAL rendered artwork around the sample point (never a solid color
+/// swatch alone), positioned above the finger by default so the fingertip
+/// never covers it, flipping below when there isn't room above (§2).
 /// Purely visual — IgnorePointer so it never steals the drag.
-class _EyedropperPreview extends StatelessWidget {
-  const _EyedropperPreview({required this.position, required this.color});
+class _EyedropperLoupe extends StatelessWidget {
+  const _EyedropperLoupe({
+    required this.position,
+    required this.image,
+    required this.color,
+    required this.workspaceSize,
+  });
 
   final Offset position;
-  final Color color;
+  final ui.Image image;
+  final Color? color;
+  final Size workspaceSize;
+
+  static const double _fingerClearance = 20;
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: Stack(
-        children: [
-          Positioned(
-            left: position.dx - 5,
-            top: position.dy - 5,
-            child: Container(
-              width: 10,
-              height: 10,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: 2),
-                boxShadow: const [BoxShadow(color: Color(0x55000000), blurRadius: 2)],
-              ),
-            ),
+    final aboveTop = position.dy - _fingerClearance - kLoupeDiameter;
+    final placeAbove = aboveTop >= 0;
+    final top = placeAbove ? aboveTop : position.dy + _fingerClearance;
+    final maxLeft = math.max(0.0, workspaceSize.width - kLoupeDiameter);
+    final maxTop = math.max(0.0, workspaceSize.height - kLoupeDiameter);
+    final left = (position.dx - kLoupeDiameter / 2).clamp(0.0, maxLeft);
+
+    // Positioned must be the direct child of the surrounding Stack -- wrap
+    // the CONTENT in IgnorePointer instead of wrapping Positioned itself,
+    // or Stack's ParentDataWidget mechanism can't apply StackParentData to
+    // the (differently-typed) RenderObject IgnorePointer introduces.
+    return Positioned(
+      left: left,
+      top: top.clamp(0.0, maxTop),
+      child: IgnorePointer(
+        child: Container(
+          key: const Key('eyedropper-loupe'),
+          width: kLoupeDiameter,
+          height: kLoupeDiameter,
+          decoration: const BoxDecoration(
+            shape: BoxShape.circle,
+            boxShadow: [BoxShadow(color: Color(0x40000000), blurRadius: 10, offset: Offset(0, 3))],
           ),
-          Positioned(
-            left: position.dx - 22,
-            top: position.dy - 78,
-            child: Container(
-              width: 44,
-              height: 44,
-              padding: const EdgeInsets.all(4),
-              decoration: const BoxDecoration(
-                shape: BoxShape.circle,
-                color: Colors.white,
-                boxShadow: [BoxShadow(color: Color(0x33000000), blurRadius: 8, offset: Offset(0, 2))],
-              ),
-              child: DecoratedBox(decoration: BoxDecoration(shape: BoxShape.circle, color: color)),
-            ),
-          ),
-        ],
+          child: CustomPaint(painter: _LoupePainter(image: image, sampleColor: color)),
+        ),
       ),
     );
+  }
+}
+
+/// Draws [image] (already a small crop centered on the sample point — see
+/// EditorScreen._captureColorAt) scaled up to fill the loupe circle, plus a
+/// border ring reflecting the sampled color (§6) and a small center
+/// crosshair marking the exact sample pixel.
+class _LoupePainter extends CustomPainter {
+  _LoupePainter({required this.image, required this.sampleColor});
+
+  final ui.Image image;
+  final Color? sampleColor;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final radius = size.width / 2;
+    final center = Offset(radius, radius);
+
+    canvas.save();
+    canvas.clipPath(Path()..addOval(Rect.fromCircle(center: center, radius: radius)));
+    canvas.drawImageRect(
+      image,
+      Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+      Rect.fromLTWH(0, 0, size.width, size.height),
+      Paint()..filterQuality = FilterQuality.medium,
+    );
+    canvas.restore();
+
+    canvas.drawCircle(
+      center,
+      radius - 2,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 3
+        ..color = sampleColor ?? const Color(0xFFBDBDBD),
+    );
+    canvas.drawCircle(
+      center,
+      radius - 0.5,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1
+        ..color = Colors.white,
+    );
+
+    // Center crosshair marking the exact sample pixel -- a small white disc
+    // with a dark outline stays visible against any content color.
+    canvas.drawCircle(center, 4, Paint()..color = Colors.white);
+    canvas.drawCircle(
+      center,
+      4,
+      Paint()
+        ..style = PaintingStyle.stroke
+        ..strokeWidth = 1.5
+        ..color = const Color(0xFF333333),
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant _LoupePainter oldDelegate) {
+    return oldDelegate.image != image || oldDelegate.sampleColor != sampleColor;
   }
 }
 

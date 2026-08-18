@@ -15,6 +15,7 @@ import 'dart:ui' as ui;
 
 import 'package:color_pop/core/app_data.dart';
 import 'package:color_pop/core/constants.dart';
+import 'package:color_pop/features/editor/artwork_coordinates.dart';
 import 'package:color_pop/features/editor/lesson_artwork_cache.dart';
 import 'package:color_pop/main.dart';
 import 'package:flutter/material.dart';
@@ -231,11 +232,16 @@ Future<void> _tapRedo(WidgetTester tester) async {
   await _settle(tester);
 }
 
+// PASS 4.4: the gesture area is now the FULL grey workspace, not a square
+// sized to the artwork -- the 800x800 sheet is centered inside it at
+// `baseFitScale` (viewScale 1.0, no pan yet at the point these tests use
+// this helper). Must mirror EditorController.ensureViewportInitialized's
+// centering formula exactly, or a tap lands off the intended artwork point.
 Offset _artworkPointToGlobal(Rect artboardRect, Offset artworkPoint) {
-  return Offset(
-    artboardRect.left + artworkPoint.dx / kArtworkSize * artboardRect.width,
-    artboardRect.top + artworkPoint.dy / kArtworkSize * artboardRect.height,
-  );
+  final fit = baseFitScale(artboardRect.size);
+  final rendered = kArtworkSize * fit;
+  final centeredOffset = Offset((artboardRect.width - rendered) / 2, (artboardRect.height - rendered) / 2);
+  return artboardRect.topLeft + centeredOffset + artworkPoint * fit;
 }
 
 Future<void> _tapOnArtboard(WidgetTester tester, Offset artworkPoint) async {
@@ -257,11 +263,16 @@ Future<void> _dragOnArtboard(WidgetTester tester, List<Offset> artworkPoints) as
 
 Future<Color> _samplePixel(WidgetTester tester, Offset artworkPoint) async {
   final boundary = tester.renderObject(find.byKey(const Key('artboard-repaint-boundary'))) as RenderRepaintBoundary;
+  final displaySize = boundary.size;
+  final fit = baseFitScale(displaySize);
+  final rendered = kArtworkSize * fit;
+  final centeredOffset = Offset((displaySize.width - rendered) / 2, (displaySize.height - rendered) / 2);
+  final localPoint = centeredOffset + artworkPoint * fit;
   final image = await boundary.toImage(pixelRatio: 1.0);
   final byteData = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
   final width = image.width;
-  final px = (artworkPoint.dx / kArtworkSize * width).round().clamp(0, width - 1);
-  final py = (artworkPoint.dy / kArtworkSize * image.height).round().clamp(0, image.height - 1);
+  final px = localPoint.dx.round().clamp(0, width - 1);
+  final py = localPoint.dy.round().clamp(0, image.height - 1);
   final bytes = byteData!.buffer.asUint8List();
   final idx = (py * width + px) * 4;
   image.dispose();
