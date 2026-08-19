@@ -218,6 +218,34 @@ class EditorController extends ChangeNotifier {
   Timer? _pendingArbitrationTimer;
   bool _paintingConfirmed = false;
 
+  // HIGH-ZOOM BRUSH COMMITTED-STROKE FIX — a Locked Brush's down-handler
+  // awaits a REAL async region-mask decode (ui.decodeImageFromPixels)
+  // before `_liveStroke` is assigned. Flutter's pointer dispatch does NOT
+  // wait for an async Listener callback to finish before delivering the
+  // NEXT pointer event, so without this, a fast drag's later move/up
+  // events — far more likely to arrive mid-gesture at high zoom, where
+  // the SAME finger motion covers more screen distance and crosses
+  // kTouchSlop mid-drag instead of only at release — could reach
+  // `_handleToolPointerMove`/`_finishToolGesture` while `_liveStroke` is
+  // still null: moves silently drop, and worse, if pointer-up races
+  // ahead too, the WHOLE gesture commits nothing, leaving an orphaned,
+  // purely-visual `_liveStroke` that renders fine live but was never
+  // added to `strokes` — exactly the "looks painted, gone after reload"
+  // bug this fixes. `_pendingConfirmationFuture` lets
+  // handlePointerMove/handlePointerUp explicitly await the SAME
+  // in-flight confirmation before touching `_liveStroke`, so no event
+  // for this gesture can ever race ahead of its own down-handler.
+  Future<void>? _pendingConfirmationFuture;
+
+  // A separate, cancellation-only guard: bumped by _cancelPendingPaintGesture/
+  // _cancelToolGesture (any 2-finger interrupt, pan promotion, or explicit
+  // cancel). _handleToolPointerDown captures the token before starting its
+  // async mask decode and checks it's unchanged before assigning
+  // `_liveStroke` — so a gesture that gets cancelled WHILE its mask decode
+  // is still in flight can never have that decode resurrect a stroke after
+  // the cancellation already cleared it.
+  int _paintGestureToken = 0;
+
   // One-finger Pan state (§1B, §4, §5) — armed by _beginHoldToPan once the
   // hold delay elapses; the artwork translates by the raw screen-space
   // delta from the pan's start point, independent of viewScale (viewOffset
@@ -590,6 +618,17 @@ class EditorController extends ChangeNotifier {
       return;
     }
 
+    // HIGH-ZOOM BRUSH COMMITTED-STROKE FIX: `_paintingConfirmed` was set
+    // synchronously by the confirming move above, but that move's own
+    // handler may still be awaiting `_handleToolPointerDown`'s async
+    // Locked-region mask decode -- Flutter's pointer dispatch does NOT
+    // wait for an async event handler to finish before delivering the
+    // NEXT event, so without this wait, THIS move could reach
+    // `_handleToolPointerMove` while `_liveStroke` is still null and get
+    // silently dropped (see `_pendingConfirmationFuture`'s doc).
+    final pendingConfirmation = _pendingConfirmationFuture;
+    if (pendingConfirmation != null) await pendingConfirmation;
+
     final artworkPoint = artworkPointFromLocal(localPosition, displaySize, scale: viewScale, offset: viewOffset);
     await _handleToolPointerMove(artworkPoint, localPosition);
   }
@@ -651,6 +690,20 @@ class EditorController extends ChangeNotifier {
     }
 
     if (_activePointers.isEmpty) {
+      // HIGH-ZOOM BRUSH COMMITTED-STROKE FIX: confirmation for this
+      // gesture may have been triggered by an EARLIER move event (common
+      // at high zoom, where the same finger motion covers more screen
+      // distance and crosses kTouchSlop mid-drag instead of only at
+      // release) -- if that move's async mask decode is still in flight,
+      // this pointer-up must wait for it before checking `_liveStroke`,
+      // or it finds it still null and commits NOTHING for the whole
+      // gesture (see _pendingConfirmationFuture's doc). Without this, the
+      // dab/stroke silently vanishes from `strokes` while an orphaned,
+      // purely-visual `_liveStroke` keeps rendering until something else
+      // replaces it -- exactly the "looks painted live, gone after
+      // reload" symptom this fix targets.
+      final pendingConfirmation = _pendingConfirmationFuture;
+      if (pendingConfirmation != null) await pendingConfirmation;
       await _finishToolGesture();
     }
   }
@@ -698,6 +751,21 @@ class EditorController extends ChangeNotifier {
     final buffered = List<Offset>.of(_pendingMovePositions);
     _pendingMovePositions.clear();
 
+    // HIGH-ZOOM BRUSH COMMITTED-STROKE FIX: stored so handlePointerMove/
+    // handlePointerUp can await this SAME confirmation before touching
+    // `_liveStroke`, even if THEIR event was dispatched before this async
+    // work (down's mask decode + the buffered-move replay) finishes — see
+    // `_pendingConfirmationFuture`'s doc.
+    final future = _runConfirmedDownAndReplay(firstLocal, displaySize, buffered);
+    _pendingConfirmationFuture = future;
+    try {
+      await future;
+    } finally {
+      _pendingConfirmationFuture = null;
+    }
+  }
+
+  Future<void> _runConfirmedDownAndReplay(Offset firstLocal, Size displaySize, List<Offset> buffered) async {
     final artworkPoint = artworkPointFromLocal(firstLocal, displaySize, scale: viewScale, offset: viewOffset);
     await _handleToolPointerDown(artworkPoint, firstLocal);
 
@@ -709,6 +777,11 @@ class EditorController extends ChangeNotifier {
   }
 
   void _cancelPendingPaintGesture() {
+    // HIGH-ZOOM BRUSH COMMITTED-STROKE FIX: bumps _paintGestureToken so a
+    // Locked Brush mask decode still in flight from this (now-cancelled)
+    // gesture can never resurrect `_liveStroke` once it finally resolves
+    // — see _handleToolPointerDown's doc.
+    _paintGestureToken++;
     _pendingArbitrationTimer?.cancel();
     _pendingArbitrationTimer = null;
     _pendingPointerId = null;
@@ -738,11 +811,24 @@ class EditorController extends ChangeNotifier {
     // LOCKED Brush: detect the connected region at THIS stroke's start
     // point using the SAME engine as Fill, and bake a one-off mask into
     // just this stroke. Lock never affects Erase.
+    //
+    // HIGH-ZOOM BRUSH COMMITTED-STROKE FIX: `_maskToImage` is a REAL async
+    // decode (ui.decodeImageFromPixels) -- captures `_paintGestureToken`
+    // BEFORE awaiting it, so if this gesture gets cancelled (2-finger
+    // interrupt, pan promotion, pointer-cancel) WHILE the decode is still
+    // in flight, the token will have changed by the time it resolves and
+    // this stroke is discarded instead of resurrecting `_liveStroke` after
+    // the cancellation already cleared it.
+    final gestureToken = _paintGestureToken;
     ui.Image? maskImage;
     if (activeTool == EditorTool.brush && locked) {
       final mask = _regionEngine!.floodFillFrom(artworkPoint.dx.round(), artworkPoint.dy.round());
       if (mask == null) return; // start point is a barrier line -- nothing to constrain to
       maskImage = await _maskToImage(mask);
+      if (gestureToken != _paintGestureToken) {
+        maskImage.dispose(); // this gesture was cancelled while decoding -- never stored anywhere else
+        return;
+      }
     }
 
     _liveStroke = LiveStroke(
@@ -817,7 +903,11 @@ class EditorController extends ChangeNotifier {
 
   void _cancelToolGesture() {
     // Cancelled mid-stroke: drop it entirely rather than leaving a partial,
-    // un-recorded stroke that Undo could never reach.
+    // un-recorded stroke that Undo could never reach. Also bumps
+    // _paintGestureToken (see _handleToolPointerDown's doc) so a Locked
+    // Brush mask decode still in flight can never resurrect this stroke
+    // after it's been dropped.
+    _paintGestureToken++;
     _liveStroke = null;
     if (activeTool == EditorTool.eyedropper) {
       // Interrupted sample (e.g. a second finger joined) — stay in

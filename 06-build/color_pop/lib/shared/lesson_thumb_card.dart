@@ -53,81 +53,68 @@ class LessonPreviewImage extends StatelessWidget {
 const Color kThumbnailBorderColor = Color(0xFFE4E4E7);
 const double kThumbnailBorderRadius = 15;
 
-/// UI-POLISH — the ONE shared 2-column grid delegate for every lesson
-/// thumbnail grid (Library, Search, Profile, Completion recommendations),
-/// so their spacing/density never drifts apart into four separately-tuned
-/// copies. `mainAxisSpacing` (vertical) is deliberately a bit larger than
-/// `crossAxisSpacing` (horizontal) to read as row rhythm rather than a
-/// uniform checkerboard. `childAspectRatio` is intentionally left at the
-/// existing, already field-proven 0.82 -- a tighter ratio was tried and
-/// measured to overflow by a few pixels once a full-length title wraps to
-/// its max line count on narrower (~360dp) widths, since the card's title
-/// text has a fixed pixel height that doesn't shrink with the cell the
-/// way the square image does. Compactness instead comes from the reduced
-/// header/section spacing and Home's larger cards.
+/// THUMBNAIL UI UPDATE — the ONE shared 2-column grid delegate for every
+/// lesson thumbnail grid (Library, Search, Profile, Completion
+/// recommendations), so their spacing/density never drifts apart into four
+/// separately-tuned copies. Every consumer is now thumbnail-only (no title
+/// caption reserved -- see [LessonThumbCard]), so `childAspectRatio: 1` is
+/// the exact, fully width-responsive value: the card's natural height
+/// always equals its given width (symmetric 8px padding around a square
+/// image, nothing else), so a square cell fits it with zero slack at any
+/// screen width. Deliberately a ratio, not a hardcoded `mainAxisExtent`,
+/// which would only be exactly square at one specific screen width.
 const SliverGridDelegateWithFixedCrossAxisCount kLessonGridDelegate = SliverGridDelegateWithFixedCrossAxisCount(
   crossAxisCount: 2,
-  mainAxisSpacing: 14,
-  crossAxisSpacing: 12,
-  childAspectRatio: 0.82,
+  mainAxisSpacing: 16,
+  crossAxisSpacing: 14,
+  childAspectRatio: 1,
 );
 
-/// Shared 250x250-thumbnail lesson card — Home, Library, Search, and Profile
+/// Shared thumbnail-only lesson card — Home, Library, Search, and Profile
 /// all render through this ONE widget so thumbnail usage/sizing/tap
-/// behavior never drifts between screens. Home cards omit the title caption
-/// (matches the approved prototype); Library/Search/Profile show it.
+/// behavior never drifts between screens. THUMBNAIL UI UPDATE: lesson
+/// titles are never shown here (moved to Home's Continue card and Profile's
+/// detail popup, which render the title themselves) — the visible label is
+/// preserved for assistive tech via [Semantics] instead.
 class LessonThumbCard extends StatelessWidget {
   const LessonThumbCard({
     super.key,
     required this.lesson,
     required this.onTap,
-    this.showTitle = true,
     this.width,
   });
 
   final LessonModel lesson;
   final VoidCallback onTap;
-  final bool showTitle;
   final double? width;
 
   @override
   Widget build(BuildContext context) {
-    final card = Material(
-      color: Colors.white,
-      borderRadius: BorderRadius.circular(16),
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(8),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AspectRatio(
-                aspectRatio: 1,
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(kThumbnailBorderRadius),
-                    border: Border.all(color: kThumbnailBorderColor, width: 1),
-                  ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(kThumbnailBorderRadius - 1),
-                    child: LessonPreviewImage(lesson: lesson),
-                  ),
+    final card = Semantics(
+      label: lesson.title,
+      button: true,
+      child: Material(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        clipBehavior: Clip.antiAlias,
+        child: InkWell(
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.all(8),
+            child: AspectRatio(
+              aspectRatio: 1,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(kThumbnailBorderRadius),
+                  border: Border.all(color: kThumbnailBorderColor, width: 1),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(kThumbnailBorderRadius - 1),
+                  child: LessonPreviewImage(lesson: lesson),
                 ),
               ),
-              if (showTitle) ...[
-                const SizedBox(height: 6),
-                Text(
-                  lesson.title,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w700),
-                ),
-              ],
-            ],
+            ),
           ),
         ),
       ),

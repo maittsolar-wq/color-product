@@ -87,10 +87,20 @@ void paintUserArtwork(
   canvas.restore();
 
   if (lineArtImage != null) {
-    canvas.drawImage(lineArtImage, Offset.zero, Paint());
+    // HIGH-ZOOM BRUSH FIX: FilterQuality.none is already dart:ui's default
+    // for an unset Paint (nearest-neighbor, no interpolation) -- explicit
+    // here so this source-space-exact contract can never silently regress
+    // to a smoothed/bilinear sample under a rendering backend (e.g.
+    // Impeller vs Skia) that might not share Paint's implicit default.
+    // Nearest-neighbor keeps every pixel boundary exactly where the
+    // 800x800 source data puts it, at any viewport zoom -- a linearly
+    // interpolated boundary's blend band is fixed in SOURCE pixels, so it
+    // would grow proportionally more visible the more the view magnifies
+    // it, exactly the kind of zoom-dependent artifact this fix rules out.
+    canvas.drawImage(lineArtImage, Offset.zero, Paint()..filterQuality = FilterQuality.none);
   }
 
-  canvas.drawImage(_getBoundsMaskImage(), Offset.zero, Paint()..blendMode = BlendMode.dstIn);
+  canvas.drawImage(_getBoundsMaskImage(), Offset.zero, Paint()..blendMode = BlendMode.dstIn..filterQuality = FilterQuality.none);
   canvas.restore();
 }
 
@@ -110,7 +120,11 @@ void _paintAction(
     if (maskImage == null) return; // a fill action always carries its region mask
     canvas.saveLayer(kArtRect, Paint());
     canvas.drawRect(kArtRect, Paint()..color = color);
-    canvas.drawImage(maskImage, Offset.zero, Paint()..blendMode = BlendMode.dstIn);
+    // filterQuality: none -- see the matching comment on the Brush mask
+    // draw below; this is the SAME RegionEngine-produced mask image drawn
+    // through the SAME technique, so it carries the SAME source-space-
+    // exact requirement.
+    canvas.drawImage(maskImage, Offset.zero, Paint()..blendMode = BlendMode.dstIn..filterQuality = FilterQuality.none);
     canvas.restore();
     return;
   }
@@ -150,9 +164,25 @@ void _paintAction(
   // same destination-in compositing technique Locked Brush always uses,
   // isolated to just this stroke via its own nested saveLayer so it never
   // affects any other action already painted in the outer layer.
+  //
+  // HIGH-ZOOM BRUSH FIX: filterQuality: none is already dart:ui's default
+  // for an unset Paint (confirmed against the engine source: "Defaults to
+  // FilterQuality.none"), so this changes no observed behavior on Skia --
+  // it's pinned explicitly so the mask's binary, source-pixel-exact edge
+  // can never be smoothed into a blurred alpha ramp under a rendering
+  // backend that doesn't share that same implicit default. A soft ramp
+  // here would be fixed in width in SOURCE pixels (roughly one mask
+  // texel), invisible at 1x but stretched to several visible screen
+  // pixels at 4x zoom -- exactly the "1-source-pixel leak becomes visually
+  // obvious at high zoom" failure mode this fix rules out. A focused
+  // regression test (test/editor_highzoom_brush_test.dart) exercises the
+  // real screen-pointer -> viewport-transform -> region-mask pipeline at
+  // 1x/4x/4x+pan/Expanded and found containment already correct even
+  // without this pin -- it's defensive hardening, not a fix for a
+  // reproduced bleed.
   canvas.saveLayer(kArtRect, Paint());
   canvas.drawPath(path, strokePaint);
-  canvas.drawImage(maskImage, Offset.zero, Paint()..blendMode = BlendMode.dstIn);
+  canvas.drawImage(maskImage, Offset.zero, Paint()..blendMode = BlendMode.dstIn..filterQuality = FilterQuality.none);
   canvas.restore();
 }
 

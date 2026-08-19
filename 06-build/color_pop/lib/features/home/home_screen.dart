@@ -178,18 +178,45 @@ class _CategorySection extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
+      // THUMBNAIL UI UPDATE: bumped from zero to land the measured
+      // thumbnail-row -> next-category-title gap in the newly-requested
+      // 22-28px range (previously tuned to ~14-19px against an older,
+      // narrower 16-20px target). Value found via on-device pixel
+      // measurement (border bottom -> next title's first ink pixel).
       padding: const EdgeInsets.only(bottom: 14),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Padding(
-            padding: const EdgeInsets.only(top: 6, bottom: 8),
+            padding: const EdgeInsets.only(bottom: 8),
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(_titles[categoryId] ?? categoryId, style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700)),
+                Text(
+                  _titles[categoryId] ?? categoryId,
+                  // height:1.0 removes the font's own default extra
+                  // leading above the cap-height ink -- without it, the
+                  // title's line box (and therefore the Row it sits in)
+                  // reserves several more invisible px above the visible
+                  // letters than the explicit paddings above account for.
+                  style: const TextStyle(fontSize: 19, fontWeight: FontWeight.w700, height: 1.0),
+                ),
+                // HOME ROW-HEIGHT FIX: a plain TextButton's default
+                // ButtonStyle carries a Material tap-target minimum height
+                // well past this row's ~19px text -- since the Row's
+                // default crossAxisAlignment is center, that invisible
+                // minimum height was inflating the WHOLE title row (and
+                // centering the visible text within it), adding several
+                // more px of unaccounted vertical space above the title
+                // text on top of the row's own padding. Shrink-wrapping it
+                // removes that.
                 TextButton(
                   onPressed: onSeeAll,
+                  style: TextButton.styleFrom(
+                    padding: EdgeInsets.zero,
+                    minimumSize: Size.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
                   child: const Text('See all', style: TextStyle(color: Color(0xFF7C4DFF), fontWeight: FontWeight.w600)),
                 ),
               ],
@@ -202,10 +229,21 @@ class _CategorySection extends StatelessWidget {
             // width (their own GridView-driven sizing via
             // kLessonGridDelegate), so this stays scoped to Home alone —
             // only the layout dimensions differ; the card's shared
-            // border/radius styling is untouched. Row height keeps the
-            // same 16px slack above the card's own height (width - 16px
-            // padding + 16px padding = width) the original pairing used.
-            height: 156,
+            // border/radius styling is untouched.
+            //
+            // HOME ROW-HEIGHT FIX: a horizontal ListView gives every item
+            // a TIGHT cross-axis (height) constraint equal to this
+            // SizedBox's own height -- unlike a Row/Column, the item
+            // can't shrink-wrap smaller than that. A previous "+16px
+            // slack" here (inherited from an older, titled card design)
+            // was therefore forcing every card's own white background to
+            // stretch 16px taller than its visible bordered thumbnail,
+            // which read as a large blank gap before the next category
+            // title. LessonThumbCard is title-less, so its natural height
+            // is exactly its own width (square image + this widget's
+            // symmetric 8px top/bottom padding) -- so this MUST equal
+            // `width` below with zero slack, or that gap returns.
+            height: 140,
             child: ListView.separated(
               scrollDirection: Axis.horizontal,
               itemCount: lessons.length,
@@ -216,7 +254,6 @@ class _CategorySection extends StatelessWidget {
                   key: Key('lesson-card-${lesson.id}'),
                   lesson: lesson,
                   width: 140,
-                  showTitle: false,
                   onTap: () => onOpenEditor(lesson.id),
                 );
               },

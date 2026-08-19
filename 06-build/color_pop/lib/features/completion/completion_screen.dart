@@ -128,6 +128,15 @@ class _CompletionScreenState extends State<CompletionScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        // COMPLETION SCROLL FIX: Material 3's AppBar tints itself with
+        // ColorScheme.surfaceTint once it detects the body scrolling
+        // "under" it (scrolledUnderElevation, on by default even at
+        // elevation:0) — that overlay was the grayish wash appearing near
+        // the status bar whenever the old single ListView scrolled.
+        // Disabling both keeps the top bar flat white regardless of what
+        // scrolls beneath it.
+        surfaceTintColor: Colors.transparent,
+        scrolledUnderElevation: 0,
         foregroundColor: const Color(0xFF151515),
         // §6 — a plain pop, always returning to the SAME Editor instance
         // that pushed this screen (never a fresh one, never a reset) — the
@@ -137,6 +146,12 @@ class _CompletionScreenState extends State<CompletionScreen> {
       ),
       body: SafeArea(
         top: false,
+        // COMPLETION SCROLL FIX (reverted per correction): the whole page
+        // scrolls as one continuous ListView again -- Amazing!/artwork/
+        // Share/Save/Back to home/Recommended-for-you all move together.
+        // The white-background fix (AppBar surfaceTint disabled above)
+        // is what actually stops the gray wash, and applies regardless of
+        // scroll architecture, so it stays.
         child: ListView(
           padding: const EdgeInsets.fromLTRB(24, 8, 24, 32),
           children: [
